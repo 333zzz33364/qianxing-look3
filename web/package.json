@@ -1,0 +1,37 @@
+{
+  "name": "look2-web",
+  "version": "2.0.25",
+  "description": "Self-hosted editor, preview and play surface for Qianxing simulator saves",
+  "type": "module",
+  "main": "dist/server.js",
+  "bin": {
+    "look2-web": "dist/server.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node ../scripts/build.mjs web",
+    "pretest": "node ../scripts/build.mjs web",
+    "prepack": "node ../scripts/build.mjs web",
+    "start": "node dist/server.js",
+    "dev": "node ../scripts/build.mjs web && node server.js",
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "0.1.100",
+    "fengari": "0.1.5",
+    "protobufjs": "8.7.2"
+  },
+  "devDependencies": {
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "qxqy-editor-ui": "workspace:*",
+    "qxqy-studio": "workspace:*"
+  },
+  "license": "GPL-3.0-only"
+}

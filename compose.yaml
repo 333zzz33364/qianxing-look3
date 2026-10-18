@@ -1,0 +1,13 @@
+services:
+  simulator:
+    build: .
+    ports:
+      - "127.0.0.1:4174:4174"
+    environment:
+      QXQY_WEB_PASSWORD: ${QXQY_WEB_PASSWORD:?Set QXQY_WEB_PASSWORD before starting}
+    volumes:
+      - simulator-data:/data
+    init: true
+    restart: unless-stopped
+volumes:
+  simulator-data:
