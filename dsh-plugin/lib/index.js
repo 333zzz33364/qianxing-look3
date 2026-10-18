@@ -1,23 +1,26 @@
-import { existsSync, readFileSync } from 'node:fs'
-import { basename, join } from 'node:path'
+import { existsSync, readFileSync, realpathSync } from 'node:fs'
+import { basename, join, relative } from 'node:path'
 import { homedir } from 'node:os'
 import { SimulatorController as SharedSimulatorController } from 'qxqy-studio/host/controller'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import { listWorkspaceArchives, resolveWorkspaceArchive } from './workspace-archives.js'
 import { createImageSource } from '../../studio/host/image-source.js'
+import { serveImageAsset } from 'qxqy-studio/host/image-assets'
+import { serveAudioAsset } from 'qxqy-studio/host/audio-assets'
+import { localFont, serveLocalFont } from 'qxqy-studio/host/local-font'
 
-export const name = 'look2-simulator'
+export const name = 'look3-simulator'
 export const inject = ['tools', 'webServer']
 
-const API_PREFIX = '/look2-simulator/api'
-const PLAY_PATH = '/look2-simulator/play'
-const PLAY_RENDERER_PATH = '/look2-simulator/play-renderer.js'
+const API_PREFIX = '/look3-simulator/api'
+const PLAY_PATH = '/look3-simulator/play'
+const PLAY_RENDERER_PATH = '/look3-simulator/play-renderer.js'
 // Pixel-art-heavy QXQY saves can exceed 2 MiB before base64 transport.
 // Keep the local import endpoint comfortably above the current paper-theater bundle.
 const MAX_BODY_BYTES = 64 * 1024 * 1024
 const MAX_SESSIONS = 32
-const SCREENSHOT_TIMEOUT_MS = 8_000
-const imageSource = createImageSource(process.env.LOOK2_ASSET_CACHE || join(process.env.DSH_HOME || join(homedir(), '.dsh'), 'look2-image-cache'))
+const SCREENSHOT_TIMEOUT_MS = 60_000
+const imageSource = createImageSource(process.env.LOOK3_ASSET_CACHE || process.env.LOOK2_ASSET_CACHE || join(process.env.DSH_HOME || join(homedir(), '.dsh'), 'look3-image-cache'))
 
 // DSH only adapts session-specific concerns (touch bookkeeping, JSON-string
 // tool arguments and its localized workspace errors).  The Studio controller
@@ -50,7 +53,9 @@ export class SimulatorController extends SharedSimulatorController {
 
   importData(format, data, filename, options = {}) {
     this.touch()
-    return this.studio.importData(format, data, filename, options)
+    const result = this.studio.importData(format, data, filename, options)
+    this.archivePath = ''; this.archiveStamp = ''; this.savedArchive = ''
+    return { ...result, snapshot: this.get() }
   }
 
   listArchives() {
@@ -62,8 +67,8 @@ export class SimulatorController extends SharedSimulatorController {
     this.touch()
     const workspace = this.studio.get().workspace?.path || ''
     const abs = resolveWorkspaceArchive(workspace, path)
-    const bytes = readFileSync(abs)
-    return this.studio.importData('json', bytes.toString('base64'), basename(abs))
+    const result = super.loadArchive(relative(realpathSync(workspace), abs))
+    return { ...result, snapshot: this.get() }
   }
 
   async play(action, rawArgs = {}, signal) {
@@ -79,9 +84,9 @@ export class SimulatorController extends SharedSimulatorController {
     }
   }
 
-  requestUiScreenshot() {
+  async requestUiScreenshot(signal) {
     this.touch()
-    const image = super.uiScreenshot()
+    const image = await super.uiScreenshot(signal)
     return {
       ...image,
       capturedAt: new Date().toISOString(),
@@ -143,6 +148,7 @@ export async function lookupSessionWorkspace(sessionId, services = {}) {
 
 function createRegistry() {
   const sessions = new Map()
+  let disposed = false
   function prune() {
     if (sessions.size < MAX_SESSIONS) return
     const oldest = [...sessions.entries()].sort((a, b) => a[1].touchedAt - b[1].touchedAt)[0]
@@ -153,6 +159,7 @@ function createRegistry() {
   }
   return {
     get(sessionId, workspacePath = '') {
+      if (disposed) throw new Error('simulator plugin has been disposed')
       const id = sessionIdOf(sessionId)
       let controller = sessions.get(id)
       if (!controller) {
@@ -168,8 +175,10 @@ function createRegistry() {
       return controller
     },
     async dispose() {
-      await Promise.all([...sessions.values()].map((controller) => controller.dispose()))
+      disposed = true
+      const controllers = [...sessions.values()]
       sessions.clear()
+      await Promise.all(controllers.map((controller) => controller.dispose()))
     },
   }
 }
@@ -214,8 +223,15 @@ function loadPlayRenderer() {
 
 let playRendererCache = null
 
+function registerRoute(ctx, route) {
+  // Unlike tools.register(), webServer.register() returns a plain disposer.
+  // Own it in this activation so restart, dependency reload and failed startup
+  // all remove the old handler before registering a new session registry.
+  return ctx.effect(() => ctx.webServer.register(route), `look3-simulator: ${route.kind} ${route.path}`)
+}
+
 function registerPlayPage(ctx) {
-  ctx.webServer.register({
+  registerRoute(ctx, {
     kind: 'prefix',
     path: PLAY_PATH,
     handler(request, response) {
@@ -236,7 +252,7 @@ function registerPlayPage(ctx) {
 }
 
 function registerPlayRenderer(ctx) {
-  ctx.webServer.register({
+  registerRoute(ctx, {
     kind: 'exact',
     path: PLAY_RENDERER_PATH,
     handler(request, response) {
@@ -288,9 +304,9 @@ function readBody(request) {
 
 function registerTools(ctx, registry) {
   for (const [name, description, action] of [
-    ['look2_studio_transaction', '原子修改控件、动画和素材，失败回滚且只产生一个撤销记录。', 'transaction'],
-    ['look2_studio_history', '读取、撤销、重做或恢复工程操作记录。', 'history'],
-    ['look2_studio_template', '导入、管理或实例化客户端控件模板，索引与游戏配置一致。', 'template'],
+    ['look3_studio_transaction', '原子修改控件、动画和素材，失败回滚且只产生一个撤销记录。', 'transaction'],
+    ['look3_studio_history', '读取、撤销、重做或恢复工程操作记录。', 'history'],
+    ['look3_studio_template', '导入、管理或实例化客户端控件模板，索引与游戏配置一致。', 'template'],
   ]) ctx.tools.register(defineTool({
     name, description,
     parameters: { args: { type: 'json', description: '操作参数；修改时必须含 expectedRevision。', required: true } },
@@ -302,8 +318,8 @@ function registerTools(ctx, registry) {
     },
   }))
   ctx.tools.register(defineTool({
-    name: 'look2_animation_set',
-    description: '提交 look2.0 动画状态。先用 look2_studio_get 读取 look2 与 revision，修改后整体提交。',
+    name: 'look3_animation_set',
+    description: '提交 look2.0 动画状态。先用 look3_studio_get 读取 look2 与 revision，修改后整体提交。',
     parameters: {
       state: { type: 'json', description: '完整的 look2 状态', required: true },
       expectedRevision: { type: 'number', description: '当前工程 revision', required: true },
@@ -318,7 +334,7 @@ function registerTools(ctx, registry) {
   }))
 
   ctx.tools.register(defineTool({
-    name: 'look2_animation_export',
+    name: 'look3_animation_export',
     description: '导出参考站点 JSON、Timeline Data、可挂载的动画播放 Lua、含动画脚本的客户端 GIA 或完整 Look 存档，返回 base64 文件内容。',
     parameters: {
       format: { type: 'string', enum: ['site-json', 'timeline-data', 'timeline-lib', 'animation-lua', 'primitive-data', 'primitive-lib', 'primitive-svg', 'primitive-css', 'gia', 'save'], required: true },
@@ -333,7 +349,16 @@ function registerTools(ctx, registry) {
   }))
 
   ctx.tools.register(defineTool({
-    name: 'look2_studio_get',
+    name: 'look3_script_sync',
+    description: '实机 Lua 目录复制同步：discover/status/configure/preview。configure 的 args 包含 config(version:1, workspaceDir, clientImportRoot, clientSubdir) 和 expectedRevision；配置随完整存档保存。preview 只检查差异，复制必须由用户在 Lua 脚本页面检查并确认。',
+    parameters: { action: { type: 'string', enum: ['discover', 'status', 'configure', 'preview'], required: true }, args: { type: 'json' } },
+    output: { schema: { type: 'json' }, render: (_args, value) => [{ type: 'text', text: JSON.stringify(value, null, 2) }] },
+    timeoutMs: 10_000,
+    isConcurrencySafe: () => false,
+    async execute(args, exec) { return registry.get(toolSessionId(exec), sessionWorkspace(exec)).scriptSyncAction(args.action, jsonParam(args.args) || {}) },
+  }))
+  ctx.tools.register(defineTool({
+    name: 'look3_studio_get',
     description: '读取当前 DeepSeek Harness 会话的千星 UI 编辑器无损 JSON 快照。',
     parameters: {},
     output: {
@@ -348,13 +373,14 @@ function registerTools(ctx, registry) {
   }))
 
   ctx.tools.register(defineTool({
-    name: 'look2_studio_play_screenshot',
-    description: '获取当前试玩 Runtime 画面的 PNG。Host 与独立试玩页共用 Runtime scene 树（同级先出现的子节点在上）再画成 PNG，不需要打开试玩页或切换标签。仅在需要观察运行时画面、动画或交互结果时调用；若要看编辑器舞台，请改用 look2_studio_ui_screenshot。不会步进时间，也不替代 get {inspect:true} 的结构化断言。',
+    name: 'look3_studio_play_screenshot',
+    description: '获取当前试玩 Runtime 画面的 PNG。Host 与独立试玩页共用 Runtime scene 树（同级先出现的子节点在上）再画成 PNG，不需要打开试玩页或切换标签。仅在需要观察运行时画面、动画或交互结果时调用；若要看编辑器舞台，请改用 look3_studio_ui_screenshot。不会步进时间，也不替代 get {inspect:true} 的结构化断言。',
     parameters: {},
     output: {
       schema: { type: 'json' },
       render: (_args, value) => {
         const text = `试玩截图：${value.canvasId || 'unknown'}，Frame ${value.frame ?? 0}，${value.width || 0}×${value.height || 0}`
+          + (value.assetWarnings?.length ? `\n素材加载失败（画面中为占位框）：${JSON.stringify(value.assetWarnings)}` : '')
         const content = [{ type: 'text', text }]
         if (value.image) content.push({ type: 'image', attachment: value.image })
         return content
@@ -388,14 +414,15 @@ function registerTools(ctx, registry) {
   }))
 
   ctx.tools.register(defineTool({
-    name: 'look2_studio_ui_screenshot',
-    description: '获取当前编辑器舞台的 PNG。Host 根据 boxes 在进程内渲染，不需要打开或保持“模拟器”标签。用于检查静态 UI 布局、选中项和控件图元；不含完整 Chrome DOM 工具栏/检视器。若要看 Lua Runtime 试玩画面，请改用 look2_studio_play_screenshot。',
+    name: 'look3_studio_ui_screenshot',
+    description: '获取当前编辑器舞台的 PNG。Host 根据 boxes 在进程内渲染，不需要打开或保持“模拟器”标签。用于检查静态 UI 布局、选中项和控件图元；不含完整 Chrome DOM 工具栏/检视器。若要看 Lua Runtime 试玩画面，请改用 look3_studio_play_screenshot。',
     parameters: {},
     output: {
       schema: { type: 'json' },
       render: (_args, value) => {
         const page = value.page || '模拟器'
         const text = `编辑器截图：${page}，${value.width || 0}×${value.height || 0}`
+          + (value.assetWarnings?.length ? `\n素材加载失败（画面中为占位框）：${JSON.stringify(value.assetWarnings)}` : '')
         const content = [{ type: 'text', text }]
         if (value.image) content.push({ type: 'image', attachment: value.image })
         return content
@@ -405,7 +432,7 @@ function registerTools(ctx, registry) {
     isConcurrencySafe: () => false,
     async execute(_args, exec) {
       const controller = registry.get(toolSessionId(exec), sessionWorkspace(exec))
-      const captured = controller.requestUiScreenshot()
+      const captured = await controller.requestUiScreenshot(exec.signal)
       const attachments = ctx.get?.('attachments')
       if (!attachments?.saveImage) throw new Error('Harness attachment service is unavailable; cannot return screenshot to AI')
       const ref = await attachments.saveImage({
@@ -429,8 +456,8 @@ function registerTools(ctx, registry) {
   }))
 
   ctx.tools.register(defineTool({
-    name: 'look2_studio_patch',
-    description: '修改当前会话的千星 UI 工程。op 必须携带 expectedRevision 以防止陈旧写入。',
+    name: 'look3_studio_patch',
+    description: '修改当前会话的千星 UI 工程。op 必须携带 expectedRevision。客户端控件索引用 setControlGuid（id、guid）；必须根据快照 controlGuidChanges 更新存档 Lua source 和相关源文件的索引引用并核对，完成后用 acknowledgeControlGuidChanges（changeIds）确认，禁止盲目替换全部同值数字。',
     parameters: {
       op: { type: 'json', required: true, description: '编辑器 patch 对象。' },
     },
@@ -448,7 +475,7 @@ function registerTools(ctx, registry) {
   }))
 
   ctx.tools.register(defineTool({
-    name: 'look2_studio_play',
+    name: 'look3_studio_play',
     description: '控制当前会话的千星 UI 试玩 Worker：启动、步进、输入、暂停、停止、多设备画布切换、多人视角、服务端变量/信号，以及录制回放用例。start 可用 args.asset 选择 server 完整界面或 client 模板；templateRootId 仅用于 client，animationId 可指定客户端模板实例的启动动画；expectedRevision 可选且传入时须与当前工程 revision 一致。',
     parameters: {
       action: {
@@ -474,7 +501,7 @@ function registerTools(ctx, registry) {
   }))
 
   ctx.tools.register(defineTool({
-    name: 'look2_studio_load',
+    name: 'look3_studio_load',
     description: '从当前会话工作区拉取千星模拟器存档。不传 path 时列出工作区内的 qxqy-simulator-save；传入相对路径则加载该存档。',
     parameters: {
       path: { type: 'string', description: '工作区内相对路径，例如 workspace/flappy-fish/flappy-fish.save.json。省略则只列出可拉取存档。' },
@@ -494,7 +521,7 @@ function registerTools(ctx, registry) {
 }
 
 function registerApi(ctx, registry) {
-  ctx.webServer.register({
+  registerRoute(ctx, {
     kind: 'prefix',
     path: API_PREFIX,
     async handler(request, response) {
@@ -530,7 +557,13 @@ function registerApi(ctx, registry) {
         else if (action === 'import') value = controller.importData(body.format, body.data, body.filename, { mode: body.mode })
         else if (action === 'archives') value = controller.listArchives()
         else if (action === 'load-archive') value = controller.loadArchive(body.path)
-        else if (action === 'save') value = controller.saveArchive(body.path)
+        else if (action === 'save') value = controller.saveForScriptSync(body.path, body.expectedRevision)
+        else if (action === 'script-sync') value = controller.scriptSyncAction(body.action, body.args || {})
+        else if (action === 'script-sync-apply') value = controller.scriptSync.apply(body)
+        else if (action === 'image-refresh') {
+          await controller.imageAssets.refresh(body.imageId, { imageSource: body.imageSource })
+          value = { imageId: body.imageId, imageSource: body.imageSource || 'StaticReference', refreshed: true }
+        }
         else if (action === 'play') value = await controller.play(body.action, body.args || {}, abort.signal)
         else throw new Error('unknown API action')
         return value
@@ -544,15 +577,18 @@ function registerApi(ctx, registry) {
 }
 
 export function apply(ctx) {
+  localFont()
   const registry = createRegistry()
+  // Install cleanup before registration can throw, and let Cordis await workers.
+  ctx.effect(() => () => registry.dispose(), 'look3-simulator: dispose sessions')
   registerTools(ctx, registry)
   registerApi(ctx, registry)
   registerPlayPage(ctx)
   registerPlayRenderer(ctx)
-  for (const worker of ['look2-fit-worker', 'look2-psd-worker']) ctx.webServer.register({
-    kind: 'prefix', path: `/look2-simulator/${worker}.js`,
+  for (const worker of ['look2-fit-worker', 'look2-psd-worker']) registerRoute(ctx, {
+    kind: 'prefix', path: `/look3-simulator/${worker}.js`,
     handler(request, response) {
-      if (request.method !== 'GET' || new URL(request.url, 'http://localhost').pathname !== `/look2-simulator/${worker}.js`) { response.statusCode = 404; response.end(); return }
+      if (request.method !== 'GET' || new URL(request.url, 'http://localhost').pathname !== `/look3-simulator/${worker}.js`) { response.statusCode = 404; response.end(); return }
       const hit = [new URL(`../dist/${worker}.js`, import.meta.url), new URL(`./${worker}.js`, import.meta.url)].find(url => existsSync(url))
       if (!hit) { response.statusCode = 503; response.end('Build the image workers first'); return }
       response.setHeader('content-type', 'text/javascript; charset=utf-8')
@@ -560,7 +596,7 @@ export function apply(ctx) {
       response.end(readFileSync(hit))
     },
   })
-  ctx.webServer.register({
+  registerRoute(ctx, {
     kind: 'prefix', path: '/look2-assets/',
     async handler(request, response) {
       if (request.method !== 'GET') { response.statusCode = 405; response.end('GET required'); return }
@@ -576,7 +612,7 @@ export function apply(ctx) {
       } catch (error) { sendJson(response, 502, { ok: false, error: String(error.message || error) }) }
     },
   })
-  ctx.effect(() => () => {
-    void registry.dispose()
-  }, 'qxqy-simulator: dispose sessions')
+  registerRoute(ctx, { kind: 'prefix', path: '/qxqy-assets', handler: (request, response) => serveImageAsset(request, response) })
+  registerRoute(ctx, { kind: 'prefix', path: '/qxqy-audio', handler: (request, response) => serveAudioAsset(request, response) })
+  registerRoute(ctx, { kind: 'prefix', path: '/qxqy-font', handler: serveLocalFont })
 }

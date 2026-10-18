@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
 const script = fileURLToPath(new URL('./smoke-git-install.mjs', import.meta.url))
-const packageName = 'look2-dsh-plugin'
+const packageName = 'look3-dsh-plugin'
 const repositoryUrl = 'git+file:///C:/Temp/qxqy-git-install/source'
 const commit = '706d453b55b8bb1e991bef43b49acc71c839043d'
 

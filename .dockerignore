@@ -16,3 +16,13 @@ dsh-plugin/presets
 !**/.env.example
 coverage
 frontend
+
+上游
+archive
+look2-workspace
+look3-workspace
+**/.local-fonts
+**/*.ttf
+**/*.otf
+**/*.woff
+**/*.woff2

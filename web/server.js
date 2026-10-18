@@ -2,13 +2,17 @@
 
 import { spawn } from 'node:child_process'
 import { createServer } from 'node:http'
-import { readFileSync } from 'node:fs'
+import { readFileSync, realpathSync } from 'node:fs'
 import { extname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createHash, timingSafeEqual } from 'node:crypto'
 import { WebSession } from './lib/session.js'
 import { EditorSessions } from './lib/editor-sessions.js'
 import { createImageSource } from '../studio/host/image-source.js'
+import { resolveWorkspaceRoot } from 'qxqy-studio/host/workspace'
+import { serveImageAsset, sharedImageAssets } from 'qxqy-studio/host/image-assets'
+import { serveAudioAsset, sharedAudioAssets } from 'qxqy-studio/host/audio-assets'
+import { localFont, serveLocalFont } from 'qxqy-studio/host/local-font'
 
 const moduleDir = fileURLToPath(new URL('.', import.meta.url))
 // Capture once: rebuilding the file must not relabel an already running process.
@@ -47,16 +51,16 @@ function parseArgs(argv = process.argv.slice(2)) {
     workspace: valueAfter('--workspace', process.env.QXQY_WORKSPACE || process.cwd()),
     initialPath: valueAfter('--file'),
     host: valueAfter('--host', '127.0.0.1'),
-    port: Number(valueAfter('--port', '4174')),
+    port: Number(valueAfter('--port', '4260')),
     open: argv.includes('--open'),
   }
 }
 
-function headers(contentType) {
+function headers(contentType, frameAncestors = "'none'") {
   return {
     'cache-control': 'no-store',
     'content-type': contentType,
-    'content-security-policy': "default-src 'self'; img-src 'self' data:; connect-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; frame-ancestors 'none'",
+    'content-security-policy': `default-src 'self'; img-src 'self' data:; connect-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; frame-ancestors ${frameAncestors}`,
     'x-content-type-options': 'nosniff',
   }
 }
@@ -95,16 +99,18 @@ function openBrowser(url) {
 }
 
 export async function createWebServer(options = {}) {
+  options = { ...options, imageAssets: options.imageAssets || sharedImageAssets(), audioAssets: options.audioAssets || sharedAudioAssets() }
   const host = options.host || '127.0.0.1'
   const password = options.password ?? process.env.QXQY_WEB_PASSWORD ?? ''
   const loopback = ['127.0.0.1', 'localhost', '::1'].includes(host)
+  if (localFont() && !loopback) throw new Error('QXQY_FONT_PATH requires a loopback-only Web host')
   if (!loopback && !password) throw new Error('QXQY_WEB_PASSWORD is required when listening outside loopback')
   const digest = value => createHash('sha256').update(value).digest()
   const passwordDigest = digest(password)
   const session = new WebSession(options)
   await session.initialize()
   const editors = new EditorSessions(session.workspace, options)
-  const imageSource = createImageSource(options.assetCacheDirectory || process.env.LOOK2_ASSET_CACHE || resolve(session.workspace, '.look2-image-cache'))
+  const imageSource = createImageSource(options.assetCacheDirectory || process.env.LOOK3_ASSET_CACHE || process.env.LOOK2_ASSET_CACHE || resolve(session.workspace, '.look3-image-cache'))
   editors.imageSource = imageSource
   const eventStreams = new Set()
   const unsubscribe = session.subscribe((event) => {
@@ -148,10 +154,14 @@ export async function createWebServer(options = {}) {
           return
         }
       }
+      if (await serveImageAsset(request, response, options.imageAssets)) return
+      if (await serveAudioAsset(request, response, options.audioAssets)) return
+      if (serveLocalFont(request, response)) return
       if (request.method === 'GET' && staticFiles.has(requestUrl.pathname)) {
         const filename = staticFiles.get(requestUrl.pathname)
         const data = readFileSync(resolve(publicDir, filename))
-        response.writeHead(200, headers(mimeTypes[extname(filename)] || 'application/octet-stream'))
+        // Only the play page can be embedded, and only by our same-origin editor.
+        response.writeHead(200, headers(mimeTypes[extname(filename)] || 'application/octet-stream', requestUrl.pathname === '/editor/play' ? "'self'" : "'none'"))
         response.end(data)
         return
       }
@@ -162,11 +172,16 @@ export async function createWebServer(options = {}) {
         return
       }
       if (request.method === 'GET' && requestUrl.pathname === '/api/state') {
+        if (requestUrl.searchParams.get('refresh') === '1') session.archives(true)
         sendJson(response, 200, { ok: true, value: await session.currentState(abort.signal) })
         return
       }
+      if (request.method === 'GET' && requestUrl.pathname === '/api/preview') {
+        sendJson(response, 200, { ok: true, value: session.previewStatus() })
+        return
+      }
       if (request.method === 'GET' && requestUrl.pathname === '/api/editor.png') {
-        sendPng(response, session.editorScreenshot())
+        sendPng(response, await session.editorScreenshot(abort.signal))
         return
       }
       if (request.method === 'GET' && requestUrl.pathname === '/api/events') {
@@ -181,7 +196,14 @@ export async function createWebServer(options = {}) {
       }
       if (request.method === 'POST' && requestUrl.pathname === '/api/open') {
         const body = await readBody(request)
-        sendJson(response, 200, { ok: true, value: await session.open(body.path) })
+        if (body.expectedWorkspace !== undefined) {
+          const expected = resolveWorkspaceRoot(body.expectedWorkspace)
+          const same = process.platform === 'win32'
+            ? expected.toLowerCase() === session.workspace.toLowerCase()
+            : expected === session.workspace
+          if (!same) throw new Error(`Web workspace mismatch: ${session.workspace}`)
+        }
+        sendJson(response, 200, { ok: true, value: await session.open(body.path, body.expectedWorkspace === undefined ? 'manual' : 'mcp-preview') })
         return
       }
       if (request.method === 'POST' && requestUrl.pathname.startsWith('/editor/api/')) {
@@ -206,7 +228,7 @@ export async function createWebServer(options = {}) {
     }
   })
 
-  const port = Number.isFinite(Number(options.port)) ? Number(options.port) : 4174
+  const port = Number.isFinite(Number(options.port)) ? Number(options.port) : 4260
   try {
     await new Promise((resolveListen, reject) => {
       server.once('error', reject)
@@ -247,7 +269,19 @@ async function main() {
   process.once('SIGTERM', shutdown)
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+// npm installs the bin as a symlink, so argv[1] keeps the link path while the ESM
+// loader resolves import.meta.url to the real path. Both sides must go through
+// realpath, otherwise the guard never holds and the process exits silently with 0.
+function isDirectRun() {
+  if (!process.argv[1]) return false
+  try {
+    return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))
+  } catch {
+    return false
+  }
+}
+
+if (isDirectRun()) {
   main().catch((error) => {
     process.stderr.write(`${error?.stack || error}\n`)
     process.exitCode = 1

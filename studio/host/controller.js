@@ -1,10 +1,15 @@
 import { Worker } from 'node:worker_threads'
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { basename, dirname } from 'node:path'
 import { createStudio } from '../index.js'
 import { renderEditorPng, renderScenePng } from '../host-png.js'
 import { CANVAS_PRESETS } from '../constants.js'
 import { deleteWorkspaceArchive, listWorkspaceArchives, resolveWorkspaceFile, resolveWorkspaceOutput, resolveWorkspaceRoot, revealWorkspaceArchive } from './workspace.js'
+import { readClientLanguageType } from './client-language.js'
+import { ScriptSync, contentHash, discoverScriptDirectories } from './script-sync.js'
+import { sharedImageAssets } from './image-assets.js'
+import { ControlGuidSync } from './control-guid-sync.js'
+import { localFont } from './local-font.js'
 
 // Keep the interactive default short, but allow project replay runners to raise
 // it for control-heavy pixel-art scenes and long deterministic golden cases.
@@ -17,8 +22,14 @@ function abortError() {
   return error
 }
 
+function validateClockMode(value) {
+  if (value !== 'manual' && value !== 'realtime') throw new Error('clockMode must be manual or realtime')
+  return value
+}
+
 export class SimulatorController {
-  constructor(workspacePath = '') {
+  constructor(workspacePath = '', { imageAssets = sharedImageAssets(), clockMode = 'realtime' } = {}) {
+    localFont()
     // The DSH adapter can begin before its host exposes a workspace.  Keep the
     // controller usable in that state instead of silently binding it to the
     // process cwd; Web and MCP always pass an explicit workspace.
@@ -29,6 +40,14 @@ export class SimulatorController {
     this.sequence = 1
     this.lock = Promise.resolve()
     this.playLock = Promise.resolve()
+    this.archivePath = ''
+    this.archiveStamp = ''
+    this.savedArchive = ''
+    this.scriptSync = new ScriptSync(this)
+    this.controlGuidSync = new ControlGuidSync(this)
+    this.imageAssets = imageAssets
+    this.defaultClockMode = validateClockMode(clockMode)
+    this.playClockMode = this.defaultClockMode
   }
 
   /** Serialize calls for one project handle, including worker operations. */
@@ -58,11 +77,40 @@ export class SimulatorController {
   }
 
   get() {
-    return this.studio.get()
+    return { ...this.studio.get(), storage: { path: this.archivePath } }
+  }
+
+  scriptSyncAction(action, args = {}) {
+    if (action === 'discover') return discoverScriptDirectories()
+    if (action === 'status') return { config: this.get().scriptSync, lastResult: this.scriptSync.lastResult }
+    if (action === 'configure') {
+      if (!Number.isInteger(args.expectedRevision)) throw new Error('expectedRevision is required')
+      return this.patch({ op: 'setScriptSync', config: args.config, expectedRevision: args.expectedRevision })
+    }
+    if (action === 'preview') return this.scriptSync.preview()
+    throw new Error('unknown script sync action (AI 可配置和预览；复制需在编辑器中确认)')
+  }
+
+  assertSavedArchive() {
+    if (!this.archivePath || this.savedArchive !== JSON.stringify(this.studio.archiveData())) throw new Error('请先保存当前完整存档，再确认复制')
+    const path = resolveWorkspaceFile(this.activeWorkspacePath(), this.archivePath)
+    if (contentHash(readFileSync(path)) !== this.archiveStamp) throw new Error('存档文件已变化，请重新加载并检查')
+  }
+
+  saveForScriptSync(path, expectedRevision) {
+    if (expectedRevision !== this.get().version) throw new Error('revision conflict: reload before saving')
+    const absolute = resolveWorkspaceOutput(this.activeWorkspacePath(), path)
+    if (existsSync(absolute)) {
+      const original = this.archivePath ? resolveWorkspaceOutput(this.activeWorkspacePath(), this.archivePath) : ''
+      if (absolute !== original || contentHash(readFileSync(absolute)) !== this.archiveStamp) throw new Error('File changed or already exists; load it again or save under a new path')
+    }
+    return this.saveArchive(path)
   }
 
   patch(op) {
-    return this.studio.patch(op)
+    if (op?.op === 'previewControlGuidSync') return { ...this.get(), controlGuidSyncPreview: this.controlGuidSync.preview() }
+    if (op?.op === 'syncControlGuidReferences') return this.controlGuidSync.apply(op)
+    return { ...this.studio.patch(op), storage: { path: this.archivePath } }
   }
 
   listArchives() {
@@ -74,13 +122,21 @@ export class SimulatorController {
     if (!workspacePath) throw new Error('workspace is not bound')
     const absolute = resolveWorkspaceFile(workspacePath, path)
     const bytes = readFileSync(absolute)
-    return this.studio.importData('json', bytes.toString('base64'), basename(absolute))
+    const result = this.studio.importData('json', bytes.toString('base64'), basename(absolute))
+    this.archivePath = String(path).trim().replaceAll('\\', '/')
+    this.archiveStamp = contentHash(bytes)
+    this.savedArchive = JSON.stringify(this.studio.archiveData())
+    return result
   }
 
   deleteArchive(path) {
     const workspacePath = this.activeWorkspacePath()
     if (!workspacePath) throw new Error('workspace is not bound')
-    return deleteWorkspaceArchive(workspacePath, path)
+    const result = deleteWorkspaceArchive(workspacePath, path)
+    if (String(path).replaceAll('\\', '/') === this.archivePath) {
+      this.archivePath = ''; this.archiveStamp = ''; this.savedArchive = ''
+    }
+    return result
   }
 
   revealArchive(path) {
@@ -89,16 +145,19 @@ export class SimulatorController {
     return revealWorkspaceArchive(workspacePath, path)
   }
 
-  saveArchive(path = 'qxqy-simulator.save.json') {
-    const requestedPath = String(path)
+  saveArchive(path = this.archivePath || 'qxqy-simulator.save.json') {
+    const requestedPath = String(path).trim()
     const workspacePath = this.activeWorkspacePath()
     if (!workspacePath) throw new Error('workspace is not bound')
     const absolute = resolveWorkspaceOutput(workspacePath, requestedPath)
     mkdirSync(dirname(absolute), { recursive: true })
     const data = Buffer.from(JSON.stringify(this.studio.archiveData(), null, 2) + '\n', 'utf8')
     writeFileSync(absolute, data)
+    this.archivePath = requestedPath.replaceAll('\\', '/')
+    this.archiveStamp = contentHash(data)
+    this.savedArchive = JSON.stringify(this.studio.archiveData())
     return {
-      path: requestedPath.replaceAll('\\', '/'),
+      path: this.archivePath,
       bytes: data.length,
       revision: this.studio.get().version,
       name: this.studio.get().save?.name || '',
@@ -111,7 +170,7 @@ export class SimulatorController {
   }
 
   createWorker() {
-    const worker = new Worker(new URL('./worker.js', import.meta.url), { type: 'module' })
+    const worker = new Worker(new URL('./worker.js', import.meta.url), { type: 'module', workerData: { localFont: localFont()?.data ?? null } })
     worker.on('message', (message) => {
       const pending = this.pending.get(message?.id)
       if (!pending) return
@@ -215,11 +274,17 @@ export class SimulatorController {
   }
 
   async playUnlocked(action, args = {}, signal) {
+    if ((action === 'start' || action === 'device') && !args.language) {
+      const language = readClientLanguageType()
+      if (language) args = { ...args, language }
+    }
     if (action === 'start') {
       // Check before terminating the current worker. A stale start must leave
       // the active play session untouched so the caller can refresh its view.
       this.assertExpectedRevision(args)
-      const payload = this.startPayload(args)
+      const clockMode = validateClockMode(args.clockMode ?? this.defaultClockMode)
+      const payload = this.startPayload({ ...args, clockMode })
+      this.playClockMode = clockMode
       await this.terminateWorker()
       return this.startWorker(payload, signal)
     }
@@ -229,7 +294,9 @@ export class SimulatorController {
       if (!CANVAS_PRESETS[canvasId]) {
         throw new Error(`unknown canvas preset: ${canvasId || '(empty)'} (available: ${Object.keys(CANVAS_PRESETS).join(', ')})`)
       }
-      const payload = this.startPayload({ ...args, canvasId })
+      const clockMode = validateClockMode(args.clockMode ?? this.playClockMode)
+      const payload = this.startPayload({ ...args, canvasId, clockMode })
+      this.playClockMode = clockMode
       await this.terminateWorker()
       return this.startWorker(payload, signal)
     }
@@ -249,22 +316,27 @@ export class SimulatorController {
     return this.exclusivePlay(async () => {
       if (!this.worker) throw new Error('play session has not started')
       const snapshot = await this.request('get', { view: true }, signal, SCREENSHOT_TIMEOUT_MS)
-      const image = renderScenePng(snapshot.scene, snapshot.canvasWidth, snapshot.canvasHeight)
+      const assets = await this.imageAssets.prepare(snapshot.scene?.nodes, signal)
+      const image = renderScenePng(snapshot.scene, snapshot.canvasWidth, snapshot.canvasHeight, assets)
       return {
         data: image.data,
         canvasId: String(snapshot.canvasId || ''),
         frame: Number.isFinite(Number(snapshot.frame)) ? Number(snapshot.frame) : 0,
         time: Number.isFinite(Number(snapshot.time)) ? Number(snapshot.time) : 0,
+        clockMode: snapshot.clockMode,
         width: image.width,
         height: image.height,
         pixelWidth: image.pixelWidth,
         pixelHeight: image.pixelHeight,
+        assetWarnings: assets.warnings,
       }
     })
   }
 
-  uiScreenshot() {
-    const image = renderEditorPng(this.studio.get())
+  async uiScreenshot(signal) {
+    const snapshot = this.studio.get()
+    const assets = await this.imageAssets.prepare(snapshot.boxes, signal)
+    const image = renderEditorPng(snapshot, assets)
     return {
       data: image.data,
       page: image.page,
@@ -272,6 +344,7 @@ export class SimulatorController {
       height: image.height,
       pixelWidth: image.pixelWidth,
       pixelHeight: image.pixelHeight,
+      assetWarnings: assets.warnings,
     }
   }
 

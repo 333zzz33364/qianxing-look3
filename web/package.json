@@ -1,11 +1,11 @@
 {
-  "name": "look2-web",
-  "version": "2.0.25",
+  "name": "look3-web",
+  "version": "3.0.0",
   "description": "Self-hosted editor, preview and play surface for Qianxing simulator saves",
   "type": "module",
   "main": "dist/server.js",
   "bin": {
-    "look2-web": "dist/server.js"
+    "look3-web": "dist/server.js"
   },
   "files": [
     "dist",

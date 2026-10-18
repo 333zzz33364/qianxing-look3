@@ -1,7 +1,7 @@
 import {
   lua, lauxlib, lualib, to_luastring, sl,
-  LUA_OK, pushValue, toJs, attachHost, hostOf, hostFromLua,
-  installSandbox, luaString, SCRIPT_HOST_KEY, unrefLuaFunction, closeLuaState,
+  LUA_OK, LuaFloat, pushValue, toJs, attachHost, hostOf, hostFromLua,
+  installSandbox, luaString, SCRIPT_HOST_KEY, retainLuaFunction, unrefLuaFunction, closeLuaState,
 } from './lua-bridge.js'
 import { Control, DEEP_DIRTY_FIELDS, luaFieldAccess, luaHasMethod, printTree, walk } from './scene.js'
 import { Tween, TweenSequence } from './tween.js'
@@ -12,6 +12,7 @@ const ENUM_FIELDS = {
   horizontalAlignment: 'TextHorizontalAlignment',
   verticalAlignment: 'TextVerticalAlignment',
   imageSource: 'ImageSource',
+  imageType: 'ImageType',
   fillType: 'ImageFillType',
   fillHorizontalType: 'ImageFillHorizontalType',
   fillVerticalType: 'ImageFillVerticalType',
@@ -25,6 +26,12 @@ const ENUM_FIELDS = {
 
 const LUA_REGISTRYINDEX = lua.LUA_REGISTRYINDEX
 const LUA_MULTRET = lua.LUA_MULTRET
+
+// Control fields documented as integers by the client API. Other numeric
+// fields are exposed as Lua floats, while packed colors retain their encoding.
+const INTEGER_FIELDS = new Set(['Id', 'prefabIndex', 'imageId', 'fontSize', 'minimumFontSize', 'clickAudioId',
+  'itemCount', 'itemPrefabIndex', 'animationId', 'referencedPrefabIndex'])
+const COLOR_FIELDS = new Set(['imageColor', 'fontColor', 'bgColor', 'outlineColor'])
 
 // `game` is a table of dot-call functions. A colon call adds an implicit
 // first argument, which the official runtime rejects even for getters.
@@ -61,14 +68,20 @@ export class LuaRuntime {
     this.language = options.language ?? 'LanguageChs'
     this.stageMode = options.stageMode ?? 'Classic'
     this.testPlay = options.testPlay !== false
+    this.canSelectImageType = options.canSelectImageType || (() => false)
     this.clock = { time: 0, levelTime: 0, paused: false, frame: 0 }
     this.logs = []
     this.mountErrors = []
     this.tweens = new Set()
     this.sequences = new Set()
+    // Tweens and sequences update together in Play order (device TWSEM v1).
     this.animations = new Set()
     this.audios = new Map()
     this.nextAudioId = 1
+    this.audioDuration = options.audioDuration || (() => null)
+    this.audioHistory = []
+    this.audioWarnings = new Set()
+    this.audioRevision = 0
     this._nextControlId = 1
     this._playRemoved = []
     this._nextScriptMappingId = 1
@@ -122,6 +135,10 @@ export class LuaRuntime {
     // Fengari Lua integers are 32-bit; values above 0x7fffffff must go as numbers.
     if ((v | 0) === v) lua.lua_pushinteger(L, v)
     else lua.lua_pushnumber(L, v)
+  }
+
+  retainLuaCallback(fn) {
+    retainLuaFunction(fn)
   }
 
   unrefLuaCallback(fn) {
@@ -301,6 +318,9 @@ export class LuaRuntime {
     if (v.__kind === 'Script') return 'Script'
     if (v.__kind === 'EnumItem') return 'EnumItem'
     if (v.__kind === 'CursorEventData') return 'CursorEventData'
+    if (v.__kind === 'ServerSignal') return 'ServerSignal'
+    if (v instanceof TweenSequence) return 'TweenSequence'
+    if (v instanceof Tween) return 'Tween'
     if (v.typeofName) return v.typeofName
     if (typeof v === 'number') return 'number'
     if (typeof v === 'string') return 'string'
@@ -323,11 +343,7 @@ export class LuaRuntime {
     lua.lua_setfield(L, -2, sl('FromRGBA'))
     lua.lua_pushcfunction(L, (LL) => {
       const packed = lua.lua_tonumber(LL, 1) >>> 0
-      const [r, g, b, a] = unpackRgba(packed)
-      lua.lua_pushnumber(LL, r)
-      lua.lua_pushnumber(LL, g)
-      lua.lua_pushnumber(LL, b)
-      lua.lua_pushnumber(LL, a)
+      for (const channel of unpackRgba(packed)) lua.lua_pushinteger(LL, channel)
       return 4
     })
     lua.lua_setfield(L, -2, sl('ToRGBA'))
@@ -383,8 +399,14 @@ export class LuaRuntime {
   pushTween(L, tw) {
     const ud = lua.lua_newuserdata(L, 0)
     attachHost(ud, tw)
-    const mt = tw.Append ? 'TweenSequence' : 'Tween'
+    const mt = tw instanceof TweenSequence ? 'TweenSequence' : 'Tween'
     lauxlib.luaL_setmetatable(L, sl(mt))
+  }
+
+  pushSignal(L, signal) {
+    const ud = lua.lua_newuserdata(L, 0)
+    attachHost(ud, signal)
+    lauxlib.luaL_setmetatable(L, sl('ServerSignal'))
   }
 
   pushCursor(L, data) {
@@ -482,10 +504,7 @@ export class LuaRuntime {
       },
       ServerSignal: (LL) => {
         const name = luaString(LL, 1)
-        const sig = rt.makeServerSignal(name)
-        const ud = lua.lua_newuserdata(LL, 0)
-        attachHost(ud, sig)
-        lauxlib.luaL_setmetatable(LL, sl('ServerSignal'))
+        rt.pushSignal(LL, rt.makeServerSignal(name))
         return 1
       },
       GetGlobalCustomVariableValue: (LL) => {
@@ -503,19 +522,16 @@ export class LuaRuntime {
         return 1
       },
       PlayAudio2D: (LL) => {
-        const id = rt.nextAudioId++
-        rt.audios.set(id, { audioId: lua.lua_tointeger(LL, 1), alive: true })
+        const id = rt.playAudio(rt.audioInteger(LL))
         lua.lua_pushinteger(LL, id)
         return 1
       },
       StopAudio: (LL) => {
-        const id = lua.lua_tointeger(LL, 1)
-        const a = rt.audios.get(id)
-        if (a) a.alive = false
+        rt.stopAudio(rt.audioInteger(LL))
         return 0
       },
       IsAudioAlive: (LL) => {
-        const a = rt.audios.get(lua.lua_tointeger(LL, 1))
+        const a = rt.audios.get(rt.audioInteger(LL))
         lua.lua_pushboolean(LL, !!(a && a.alive))
         return 1
       },
@@ -594,6 +610,52 @@ export class LuaRuntime {
     }
   }
 
+  audioInteger(L) {
+    const value = lua.lua_tonumber(L, 1)
+    if (lua.lua_type(L, 1) !== lua.LUA_TNUMBER || !Number.isSafeInteger(value)) {
+      return lauxlib.luaL_error(L, sl('audio argument must be an integer'))
+    }
+    return value
+  }
+
+  playAudio(audioId) {
+    this.audioRevision++
+    const instanceId = this.nextAudioId++
+    const duration = this.audioDuration(audioId)
+    const alive = Number.isFinite(duration) && duration > 0
+    const row = { instanceId, audioId, startedAt: this.clock.time, duration: alive ? duration : 0, alive, stopped: false }
+    this.audioHistory.push(row)
+    if (this.audioHistory.length > 128) this.audioHistory.shift()
+    if (alive) {
+      if (this.audios.size >= 128) this.stopAudio(this.audios.keys().next().value)
+      this.audios.set(instanceId, row)
+    } else if (!this.audioWarnings.has(audioId)) {
+      if (this.audioWarnings.size >= 128) this.audioWarnings.delete(this.audioWarnings.values().next().value)
+      this.audioWarnings.add(audioId)
+      this.log('warn', `音效 ${audioId} 未列入模拟器音频白名单`)
+    }
+    return instanceId
+  }
+
+  stopAudio(instanceId) {
+    const row = this.audios.get(instanceId) || this.audioHistory.find((item) => item.instanceId === instanceId)
+    if (row && !row.stopped) {
+      row.alive = false
+      row.stopped = true
+      this.audioRevision++
+    }
+    this.audios.delete(instanceId)
+  }
+
+  audioSnapshot() {
+    return {
+      sequence: this.nextAudioId - 1,
+      revision: this.audioRevision,
+      active: [...this.audios.values()].map((row) => ({ ...row })),
+      recent: this.audioHistory.map((row) => ({ ...row })),
+    }
+  }
+
   instantiate(prefabIndex, parent, phase) {
     if (phase === 'OnInit' || phase === 'OnDestroy') return null
     const spec = this.templates.get(Number(prefabIndex))
@@ -605,6 +667,9 @@ export class LuaRuntime {
       prefabIndex: Number(prefabIndex),
     })
     parent.addChild(control)
+    // Dynamic instances rise above existing siblings before their scripts run;
+    // scripts may still choose a different order during their lifecycle.
+    control.SetAsLastSibling()
     walk(control, (child) => this.controlsById.set(child.Id, child))
     this.mountSpecScripts(spec, control)
     return control
@@ -624,6 +689,7 @@ export class LuaRuntime {
     for (const script of control.scripts.slice()) this.unmountScript(script)
     for (const child of control.children.slice()) this._destroyControlTree(child)
     control.alive = false
+    this.scrollControls?.delete(control)
     this._playRemoved.push(control.Id)
     if (control.parent) {
       const parent = control.parent
@@ -753,7 +819,12 @@ export class LuaRuntime {
         lua.lua_pushcfunction(LL, methods[key])
         return 1
       }
-      const v = getField(obj, key)
+      let v
+      try {
+        v = getField(obj, key)
+      } catch (err) {
+        return lauxlib.luaL_error(LL, sl(String(err.message || err)))
+      }
       if (v === undefined) {
         lua.lua_pushnil(LL)
         return 1
@@ -925,12 +996,15 @@ export class LuaRuntime {
       SetFillRadial360: this.method((o, t, a) => o.SetFillRadial360(t, a)),
       PlayAnimation: this.method((o) => o.PlayAnimation()),
       StopAnimation: this.method((o) => o.StopAnimation()),
-      RefreshItems: this.method((o) => o.RefreshItems()),
-      GetItemIndex: this.method((o) => o.GetItemIndex()),
+      RefreshItems: this.method((o, count, callback) => {
+        this.retainLuaCallback(callback)
+        try { o.RefreshItems(count, callback) } finally { this.unrefLuaCallback(callback) }
+      }),
+      GetItemIndex: this.method((o, control) => o.GetItemIndex(control)),
       GetItemSize: this.method((o) => o.GetItemSize()),
       GetItemSpacing: this.method((o) => o.GetItemSpacing()),
       GetPadding: this.method((o) => o.GetPadding()),
-      ScrollToItemAt: this.method((o) => o.ScrollToItemAt()),
+      ScrollToItemAt: this.method((o, index, align) => o.ScrollToItemAt(index, align)),
       GetContentLength: this.method((o) => o.GetContentLength()),
     }
     this.mtIndexNewindex(
@@ -938,14 +1012,24 @@ export class LuaRuntime {
       'Control',
       (obj, key) => {
         if (!luaFieldAccess(obj, key)) return undefined
-        const value = obj[key]
+        if (!obj.alive && key !== 'alive') throw new Error(`attempt to read '${key}' of a destroyed control`)
+        const value = obj.luaFieldValue(key)
         const enumType = ENUM_FIELDS[key]
-        return enumType ? canonicalEnumItem(enumType, value) : value
+        if (enumType) return canonicalEnumItem(enumType, value)
+        if (typeof value === 'number' && !INTEGER_FIELDS.has(key) && !COLOR_FIELDS.has(key)) return new LuaFloat(value)
+        return value
       },
       (obj, key, val) => {
         const access = luaFieldAccess(obj, key)
         if (access === 'rw') {
+          if ((key === 'fontSize' || key === 'minimumFontSize') && !Number.isInteger(val)) {
+            const valueType = val === null ? 'nil' : typeof val
+            throw new Error(`bad argument #2 to '${key}' (integer expected, got ${valueType})`)
+          }
           const enumType = ENUM_FIELDS[key]
+          if (key === 'imageType' && (val?.EnumType !== 'ImageType' || !['Basic', 'Stretch'].includes(val.Name))) {
+            throw new Error('imageType requires Enum.ImageType.Basic or Stretch')
+          }
           obj[key] = enumType ? canonicalEnumItem(enumType, val) : val
           if (typeof obj.markPlayDirty === 'function') {
             obj.markPlayDirty(DEEP_DIRTY_FIELDS.has(key))
@@ -975,7 +1059,7 @@ export class LuaRuntime {
       },
       {
         GetParam: this.method((o, name) => (Object.prototype.hasOwnProperty.call(o.params, name) ? o.params[name] : null)),
-        Invoke: this.method((o, name, ...args) => o.invoke(name, args)),
+        Invoke: (LL) => rt.luaInvoke(LL),
         EnableUpdate: this.method((o, v) => { o.updateEnabled = !!v }),
         RegisterServerSignalHandler: this.method((o, name, fn) => {
           rt.signalHandlers.push({ script: o, name, fn })
@@ -1193,6 +1277,7 @@ export class LuaRuntime {
       // full mapping path for diagnostics and require registration while
       // matching the value visible to gameplay Lua.
       path: scriptDisplayPath(path),
+      mappingPath: this.normalizeRequirePath(path),
       enabled: true,
       updateEnabled: false,
       params,
@@ -1285,6 +1370,36 @@ export class LuaRuntime {
     }
   }
 
+  luaInvoke(LL) {
+    const target = hostFromLua(LL, 1)
+    if (!target || target.__kind !== 'Script') return lauxlib.luaL_error(LL, sl("bad self to 'Invoke' (Script expected)"))
+    const name = luaString(LL, 2)
+    const L = target.env
+    if (!L || L.l_G !== LL.l_G) {
+      const args = []
+      for (let i = 3; i <= lua.lua_gettop(LL); i++) args.push(toJs(LL, this, i))
+      let ret
+      try {
+        ret = target.invoke(name, args)
+      } catch (err) {
+        return lauxlib.luaL_error(LL, sl(String(err.message || err)))
+      }
+      if (ret === undefined) return 0
+      const results = Array.isArray(ret) && ret.__multi ? ret : [ret]
+      for (const value of results) pushValue(LL, this, value)
+      return results.length
+    }
+    const base = 2
+    lua.lua_getglobal(LL, sl(name))
+    if (!lua.lua_isfunction(LL, -1)) return 0
+    lua.lua_replace(LL, base)
+    lua.lua_remove(LL, 1)
+    const nargs = lua.lua_gettop(LL) - 1
+    const status = lua.lua_pcall(LL, nargs, LUA_MULTRET, 0)
+    if (status !== LUA_OK) return lua.lua_error(LL)
+    return lua.lua_gettop(LL)
+  }
+
   invokeOn(L, name, args) {
     const top = lua.lua_gettop(L)
     lua.lua_getglobal(L, sl(name))
@@ -1334,6 +1449,13 @@ export class LuaRuntime {
     }
     this.clock.frame++
     this.clock.time += dt
+    for (const [id, audio] of this.audios) {
+      if (this.clock.time + 1e-9 >= audio.startedAt + audio.duration) {
+        audio.alive = false
+        this.audios.delete(id)
+        this.audioRevision++
+      }
+    }
     const levelUpdateScheduled = !this.clock.paused
     for (const animation of [...this.animations]) animation.step(dt)
     this.runScriptPhase('OnUpdate', dt)
@@ -1450,6 +1572,9 @@ export class LuaRuntime {
     this.luaFunctions.clear()
     for (const L of [...this.luaStates]) this.closeTrackedLuaState(L)
     this.L = null
+    this.audios.clear()
+    this.audioHistory.length = 0
+    this.audioWarnings.clear()
   }
 }
 

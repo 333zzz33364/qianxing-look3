@@ -3,6 +3,7 @@ import { cp, mkdir, copyFile, readFile, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { root, products, cleanGenerated } from './paths.mjs'
+import { distributable } from './distribution-filter.mjs'
 
 const external = ['@deepseek-ai/*', '@napi-rs/canvas', 'fengari', 'protobufjs']
 
@@ -24,6 +25,13 @@ export async function buildProduct(product) {
     const presetRoot = join(root, 'agent/wonderland-lua-builder')
     const presetMeta = await readFile(join(presetRoot, 'preset.yml'), 'utf8')
     const presetRows = await readFile(join(presetRoot, 'agent.cordis.yml'), 'utf8')
+    // Embedded rows inherit the composed profile's baseUrl, not the bundle's
+    // patch directory. Resolve the installed package instead. The legacy copy
+    // keeps its original sibling skills/ URL.
+    const presetSkillUrl = "process.getBuiltinModule('node:url').fileURLToPath(new URL('skills/', baseUrl))"
+    if (!presetRows.includes(presetSkillUrl)) throw new Error('Agent preset Skill URL changed; update the bundle resource rebasing')
+    const bundledSkillDir = "process.getBuiltinModule('node:path').join(process.getBuiltinModule('node:path').dirname(process.getBuiltinModule('node:module').createRequire(baseUrl).resolve('look3-dsh-plugin/package.json')), 'dsh-plugin/presets/look3-wonderland-lua-builder/skills')"
+    const bundledPresetRows = presetRows.replaceAll(presetSkillUrl, bundledSkillDir)
     const display = key => {
       const value = presetMeta.match(new RegExp(`^${key}:\\s*(.+)$`, 'm'))?.[1]
       if (!value) throw new Error(`Agent preset is missing ${key}`)
@@ -34,21 +42,21 @@ export async function buildProduct(product) {
     const modernPresetUnavailable = "(()=>{try{process.getBuiltinModule('node:module').createRequire(process.argv[1]).resolve('@deepseek-ai/dsh-agent-preset');return false}catch{return true}})()"
     const patch = [
       '- insert:',
-      '    - id: look2-simulator',
-      '      name: look2-dsh-plugin',
-      '    - id: look2-simulator-skill',
-      '      name: look2-dsh-plugin/skill',
-      '    - id: look2-simulator-preset-legacy',
-      '      name: look2-dsh-plugin/preset',
-      '    - id: look2-simulator-preset',
+      '    - id: look3-simulator',
+      '      name: look3-dsh-plugin',
+      '    - id: look3-simulator-skill',
+      '      name: look3-dsh-plugin/skill',
+      '    - id: look3-simulator-preset-legacy',
+      '      name: look3-dsh-plugin/preset',
+      '    - id: look3-simulator-preset',
       "      name: '@deepseek-ai/dsh-agent-preset'",
       `      disabled: !!js ${JSON.stringify(modernPresetUnavailable)}`,
       '      config:',
-      '        id: look2-wonderland-lua-builder',
+      '        id: look3-wonderland-lua-builder',
       `        name: ${display('name')}`,
       `        description: ${display('description')}`,
       '        plugins:',
-      ...presetRows.trimEnd().split(/\r?\n/).map(line => line ? `          ${line}` : ''),
+      ...bundledPresetRows.trimEnd().split(/\r?\n/).map(line => line ? `          ${line}` : ''),
       '',
     ].join('\n')
     await writeFile(join(root, 'dsh-plugin/cordis.patch.yml'), patch)
@@ -63,7 +71,7 @@ export async function buildProduct(product) {
     await copyFile(join(root, 'skill/SKILL.md'), join(root, 'dsh-plugin/skill.md'))
     const presets = join(root, 'dsh-plugin/presets')
     await cleanGenerated(presets, join(root, 'dsh-plugin'))
-    await cp(join(root, 'agent/wonderland-lua-builder'), join(presets, 'look2-wonderland-lua-builder'), { recursive: true })
+    await cp(join(root, 'agent/wonderland-lua-builder'), join(presets, 'look3-wonderland-lua-builder'), { recursive: true, filter: distributable })
   } else {
     const entry = product === 'web' ? 'server' : 'index'
     await bundle(`${product}/${entry}.js`, join(output, `${entry}.js`))
@@ -77,7 +85,7 @@ export async function buildProduct(product) {
       }
       // Reuse the standalone play surface, with Web routes and external scripts
       // so the deployed page does not need unsafe-inline script permissions.
-      let html = (await readFile(join(root, 'dsh-plugin/lib/play.html'), 'utf8')).replaceAll('/look2-simulator/', '/editor/')
+      let html = (await readFile(join(root, 'dsh-plugin/lib/play.html'), 'utf8')).replaceAll('/look3-simulator/', '/editor/')
       const script = html.match(/<script type="module">([\s\S]*?)<\/script>/)[1]
       const css = html.match(/<style>([\s\S]*?)<\/style>/)[1]
       html = html.replace(/<script type="module">[\s\S]*?<\/script>/, '<script type="module" src="/editor/play.js"></script>')
@@ -85,7 +93,7 @@ export async function buildProduct(product) {
       await writeFile(join(root, 'web/public/play.html'), html)
       await writeFile(join(root, 'web/public/play.js'), script)
       await writeFile(join(root, 'web/public/play.css'), css)
-      await cp(join(root, 'web/public'), join(output, 'public'), { recursive: true })
+      await cp(join(root, 'web/public'), join(output, 'public'), { recursive: true, filter: distributable })
     }
   }
   console.log(`Built ${product}`)

@@ -48,9 +48,9 @@ async function fixture(t) {
   mkdirSync(join(root, 'web/dist'), { recursive: true })
   const workspace = join(root, '工作区')
   mkdirSync(workspace)
-  const script = join(root, 'look2-launch.ps1')
+  const script = join(root, 'look3-launch.ps1')
   const entry = join(root, 'web/dist/server.js')
-  copyFileSync(new URL('../../look2-launch.ps1', import.meta.url), script)
+  copyFileSync(new URL('../../look3-launch.ps1', import.meta.url), script)
   writeFileSync(join(root, 'package.json'), '{"type":"module"}')
   // This fixture exercises PowerShell process/port/workspace decisions. The real
   // Web health fingerprint is independently checked below and in access.test.
@@ -97,7 +97,7 @@ const server=createServer((req,res)=>{
   async function launch(password = '') {
     probeHeaders = password ? { authorization: 'Basic ' + Buffer.from('simulator:' + password).toString('base64') } : {}
     const { stdout } = await execute('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', script, '-Port', String(port), '-WorkspacePath', workspace, '-NoOpen'], { windowsHide: true, timeout: 45000, env: { ...process.env, QXQY_WEB_PASSWORD: password } })
-    const match = stdout.match(/LOOK2_URL=(http:\/\/127\.0\.0\.1:\d+)\/editor/)
+    const match = stdout.match(/LOOK3_URL=(http:\/\/127\.0\.0\.1:\d+)\/editor/)
     assert.ok(match, stdout)
     const url = match[1]
     urls.add(url)

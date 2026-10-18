@@ -1,3 +1,5 @@
+import { clampProgress, gridMetrics, layoutGrid } from './grid.js'
+
 const TYPEOF = {
   container: 'ClientUIContainerControl',
   textbox: 'ClientUITextBoxControl',
@@ -37,8 +39,7 @@ const KIND_RW = {
   container: ['isolateNavigation', 'disableKeyEventPassthrough', 'disableCursorEventPassthrough', 'showCursor'],
   textbox: ['text', 'fontSize', 'fontColor', 'bgColor', 'enableOutline', 'outlineColor', 'horizontalAlignment', 'verticalAlignment', 'adaptiveFontSize', 'minimumFontSize'],
   textwindow: ['interactable', 'showScrollBar', 'text', 'fontSize', 'fontColor', 'bgColor', 'enableOutline', 'outlineColor', 'horizontalAlignment', 'verticalAlignment', 'adaptiveFontSize', 'minimumFontSize'],
-  // Documented RW. Observed: assigning after Instantiate reports
-  // "cannot set imageType, no such field". Keep it off the Lua surface.
+  // imageType is admitted separately by the host's preview capability policy.
   image: ['imageColor', 'enableMask', 'enableSoftEdge', 'softEdgeMode', 'softEdgeWidthX', 'softEdgeWidthY', 'horizontalSoftRange', 'verticalSoftRange', 'reverseMaskArea', 'fillType', 'fillHorizontalType', 'fillVerticalType', 'fillRadial90Type', 'fillRadialType', 'fillAmount'],
   button: ['interactable', 'clickAudioId', 'raycastTarget'],
   cursor: ['raycastTarget'],
@@ -73,9 +74,55 @@ const KIND_METHODS = {
 }
 
 export function luaFieldAccess(control, key) {
+  if (control.kind === 'image' && key === 'imageType' && control.runtime.canSelectImageType(control.imageId, control.imageSource)) return 'rw'
   if (BASE_RO.includes(key) || (KIND_RO[control.kind] || []).includes(key)) return 'ro'
   if (BASE_RW.includes(key) || (KIND_RW[control.kind] || []).includes(key)) return 'rw'
   return null
+}
+
+const ROTATION_FIELDS = ['localRotationX', 'localRotationY', 'localRotationZ']
+const DEG = Math.PI / 180
+
+function multiplyQuaternion(a, b) {
+  return [
+    a[3] * b[0] + a[0] * b[3] + a[1] * b[2] - a[2] * b[1],
+    a[3] * b[1] - a[0] * b[2] + a[1] * b[3] + a[2] * b[0],
+    a[3] * b[2] + a[0] * b[1] - a[1] * b[0] + a[2] * b[3],
+    a[3] * b[3] - a[0] * b[0] - a[1] * b[1] - a[2] * b[2],
+  ]
+}
+
+function wrapDegrees(value) {
+  if (Object.is(value, -0)) return value // device X=0 reads back as -0
+  const wrapped = ((value % 360) + 360) % 360
+  const rounded = Math.round(wrapped * 1e6) / 1e6
+  return rounded >= 360 ? 0 : rounded
+}
+
+// Device (TWSEM v1): rotation getters return Euler angles re-derived from the
+// stored orientation, in [0, 360): Z/Y -116 -> 244, 370 -> 10; X -116 -> 296
+// and 90.5 -> 89.5 (X stays within +-90 and flips Y/Z by 180). This matches a
+// Z-X-Y (Unity-style) quaternion round trip. The stored value keeps what was
+// written; only reads are normalised.
+export function readbackEuler(x, y, z) {
+  const half = (deg) => [Math.sin(deg * DEG / 2), Math.cos(deg * DEG / 2)]
+  const [sx, cx] = half(x)
+  const [sy, cy] = half(y)
+  const [sz, cz] = half(z)
+  const [qx, qy, qz, qw] = multiplyQuaternion(multiplyQuaternion([0, sy, 0, cy], [sx, 0, 0, cx]), [0, 0, sz, cz])
+  const sinX = Math.max(-1, Math.min(1, -2 * (qy * qz - qw * qx)))
+  let ex, ey, ez
+  if (Math.abs(sinX) > 0.999999) {
+    // Gimbal lock: fold the whole yaw into Y and report Z as 0.
+    ex = Math.sign(sinX) * 90
+    ey = 2 * Math.atan2(qy, qw) / DEG
+    ez = 0
+  } else {
+    ex = Math.asin(sinX) / DEG
+    ey = Math.atan2(2 * (qw * qy + qx * qz), 1 - 2 * (qx * qx + qy * qy)) / DEG
+    ez = Math.atan2(2 * (qw * qz + qx * qy), 1 - 2 * (qx * qx + qz * qz)) / DEG
+  }
+  return [wrapDegrees(ex), wrapDegrees(ey), wrapDegrees(ez)]
 }
 
 export function luaHasMethod(control, key) {
@@ -135,10 +182,15 @@ export class Control {
     this._playDirty = true
     this._playDeepDirty = true
     this._playChildDirty = false
+    if (this.kind === 'grid' || this.kind === 'textwindow') {
+      this.runtime.scrollControls ||= new Set()
+      this.runtime.scrollControls.add(this)
+    }
     const extra = DEFAULTS[this.kind] || {}
     for (const [k, v] of Object.entries(extra)) {
       if (this[k] === undefined) this[k] = spec[k] !== undefined ? spec[k] : v
     }
+    if (this.kind === 'grid') this.scrollProgress = spec.scrollProgress ?? 0
     if (spec.children) {
       for (const child of spec.children) {
         const c = child instanceof Control ? child : new Control(runtime, child)
@@ -196,6 +248,14 @@ export class Control {
   get activeInHierarchy() {
     if (!this.active) return false
     return this._parent ? this._parent.activeInHierarchy : true
+  }
+
+  get scrollProgress() { return this._scrollProgress ?? 0 }
+
+  set scrollProgress(value) {
+    if (typeof value !== 'number' || !Number.isFinite(value)) throw new Error('scrollProgress must be a finite number')
+    this._scrollProgress = clampProgress(value)
+    this.markPlayDirty()
   }
 
   addChild(child) {
@@ -333,7 +393,15 @@ export class Control {
   }
 
   GetLocalRotation() {
-    return [this.localRotationX, this.localRotationY, this.localRotationZ]
+    return readbackEuler(this.localRotationX, this.localRotationY, this.localRotationZ)
+  }
+
+  // The value a Lua read returns; rotation reads are normalised (see readbackEuler).
+  luaFieldValue(key) {
+    if (key === 'imageType') return this.imageType ?? 'Stretch'
+    const index = ROTATION_FIELDS.indexOf(key)
+    if (index < 0) return this[key]
+    return readbackEuler(this.localRotationX, this.localRotationY, this.localRotationZ)[index]
   }
 
   SetLocalRotation(x, y, z) {
@@ -344,7 +412,7 @@ export class Control {
   }
 
   GetScriptByPath(path) {
-    return this.scripts.find((s) => s.path === path) || null
+    return this.scripts.find((s) => s.path === path || s.mappingPath === path) || null
   }
 
   GetScript(scriptMappingId) {
@@ -359,13 +427,15 @@ export class Control {
     const list = store.get(typeName) || []
     list.push(fn)
     store.set(typeName, list)
+    this.runtime.retainLuaCallback?.(fn)
   }
 
   _removeListener(store, typeName, fn) {
     const list = store.get(typeName)
     if (!list) return
-    store.set(typeName, list.filter((x) => x !== fn))
-    this.runtime.unrefLuaCallback?.(fn)
+    const kept = list.filter((x) => x !== fn)
+    store.set(typeName, kept)
+    for (let i = kept.length; i < list.length; i++) this.runtime.unrefLuaCallback?.(fn)
   }
 
   _removeListeners(store, typeName) {
@@ -463,6 +533,9 @@ export class Control {
   }
 
   SetImage(source, id) {
+    const previous = this.imageSource?.Name || this.imageSource
+    const next = source?.Name || source
+    if (id !== this.imageId || previous !== next) this.imageType = null
     this.imageSource = source
     this.imageId = id
     this.markPlayDirty()
@@ -522,32 +595,67 @@ export class Control {
     // 界面动效尚未实现：方法保留为 Lua API 占位，保证脚本可调用而不抛错。
   }
 
-  RefreshItems() {
-    throw new Error('ClientUIGridScrollerControl:RefreshItems not implemented')
+  RefreshItems(count, callback) {
+    if (!Number.isInteger(count) || count < 0 || count > 2000) throw new Error('RefreshItems: simulator supports 0..2000 items')
+    if (typeof callback !== 'function') throw new Error('RefreshItems: callback must be a function')
+    if (!this.alive || this._refreshingGrid) throw new Error('RefreshItems: destroyed control or recursive refresh')
+    if (count && !this.runtime.templates.has(Number(this.itemPrefabIndex))) throw new Error('RefreshItems: item template not found')
+    if (count && ['OnInit', 'OnDestroy'].includes(this.runtime.lifecyclePhase)) throw new Error('RefreshItems: items cannot be created during OnInit/OnDestroy')
+    this._refreshingGrid = true
+    try {
+      this._gridItems ||= []
+      const kept = []
+      for (const item of this._gridItems) {
+        if (item.alive && item.parent === this && item.prefabIndex === Number(this.itemPrefabIndex) && kept.length < count) kept.push(item)
+        else if (item.alive && item.parent === this) this.runtime.destroyControl(item)
+      }
+      this._gridItems = kept
+      while (kept.length < count) {
+        const item = this.runtime.instantiate(this.itemPrefabIndex, this, this.runtime.lifecyclePhase)
+        if (!item) throw new Error('RefreshItems: could not instantiate item')
+        kept.push(item)
+        item.SetActive(true)
+      }
+      this.itemCount = count
+      layoutGrid(this)
+      this.markPlayDirty(true)
+      for (let index = 0; index < kept.length && this.alive; index += 1) callback(kept[index], index)
+    } finally {
+      this._refreshingGrid = false
+    }
   }
 
-  GetItemIndex() {
-    throw new Error('ClientUIGridScrollerControl:GetItemIndex not implemented')
+  GetItemIndex(control) {
+    return control?.alive && control.parent === this ? (this._gridItems?.indexOf(control) ?? -1) : -1
   }
 
   GetItemSize() {
-    throw new Error('ClientUIGridScrollerControl:GetItemSize not implemented')
+    return [this.cellSizeX, this.cellSizeY]
   }
 
   GetItemSpacing() {
-    throw new Error('ClientUIGridScrollerControl:GetItemSpacing not implemented')
+    return [this.spacingX, this.spacingY]
   }
 
   GetPadding() {
-    throw new Error('ClientUIGridScrollerControl:GetPadding not implemented')
+    return [this.padding1Y, this.padding2Y, this.padding1X, this.padding2X]
   }
 
-  ScrollToItemAt() {
-    throw new Error('ClientUIGridScrollerControl:ScrollToItemAt not implemented')
+  ScrollToItemAt(index, align) {
+    if (!Number.isInteger(index) || index < 0 || index >= this.itemCount) throw new Error('ScrollToItemAt: item index out of range')
+    const m = gridMetrics(this)
+    const size = m.horizontal ? m.cellW : m.cellH, gap = m.horizontal ? m.gapX : m.gapY
+    const start = (m.horizontal ? m.left : m.top) + Math.floor(index / m.lanes) * (size + gap)
+    const alignment = align?.Name || align
+    if (!['Top', 'Center', 'Bottom'].includes(alignment)) throw new Error('ScrollToItemAt: invalid alignment')
+    const offset = start - (alignment === 'Center' ? (m.viewport - size) / 2 : alignment === 'Bottom' ? m.viewport - size : 0)
+    this.scrollProgress = m.max ? clampProgress(offset / m.max) : 0
+    layoutGrid(this)
+    this.markPlayDirty(true)
   }
 
   GetContentLength() {
-    throw new Error('ClientUIGridScrollerControl:GetContentLength not implemented')
+    return gridMetrics(this).length
   }
 }
 

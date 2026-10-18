@@ -3,8 +3,8 @@ import { cp, mkdir } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
-export const name = 'look2-simulator-preset'
-const PRESET_ID = 'look2-wonderland-lua-builder'
+export const name = 'look3-simulator-preset'
+const PRESET_ID = 'look3-wonderland-lua-builder'
 const PRESET_ROOT_NAME = '.agent-presets'
 
 /**

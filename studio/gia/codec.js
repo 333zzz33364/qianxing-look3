@@ -1,5 +1,5 @@
 import protobuf from 'protobufjs'
-import { PLATFORMS, LAYOUT_SCHEMA_VERSION } from '../constants.js'
+import { PLATFORMS, LAYOUT_SCHEMA_VERSION, DEFAULT_GIA_GAME_VERSION } from '../constants.js'
 import { assertPlatformNode } from '../ui/transforms.js'
 import { toJson } from '../json.js'
 import { createNode, walk } from '../ui/authoring.js'
@@ -235,7 +235,7 @@ function rectTransform(rt) {
     offset: { x: rt.offset.x, y: rt.offset.y },
     size: { x: rt.size.x, y: rt.size.y },
     pivot: { x: rt.pivot.x, y: rt.pivot.y },
-    field508: rt.rotation.z ? { z: rt.rotation.z } : {},
+    field508: Object.fromEntries(Object.entries(rt.rotation).filter(([, value]) => value !== 0)),
   }
 }
 
@@ -327,6 +327,9 @@ function typeData(node, guid, guidById, warnings) {
       verticalAlign: raw.textVerticalAlign ?? ({ Top: 0, Middle: 1, Bottom: 2 }[node.verticalAlignment] ?? 0),
     }
     if (node.kind === 'textwindow') {
+      if (node.interactable === false || node.showScrollBar === false) {
+        warnings.push(`${node.name}: 文本视窗交互/滚动条开关仅保存在 JSON，GIA 未映射这些改动。`)
+      }
       textConfig.field511 = raw.textField511 ?? 1
       textConfig.viewFlags = {
         field502: raw.textViewField502 ?? 1,
@@ -342,6 +345,12 @@ function typeData(node, guid, guidById, warnings) {
   if (node.kind === 'image') {
     const imageSlotType = ![0, 1].includes(raw.imageSlotType ?? 0)
       ? raw.imageSlotType : node.imageType === 'Stretch' ? 1 : 0
+    if (node.imageType == null && node.imageSource === 'StaticReference' && node.imageId > 100006) {
+      warnings.push(`${node.name}: 图片类型随素材边界自动选择，GIA 按基础导出；需要拉伸请先明确选择或在 Lua 设置 imageType。`)
+    }
+    if (node.imageSource && node.imageSource !== 'StaticReference') {
+      warnings.push(`${node.name}: 图片来源 ${node.imageSource} 仅保存在 JSON，尚未映射到 GIA；请在 Lua 中用 SetImage(Enum.ImageSource.${node.imageSource}, ${node.imageId}) 设置。`)
+    }
     const semanticFillType = { Horizontal: 1, Vertical: 2, Radial90: 3, Radial180: 4, Radial360: 5 }[node.fillType]
     const fillType = Number.isFinite(raw.imageFillType) ? Math.trunc(raw.imageFillType) : (semanticFillType || 1)
     if (node.enableFill && !fillType) warnings.push(`${node.name}: 填充形状原始枚举为 0，已关闭导出文件中的进度填充。`)
@@ -416,6 +425,10 @@ function typeData(node, guid, guidById, warnings) {
     return [generic, ref(66, 89, 'empty76', 'templateRefSlot', raw.templateRefSlot ?? ''), footer]
   }
   if (node.kind === 'grid') {
+    if (node.itemPrefabId || node.interactable === false || node.showScrollBar === false
+      || node.raycastTarget === false || node.scrollDirection !== 'Vertical' || node.layoutConstraint !== 'AutoWrap') {
+      warnings.push(`${node.name}: 网格列表项模板、交互/滚动条开关、滚动方向及排列限制仅保存在 JSON，GIA 未映射这些改动。`)
+    }
     return [generic, ref(69, 92, 'empty79', 'gridView', {
       field501: raw.gridField501 ?? 1,
       cellSize: { field501: node.cellSizeX, field502: node.cellSizeY },
@@ -563,6 +576,11 @@ function rootModeFields(project) {
   return Number.isSafeInteger(modeFlag) && modeFlag >= 0 ? { modeFlag } : {}
 }
 
+function exportGameVersion(project) {
+  const version = project.meta?.gameVersion
+  return !version || version === '7.0.50' ? DEFAULT_GIA_GAME_VERSION : version
+}
+
 function buildClientTemplateRootObject(project, guidById, warnings, filePath, scripts = []) {
   const clientNodes = collectClientNodes(project, true)
   const templateEntries = clientNodes.filter(({ parent }) => parent?.kind === 'server-container')
@@ -578,7 +596,7 @@ function buildClientTemplateRootObject(project, guidById, warnings, filePath, sc
       node, parent, guidById, allClientGuids, warnings, false, false, true, true,
     )),
     filePath: filePath || canonicalFilePath(project, true),
-    gameVersion: project.meta?.gameVersion || '7.0.50',
+    gameVersion: exportGameVersion(project),
     ...rootModeFields(project),
   }))
 }
@@ -594,7 +612,7 @@ function buildServerGroupRootObject(project, guidById, extra, warnings, filePath
         node, parent, guidById, allClientGuids, warnings, false, false, false, true,
       )),
       filePath: filePath || canonicalFilePath(project, false),
-      gameVersion: project.meta?.gameVersion || '7.0.50',
+      gameVersion: exportGameVersion(project),
       ...rootModeFields(project),
     }))
 }
@@ -664,7 +682,7 @@ export function exportCombinedGia(serverProject, clientProject, options = {}) {
     graph: [...serverRoot.graph, ...clientRoot.graph],
     accessories: [...serverRoot.accessories, ...clientRoot.accessories],
     filePath,
-    gameVersion: serverProject.meta?.gameVersion || clientProject?.meta?.gameVersion || '7.0.50',
+    gameVersion: exportGameVersion({ meta: { gameVersion: serverProject.meta?.gameVersion || clientProject?.meta?.gameVersion } }),
     ...rootModeFields(serverProject),
   }
   const out = encodeAndValidate(rootObject, validateServerGiaCompatibility)
@@ -863,7 +881,7 @@ function transformMaps(unit) {
       scale: rt.scale
         ? { x: rt.scale.x ?? 0, y: rt.scale.y ?? 0, z: rt.scale.z ?? 0 }
         : { x: 1, y: 1, z: 1 },
-      rotation: { x: 0, y: 0, z: rt.field508?.z ?? 0 },
+      rotation: { x: rt.field508?.x ?? 0, y: rt.field508?.y ?? 0, z: rt.field508?.z ?? 0 },
       anchorMin: { x: rt.anchorMin?.x ?? 0, y: rt.anchorMin?.y ?? 0 },
       anchorMax: { x: rt.anchorMax?.x ?? 0, y: rt.anchorMax?.y ?? 0 },
       offset: { x: rt.offset?.x ?? 0, y: rt.offset?.y ?? 0 },

@@ -1,5 +1,5 @@
-param(
-    [ValidateRange(1024, 65515)][int]$Port = 4174,
+﻿param(
+    [ValidateRange(1024, 65515)][int]$Port = 4260,
     [string]$WorkspacePath = '',
     [switch]$NoOpen
 )
@@ -7,9 +7,9 @@ param(
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $serverPath = Join-Path $projectRoot 'web\dist\server.js'
-if (-not $WorkspacePath) { $WorkspacePath = Join-Path $projectRoot 'look2-workspace' }
+if (-not $WorkspacePath) { $WorkspacePath = Join-Path $projectRoot 'look3-workspace' }
 $workspacePath = [System.IO.Path]::GetFullPath($WorkspacePath)
-if (-not (Test-Path -LiteralPath $serverPath)) { throw "look2.0 Web build not found: $serverPath" }
+if (-not (Test-Path -LiteralPath $serverPath)) { throw "千星look3 Web build not found: $serverPath" }
 $hasher = [System.Security.Cryptography.SHA256]::Create()
 try { $expectedBuild = [System.BitConverter]::ToString($hasher.ComputeHash([System.IO.File]::ReadAllBytes($serverPath))).Replace('-', '').ToLowerInvariant() }
 finally { $hasher.Dispose() }
@@ -19,7 +19,7 @@ if ($env:QXQY_WEB_PASSWORD) {
     $probeHeaders['Authorization'] = 'Basic ' + [System.Convert]::ToBase64String($credentials)
 }
 
-function Test-Look2Server([int]$CandidatePort) {
+function Test-Look3Server([int]$CandidatePort) {
     try {
         $baseUrl = "http://127.0.0.1:$CandidatePort"
         $health = Invoke-RestMethod -Uri "$baseUrl/health" -TimeoutSec 2
@@ -59,7 +59,7 @@ $availablePorts = @()
 $selectedPort = $null
 foreach ($candidate in $candidates) {
     if (Test-PortInUse $candidate) {
-        if (Test-Look2Server $candidate) { $selectedPort = $candidate; break }
+        if (Test-Look3Server $candidate) { $selectedPort = $candidate; break }
     } else { $availablePorts += $candidate }
 }
 
@@ -69,21 +69,21 @@ if ($null -eq $selectedPort) {
     foreach ($candidate in $availablePorts) {
         # A concurrent launcher may have started a matching process meanwhile.
         if (Test-PortInUse $candidate) {
-            if (Test-Look2Server $candidate) { $selectedPort = $candidate; break }
+            if (Test-Look3Server $candidate) { $selectedPort = $candidate; break }
             continue
         }
         $arguments = @('"' + $serverPath + '"', '--workspace', '"' + $workspacePath + '"', '--host', '127.0.0.1', '--port', [string]$candidate)
         $serverProcess = Start-Process -FilePath $nodePath -ArgumentList $arguments -WorkingDirectory $projectRoot -WindowStyle Hidden -PassThru
         for ($attempt = 0; $attempt -lt 80; $attempt++) {
-            if ((Test-PortInUse $candidate) -and (Test-Look2Server $candidate)) { $selectedPort = $candidate; break }
+            if ((Test-PortInUse $candidate) -and (Test-Look3Server $candidate)) { $selectedPort = $candidate; break }
             if ($serverProcess.HasExited) { break }
             Start-Sleep -Milliseconds 250
         }
         if ($null -ne $selectedPort) { break }
-        if (-not $serverProcess.HasExited) { throw "look2.0 is still starting on port $candidate; retry after it is ready." }
+        if (-not $serverProcess.HasExited) { throw "千星look3 is still starting on port $candidate; retry after it is ready." }
     }
-    if ($null -eq $selectedPort) { throw "No available look2.0 port in $Port-$($Port + 19). Close unused services and retry." }
+    if ($null -eq $selectedPort) { throw "No available 千星look3 port in $Port-$($Port + 19). Close unused services and retry." }
 }
 $url = "http://127.0.0.1:$selectedPort/editor"
-Write-Output "LOOK2_URL=$url"
+Write-Output "LOOK3_URL=$url"
 if (-not $NoOpen) { Start-Process -FilePath $url }

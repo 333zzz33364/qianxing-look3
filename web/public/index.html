@@ -59,6 +59,8 @@
           </label>
           <div class="play-controls" id="play-controls">
             <button id="play-start" class="primary">▶ 启动</button>
+            <button id="play-keys" data-key-input-toggle aria-pressed="true" title="转发官方键位的按下/抬起事件（含鼠标左右键）；关闭不影响画布点击">键位响应：开</button>
+            <button id="play-audio" data-audio-toggle title="点击解锁浏览器音效">开启声音</button>
             <button id="play-pause">Ⅱ 暂停</button>
             <button id="play-resume">▷ 继续</button>
             <button id="play-step">+ 1 帧</button>
@@ -115,7 +117,13 @@
           <div class="log-heading"><span>Runtime Logs</span><button id="clear-logs">清空</button></div>
           <pre id="runtime-logs">试玩启动后显示 Lua 日志。</pre>
         </section>
-        <p class="watch-note"><span>●</span> 正在监听磁盘。MCP 保存当前 JSON 后，预览会自动重新加载。</p>
+        <section class="info-card connection-details">
+          <span class="info-label">预览连接</span>
+          <div id="server-version">正在连接服务…</div>
+          <div id="workspace-path"></div>
+          <div id="preview-diagnostics" role="status" aria-live="polite" hidden></div>
+        </section>
+        <p class="watch-note"><span>●</span> 当前存档保存后自动刷新；首次存档会自动发现。切换其他存档请使用顶部列表或 MCP 预览工具。</p>
       </aside>
     </main>
 

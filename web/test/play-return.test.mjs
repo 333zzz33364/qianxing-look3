@@ -18,7 +18,7 @@ function page({ api = '/editor/api/play', opener = null, closeWorks = false, sto
     $: () => button, API: api, sessionId: 'unsaved-preview-session', window,
     play: { running: true, async stop() { stopped++; await stop() } },
     sessionStorage: { setItem(key, value) { if (storageThrows) throw Error('disabled'); storage.set(key, value) } },
-    location: { origin: 'http://local.test', pathname: '/look2-simulator/play', replace: target => targets.push(target) },
+    location: { origin: 'http://local.test', pathname: '/look3-simulator/play', replace: target => targets.push(target) },
     document: { referrer }, URL,
     setTimeout(fn, ms) { const id = Symbol(); timers.set(id, { fn, ms }); return id },
     clearTimeout(id) { timers.delete(id) },
@@ -72,7 +72,7 @@ test('a hanging stop is bounded and repeated clicks do not repeat stop', async (
 
 test('DSH fallback returns only to a same-origin host page', async () => {
   for (const [referrer, expected] of [['http://local.test/chat/one', 'http://local.test/chat/one'], ['https://foreign.test/chat', '/'], ['', '/']]) {
-    const p = page({ api: '/look2-simulator/api/play', referrer })
+    const p = page({ api: '/look3-simulator/api/play', referrer })
     await p.click(); p.flush(100)
     assert.deepEqual(p.targets, [expected])
     assert.equal(p.storage.size, 0)

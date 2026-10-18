@@ -3,20 +3,20 @@ import assert from 'node:assert/strict'
 import { mkdir, readFile, access } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
-import { SimulatorController, apply as applyDshPlugin } from 'look2-dsh-plugin'
-import { apply as registerSkill } from 'look2-dsh-plugin/skill'
+import { SimulatorController, apply as applyDshPlugin } from 'look3-dsh-plugin'
+import { apply as registerSkill } from 'look3-dsh-plugin/skill'
 
 const require = createRequire(import.meta.url)
-const packageRoot = dirname(require.resolve('look2-dsh-plugin/package.json'))
+const packageRoot = dirname(require.resolve('look3-dsh-plugin/package.json'))
 const manifest = JSON.parse(await readFile(join(packageRoot, 'package.json'), 'utf8'))
 const patch = await readFile(join(packageRoot, manifest.dsh.bundle.patch), 'utf8')
 for (const [, name] of patch.matchAll(/^      name:\s+(\S+)/gm)) {
   if (name === "'@deepseek-ai/dsh-agent-preset'") continue // supplied by Harness 0.1.7+
   assert.equal(typeof (await import(name)).apply, 'function', `Bundle entry ${name}`)
 }
-assert.match(patch, /id: look2-wonderland-lua-builder/)
-assert.equal(typeof (await import('look2-dsh-plugin/preset')).apply, 'function')
-const client = await readFile(require.resolve('look2-dsh-plugin/client'), 'utf8')
+assert.match(patch, /id: look3-wonderland-lua-builder/)
+assert.equal(typeof (await import('look3-dsh-plugin/preset')).apply, 'function')
+const client = await readFile(require.resolve('look3-dsh-plugin/client'), 'utf8')
 let clientModule
 new Function('window', client)({ __ModuleLoader__: { load(value) { clientModule = value } } })
 assert.equal(clientModule.id, manifest.name)
@@ -31,10 +31,10 @@ await access(join(packageRoot, 'dsh-plugin/lib/play.html'))
 await access(join(packageRoot, 'dsh-plugin/dist/play-renderer.js'))
 await access(join(packageRoot, 'dsh-plugin/dist/look2-fit-worker.js'))
 await access(join(packageRoot, 'dsh-plugin/dist/look2-psd-worker.js'))
-await access(join(packageRoot, 'dsh-plugin/presets/look2-wonderland-lua-builder/preset.yml'))
+await access(join(packageRoot, 'dsh-plugin/presets/look3-wonderland-lua-builder/preset.yml'))
 let skill
 registerSkill({ skills: { register(value) { skill = value } } })
-assert.equal(skill.name, 'look2-simulator')
+assert.equal(skill.name, 'look3-simulator')
 assert.ok(skill.content.length > 1000)
 for (const name of ['qxqy-studio', 'qxqy-lua-runtime', 'qxqy-editor-ui']) {
   assert.throws(() => require.resolve(name), { code: 'MODULE_NOT_FOUND' })
@@ -49,7 +49,7 @@ applyDshPlugin({
   effect(factory) { effectFactories.push(factory) },
 })
 try {
-  const getTool = registeredTools.find(tool => tool.name === 'look2_studio_get')
+  const getTool = registeredTools.find(tool => tool.name === 'look3_studio_get')
   assert.equal(typeof getTool?.execute, 'function')
   assert.ok(getTool.output?.schema && typeof getTool.output.schema === 'object')
   assert.equal(typeof getTool.output.render, 'function')
@@ -68,7 +68,7 @@ const controller = new SimulatorController(workspace)
 try {
   controller.patch({ op: 'renameSave', name: 'Git source install' })
   assert.ok(controller.saveArchive('game.save.json').bytes > 0)
-  assert.equal(controller.requestUiScreenshot().data.subarray(1, 4).toString(), 'PNG')
+  assert.equal((await controller.requestUiScreenshot()).data.subarray(1, 4).toString(), 'PNG')
   assert.equal((await controller.play('start', { view: true })).running, true)
   assert.equal((await controller.requestScreenshot()).data.subarray(1, 4).toString(), 'PNG')
 } finally {

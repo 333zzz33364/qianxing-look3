@@ -1,15 +1,15 @@
 - insert:
-    - id: look2-simulator
-      name: look2-dsh-plugin
-    - id: look2-simulator-skill
-      name: look2-dsh-plugin/skill
-    - id: look2-simulator-preset-legacy
-      name: look2-dsh-plugin/preset
-    - id: look2-simulator-preset
+    - id: look3-simulator
+      name: look3-dsh-plugin
+    - id: look3-simulator-skill
+      name: look3-dsh-plugin/skill
+    - id: look3-simulator-preset-legacy
+      name: look3-dsh-plugin/preset
+    - id: look3-simulator-preset
       name: '@deepseek-ai/dsh-agent-preset'
       disabled: !!js "(()=>{try{process.getBuiltinModule('node:module').createRequire(process.argv[1]).resolve('@deepseek-ai/dsh-agent-preset');return false}catch{return true}})()"
       config:
-        id: look2-wonderland-lua-builder
+        id: look3-wonderland-lua-builder
         name: "千星 2D+Lua 游戏制作"
         description: "按策划案、TDD 测试用例、HTML 效果展示、千星美术素材、Lua 实现、测试、真机试玩与修复七步制作 2D+Lua 游戏。"
         plugins:
@@ -19,7 +19,7 @@
           # This file is an AGENT-PLANE composition. The roster mounts it ONCE under a
           # standing scope; every session naming it joins by scope parentage. The host
           # composition keeps the registries, sandbox, approval stack, persistence, and
-          # the model route. Simulator Tools come from `dsh-plugin-beyond-simulator`.
+          # the model route. Simulator Tools come from `look3-dsh-plugin`.
           # 2D Lua knowledge is the user's workspace (AGENTS.md / knowledge docs they
           # place when creating the agent workspace). Do not bundle a corpus in this
           # preset and do not route through miliastra-knowledge (3D sandbox nodes).
@@ -38,7 +38,7 @@
 
                 Keep one current step after PREFLIGHT: (1) game design document, (2) TDD test cases before production code, (3) playable HTML effect showcase, (4) Miliastra art reference images and assets, (5) Lua implementation in the simulator, (6) simulator testing and fixes, (7) real-device play validation and bug fixes. Follow this order for new games. Existing projects resume from the earliest missing evidence; narrow fixes need not repeat unrelated steps.
 
-                Steps 1–4 do not open the simulator, edit saves, or runCase. Design test cases in step 2; a valid TDD Red requires a runnable skeleton in step 5. The HTML showcase in step 3 is opened by the user (this composition has no browser-play tool; record browser-run: user), is not Lua source, and is not the ship artifact. Prepare Miliastra art references and assets after the HTML experience is agreed. Use look2_studio_play, look2_studio_ui_screenshot, and look2_studio_play_screenshot for step 6; only a real device can establish step 7. Do not treat web search as playtesting. Coordinates: 千星 origin bottom-left, Y up; HTML is usually top-left, Y down — never copy CSS pixels into Lua.
+                Steps 1–4 do not open the simulator, edit saves, or runCase. Design test cases in step 2; a valid TDD Red requires a runnable skeleton in step 5. The HTML showcase in step 3 is opened by the user (this composition has no browser-play tool; record browser-run: user), is not Lua source, and is not the ship artifact. Prepare Miliastra art references and assets after the HTML experience is agreed. Use look3_studio_play, look3_studio_ui_screenshot, and look3_studio_play_screenshot for step 6; only a real device can establish step 7. Do not treat web search as playtesting. Coordinates: 千星 origin bottom-left, Y up; HTML is usually top-left, Y down — never copy CSS pixels into Lua.
 
                 The deliverable is a game that runs in the simulator and on device (Lua + save/GIA), not a webpage. Official Genshin/千星 art and imageIds are allowed; the simulator only previews primitives 100001–100006 (missing box is a preview limit). Design qxqy tests before production rules; a valid Red is a running skeleton whose intended behavior is absent. Fun is judged with the HTML demo first, then simulator play/screenshots — not fake log asserts.
 

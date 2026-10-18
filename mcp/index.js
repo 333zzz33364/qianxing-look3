@@ -2,9 +2,10 @@
 
 import { SimulatorController } from './lib/controller.js'
 import { listWorkspaceArchives, resolveWorkspaceRoot } from './lib/workspace.js'
+import { createPreviewClient } from './lib/preview.js'
 import manifest from './package.json' with { type: 'json' }
 
-const SERVER_NAME = 'look2-mcp'
+const SERVER_NAME = 'look3-mcp'
 const SERVER_VERSION = manifest.version
 const SUPPORTED_PROTOCOL_VERSIONS = [
   '2025-11-25',
@@ -27,6 +28,12 @@ function workspaceFromArgs() {
 }
 
 const workspaceRoot = resolveWorkspaceRoot(workspaceFromArgs())
+const webUrlIndex = process.argv.indexOf('--web-url')
+const preview = createPreviewClient({
+  workspace: workspaceRoot,
+  webUrl: webUrlIndex >= 0 ? process.argv[webUrlIndex + 1] : process.env.QXQY_WEB_URL,
+  password: process.env.QXQY_WEB_PASSWORD || '',
+})
 const projects = new Map()
 let nextHandle = 1
 const requests = new Map()
@@ -41,56 +48,61 @@ const objectSchema = (properties, required = []) => ({
 const handleProperty = {
   handle: {
     type: 'string',
-    description: 'look2_project_open 返回的工程句柄；项目级读写和试玩工具需要它。',
+    description: 'look3_project_open 返回的工程句柄；项目级读写和试玩工具需要它。',
   },
 }
 
 const tools = [
   {
-    name: 'look2_project_open',
-    description: '打开工作区中的千星模拟器存档，或创建一个新的空工程。返回后续工具使用的工程句柄；path 必须是工作区内相对路径。',
+    name: 'look3_script_sync',
+    description: '配置实机 Lua 目录复制同步或检查差异。configure 的 args 包含 config(version:1, workspaceDir, clientImportRoot, clientSubdir) 和 expectedRevision；配置随存档保存。AI 不执行复制：保存存档后请用户在 Web 编辑器加载该存档，在 Lua 脚本页面检查并确认复制。',
+    inputSchema: objectSchema({ ...handleProperty, action: { type: 'string', enum: ['discover', 'status', 'configure', 'preview'] }, args: { type: 'object', additionalProperties: true } }, ['handle', 'action']),
+  },
+  {
+    name: 'look3_project_open',
+    description: '在本 MCP 进程打开工作区存档，或创建一个新的空工程。不会刷新 Web 预览；显示已有存档请调用 look3_preview_open。返回后续工具使用的工程句柄；path 必须是工作区内相对路径。',
     inputSchema: objectSchema({
       path: { type: 'string', description: '可选的 qxqy-simulator-save JSON 相对路径；省略则创建空工程。' },
     }),
   },
   {
-    name: 'look2_project_save',
-    description: '将工程当前状态保存为 qxqy-simulator-save JSON。会创建缺失的工作区子目录；path 必须是工作区内相对路径。',
+    name: 'look3_project_save',
+    description: '把当前工程句柄中的修改保存为工作区内的 qxqy-simulator-save JSON。保存回执只确认写盘；需切换或确认 Web 预览时，随后调用 look3_preview_open。path 必须是工作区内相对路径。',
     inputSchema: objectSchema({
       ...handleProperty,
-      path: { type: 'string', description: '可选输出路径，默认 qxqy-simulator.save.json。' },
+      path: { type: 'string', description: '可选输出路径；省略时沿用最近成功打开或保存的路径，新工程默认 look3-simulator.save.json。' },
     }, ['handle']),
   },
   {
-    name: 'look2_studio_get',
-    description: '读取指定工程的无损 Authoring JSON 快照、当前 revision、脚本挂载、画布和服务端逻辑。写操作前应先调用它获取最新 revision。',
+    name: 'look3_studio_get',
+    description: '读取指定工程的无损 Authoring JSON 快照、当前 revision、脚本挂载、画布、服务端逻辑与 controlGuidChanges。若有索引变更记录，必须按控件身份同步存档 Lua source 和相关源文件中的索引引用，核对后再确认清除。写操作前应先获取最新 revision。',
     inputSchema: objectSchema(handleProperty, ['handle']),
   },
   {
-    name: 'look2_studio_patch',
-    description: '修改指定工程。op 对象必须包含 expectedRevision；发生 revision conflict 时先重新 get，再基于新快照重算 patch。',
+    name: 'look3_studio_patch',
+    description: '修改指定工程。op 必须包含 expectedRevision；冲突时先重新 get 再重算。客户端控件索引用 setControlGuid（id、guid），修改后必须语义核对并更新 Lua 引用；完成后用 acknowledgeControlGuidChanges（changeIds）确认记录，禁止只改索引或盲目替换全部同值数字。',
     inputSchema: objectSchema({
       ...handleProperty,
       op: { type: 'object', description: 'studio.patch 操作对象，例如 {"op":"set","id":"...","key":"text","value":"...","expectedRevision":1}。', additionalProperties: true },
     }, ['handle', 'op']),
   },
   {
-    name: 'look2_studio_transaction',
+    name: 'look3_studio_transaction',
     description: '原子修改控件、动画、素材或模板；失败完整回滚，作为一个撤销记录。',
     inputSchema: objectSchema({ ...handleProperty, label: { type: 'string' }, ops: { type: 'array', items: { type: 'object', additionalProperties: true } }, state: { type: 'object', additionalProperties: true }, expectedRevision: { type: 'integer' } }, ['handle', 'expectedRevision']),
   },
   {
-    name: 'look2_studio_history',
+    name: 'look3_studio_history',
     description: '列出、撤销、重做或恢复工程操作记录。恢复操作需要当前 expectedRevision。',
     inputSchema: objectSchema({ ...handleProperty, action: { type: 'string', enum: ['list', 'undo', 'redo', 'restore'] }, index: { type: 'integer' }, expectedRevision: { type: 'integer' } }, ['handle', 'action']),
   },
   {
-    name: 'look2_studio_template',
+    name: 'look3_studio_template',
     description: '导入、修改、删除或实例化客户端控件模板；索引必须与千星配置相同。',
     inputSchema: objectSchema({ ...handleProperty, action: { type: 'string', enum: ['import', 'update', 'remove', 'instantiate'] }, id: { type: 'string' }, name: { type: 'string' }, index: { type: 'integer' }, data: { type: 'string', description: '模板GIA的base64内容' }, filename: { type: 'string' }, parentId: { type: 'string' }, expectedRevision: { type: 'integer' } }, ['handle', 'action', 'expectedRevision']),
   },
   {
-    name: 'look2_animation_set',
+    name: 'look3_animation_set',
     description: '修改 look2.0 动画、轨道、关键帧和图片资源状态；先 get 读取 look2 与 revision，再提交完整 state。',
     inputSchema: objectSchema({
       ...handleProperty,
@@ -99,7 +111,7 @@ const tools = [
     }, ['handle', 'state', 'expectedRevision']),
   },
   {
-    name: 'look2_animation_export',
+    name: 'look3_animation_export',
     description: '导出站点 JSON、Timeline/Primitive 数据与运行库、图元 SVG/CSS、动画 Lua、客户端 GIA 或完整 Look 存档；返回 base64 文件内容。',
     inputSchema: objectSchema({
       ...handleProperty,
@@ -108,8 +120,8 @@ const tools = [
     }, ['handle', 'format']),
   },
   {
-    name: 'look2_studio_play',
-    description: '控制指定工程的确定性 Lua 试玩 Worker：start、step、输入、暂停/继续、设备/多人视角、服务端变量/信号和用例回放。start 可用 args.asset 选择 server 完整界面或 client 模板；client 可指定 templateRootId，animationId 可指定客户端模板实例的启动动画。expectedRevision 可选，传入时必须等于当前工程 revision。start 后才能进行输入和 step；stop 是确定性回收方式。',
+    name: 'look3_studio_play',
+    description: '控制指定工程的Lua 试玩 Worker：start、step、输入、暂停/继续、设备/多人视角、服务端变量/信号和用例回放。start 可用 args.asset 选择 server 完整界面或 client 模板；client 可指定 templateRootId，animationId 可指定客户端模板实例的启动动画。expectedRevision 可选，传入时必须等于当前工程 revision。start 后才能进行输入和 step；stop 是确定性回收方式。',
     inputSchema: objectSchema({
       ...handleProperty,
       action: {
@@ -118,8 +130,9 @@ const tools = [
       },
       args: {
         type: 'object',
-        description: '动作参数。start 可选 asset(server|client)、templateRootId、animationId、expectedRevision、canvasId、playerCount、viewPlayerIndex；device 使用 canvasId；pointer 使用 type/x/y；step 使用 dt；serverSet 使用 entityType/name/value。省略 asset 时沿用工程当前自动分流规则。',
+        description: '动作参数。start 可选 asset(server|client)、templateRootId、animationId、expectedRevision、canvasId、playerCount、viewPlayerIndex；device 使用 canvasId；pointer 使用 type/x/y/deltaX/deltaY；start/device 可传 clockMode；step 使用 dt；serverSet 使用 entityType/name/value。省略 asset 时沿用工程当前自动分流规则。',
         properties: {
+          clockMode: { type: 'string', enum: ['manual', 'realtime'] },
           asset: { type: 'string', enum: ['server', 'client'] },
           templateRootId: { type: 'string' },
           animationId: { type: 'string' },
@@ -133,22 +146,32 @@ const tools = [
     }, ['handle', 'action']),
   },
   {
-    name: 'look2_studio_ui_screenshot',
+    name: 'look3_studio_ui_screenshot',
     description: '获取当前编辑器舞台 PNG，用于检查静态 UI 布局和控件图元；不会启动或步进试玩。',
     inputSchema: objectSchema(handleProperty, ['handle']),
   },
   {
-    name: 'look2_studio_play_screenshot',
-    description: '获取当前试玩 Runtime 画面的 PNG，用于检查 Lua、动画和输入后的实际画面；必须先 start，不会步进时间。',
+    name: 'look3_studio_play_screenshot',
+    description: '获取当前试玩 Runtime 画面的 PNG；必须先 start，截图不调用 step。默认 manual 模式保持当前帧；显式 realtime 模式在调用之间仍自动运行。回执含 frame/time/clockMode。',
     inputSchema: objectSchema(handleProperty, ['handle']),
   },
   {
-    name: 'look2_studio_load',
-    description: '列出工作区内的 qxqy-simulator-save JSON，或将指定相对路径的存档载入已有工程句柄。',
+    name: 'look3_studio_load',
+    description: '列出工作区内的 qxqy-simulator-save JSON，或把指定相对路径载入本 MCP 进程的已有工程句柄。不会刷新 Web 预览；显示已有存档请调用 look3_preview_open，无需再次保存。',
     inputSchema: objectSchema({
       ...handleProperty,
       path: { type: 'string', description: '省略时列出存档；传入工作区内相对路径时载入该存档。' },
     }),
+  },
+  {
+    name: 'look3_preview_status',
+    description: '查询独立 Web 预览服务的版本、工作区、当前存档和加载错误。连接到 --web-url / QXQY_WEB_URL（默认 http://127.0.0.1:4173），必须与 MCP 使用同一工作区。无需工程句柄。',
+    inputSchema: objectSchema({}),
+  },
+  {
+    name: 'look3_preview_open',
+    description: '让独立 Web 预览打开或重新加载已保存的存档，返回 Web 确认的路径、名称和 revision；不会保存 MCP 内未落盘的修改。path 为工作区内相对路径，不受自动列表筛选限制。需要已启动同一工作区的 Web 服务，无需工程句柄。',
+    inputSchema: objectSchema({ path: { type: 'string', description: '已保存的 qxqy-simulator-save JSON 工作区相对路径。' } }, ['path']),
   },
 ]
 
@@ -184,9 +207,11 @@ function projectSummary(handle, controller, openedPath = '') {
 }
 
 async function callTool(name, args = {}, signal) {
-  if (name === 'look2_project_open') {
+  if (name === 'look3_preview_status') return preview.status(signal)
+  if (name === 'look3_preview_open') return preview.open(args.path, signal)
+  if (name === 'look3_project_open') {
     const handle = `project-${nextHandle++}`
-    const controller = new SimulatorController(workspaceRoot)
+    const controller = new SimulatorController(workspaceRoot, { clockMode: 'manual' })
     try {
       const path = String(args.path || '').trim()
       if (path) controller.loadArchive(path)
@@ -198,24 +223,28 @@ async function callTool(name, args = {}, signal) {
     }
   }
 
-  if (name === 'look2_studio_load' && !args.handle && !args.path) {
+  if (name === 'look3_studio_load' && !args.handle && !args.path) {
     return listWorkspaceArchives(workspaceRoot)
   }
 
   const controller = controllerFor(args.handle)
   return controller.exclusive(async () => {
-    if (name === 'look2_project_save') return controller.saveArchive(args.path)
-    if (name === 'look2_studio_get') return controller.get()
-    if (name === 'look2_studio_patch') return controller.patch(args.op)
-    if (name === 'look2_studio_transaction') return controller.studio.transaction(args)
-    if (name === 'look2_studio_history') return controller.studio.history(args)
-    if (name === 'look2_studio_template') return controller.studio.template(args)
-    if (name === 'look2_animation_set') return controller.studio.setLook2(args.state, args.expectedRevision)
-    if (name === 'look2_animation_export') return controller.studio.exportData(args.format, args.format === 'gia' ? 'client-control-template' : args.rootId)
-    if (name === 'look2_studio_play') return controller.play(args.action, args.args || {}, signal)
-    if (name === 'look2_studio_ui_screenshot') return controller.uiScreenshot()
-    if (name === 'look2_studio_play_screenshot') return controller.playScreenshot(signal)
-    if (name === 'look2_studio_load') {
+    if (name === 'look3_project_save') return {
+      ...controller.saveArchive(args.path),
+      preview: { status: 'not-requested', message: 'Saved to disk. Call look3_preview_open with the returned path to switch or confirm the Web preview.' },
+    }
+    if (name === 'look3_studio_get') return controller.get()
+    if (name === 'look3_script_sync') return controller.scriptSyncAction(args.action, args.args || {})
+    if (name === 'look3_studio_patch') return controller.patch(args.op)
+    if (name === 'look3_studio_transaction') return controller.studio.transaction(args)
+    if (name === 'look3_studio_history') return controller.studio.history(args)
+    if (name === 'look3_studio_template') return controller.studio.template(args)
+    if (name === 'look3_animation_set') return controller.studio.setLook2(args.state, args.expectedRevision)
+    if (name === 'look3_animation_export') return controller.studio.exportData(args.format, args.format === 'gia' ? 'client-control-template' : args.rootId)
+    if (name === 'look3_studio_play') return controller.play(args.action, args.args || {}, signal)
+    if (name === 'look3_studio_ui_screenshot') return controller.uiScreenshot(signal)
+    if (name === 'look3_studio_play_screenshot') return controller.playScreenshot(signal)
+    if (name === 'look3_studio_load') {
       return args.path ? controller.loadArchive(args.path) : controller.listArchives()
     }
     throw new Error(`unknown tool: ${name}`)
@@ -246,7 +275,7 @@ async function handleRequest(request) {
       protocolVersion: negotiateProtocolVersion(params.protocolVersion),
       capabilities: { tools: { listChanged: false } },
       serverInfo: { name: SERVER_NAME, version: SERVER_VERSION },
-      instructions: 'Optionally call look2_studio_load without a handle to find saves, then use look2_project_open. Keep the returned handle and call look2_project_save after edits. Paths are workspace-relative.',
+      instructions: 'The Web preview is a separate process. look3_project_open and look3_studio_load only change this MCP process and do not update the browser. Save handle edits with look3_project_save, then call look3_preview_open with its returned path to switch or confirm the Web preview. Existing saved files, including externally generated saves, can be previewed directly without rewriting them. look3_preview_status checks the Web version, workspace and active file. Start Web with the same --workspace and configure --web-url / QXQY_WEB_URL if it is not at http://127.0.0.1:4173. Saving succeeds independently of Web connectivity.',
     }
   }
   if (method === 'ping') return {}

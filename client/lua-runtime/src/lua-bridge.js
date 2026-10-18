@@ -29,7 +29,19 @@ export function hostOf(ud) {
   return HOST.get(ud)
 }
 
+// Marks a number that Lua must receive as a float even when it is integral
+// (device rotation reads return 244.0, never the integer 244).
+export class LuaFloat {
+  constructor(value) {
+    this.value = value
+  }
+}
+
 export function pushValue(L, runtime, value) {
+  if (value instanceof LuaFloat) {
+    lua.lua_pushnumber(L, value.value)
+    return
+  }
   if (value === undefined || value === null) {
     lua.lua_pushnil(L)
     return
@@ -89,7 +101,11 @@ export function pushValue(L, runtime, value) {
     runtime.pushControl(L, value)
     return
   }
-  if (value && value.SetEase) {
+  if (value && value.__kind === 'ServerSignal') {
+    runtime.pushSignal(L, value)
+    return
+  }
+  if (value && (value.SetEase || value.Append)) {
     runtime.pushTween(L, value)
     return
   }
@@ -183,8 +199,9 @@ function internLuaFunction(L, runtime, idx) {
 
 function wrapLuaFunction(L, runtime, ref) {
   const fn = (...args) => {
+    if (fn.__luaRef == null) throw new Error('attempt to call a released Lua callback')
     const top = lua.lua_gettop(L)
-    lua.lua_rawgeti(L, lua.LUA_REGISTRYINDEX, ref)
+    lua.lua_rawgeti(L, lua.LUA_REGISTRYINDEX, fn.__luaRef)
     for (const a of args) pushValue(L, runtime, a)
     const status = lua.lua_pcall(L, args.length, lua.LUA_MULTRET, 0)
     if (status !== LUA_OK) {
@@ -205,8 +222,18 @@ function wrapLuaFunction(L, runtime, ref) {
   return fn
 }
 
+// Interned wrappers are shared by every holder of the same Lua function, so
+// the registry ref is released only when the last retained holder lets go.
+export function retainLuaFunction(fn) {
+  if (fn?.__luaRef != null) fn.__luaHolds = (fn.__luaHolds || 0) + 1
+}
+
 export function unrefLuaFunction(runtime, fn) {
   if (!fn || fn.__luaRef == null || !fn.__luaState) return
+  if (fn.__luaHolds > 1) {
+    fn.__luaHolds -= 1
+    return
+  }
   const L = fn.__luaState
   if (!runtime?.luaStates || runtime.luaStates.has(L)) {
     lauxlib.luaL_unref(L, lua.LUA_REGISTRYINDEX, fn.__luaRef)

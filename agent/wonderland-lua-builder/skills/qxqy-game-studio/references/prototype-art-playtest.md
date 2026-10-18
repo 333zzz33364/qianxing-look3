@@ -21,13 +21,13 @@ prototype/README.md    启动、操作、不可移植项、坐标差异
 
 ## 步骤 6：模拟器测试与观察试玩
 
-加载 `look2-simulator`，运行步骤 2 的用例；对新增缺陷先留最小复现，再修复和回归。Agent 可用：
+加载 `look3-simulator`，运行步骤 2 的用例；对新增缺陷先留最小复现，再修复和回归。Agent 可用：
 
 | 目的 | 工具 |
 |---|---|
-| 点击、按键、时间和断言 | `look2_studio_play` |
-| 静态布局截图 | `look2_studio_ui_screenshot` |
-| 运行画面截图 | 先 `play start`，再 `look2_studio_play_screenshot` |
+| 点击、按键、时间和断言 | `look3_studio_play` |
+| 静态布局截图 | `look3_studio_ui_screenshot` |
+| 运行画面截图 | 先 `play start`，再 `look3_studio_play_screenshot` |
 
 画布原点左下、Y 向上。布局以 `mobile-16-9`（1280×720）完整可见为基准；PC 用同一设计板等比放大或留边，不裁掉手机内容。每轮只验证少量问题：规则回归、截图层级/裁切/反馈、用户能否理解目标与失败、控件/Lua/资源预算。用户可在模拟器页盲玩；Agent 不得把 HTML 截图或搜索结果充当模拟器试玩。
 

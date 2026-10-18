@@ -2,13 +2,31 @@ import { createAnimationView } from './look2.js'
 import { createInlinePlay } from './inline-play.js'
 import { createWorkspacePanels } from './workspace-panels.js'
 import { commitInputDraft, createInputDraft } from './input-draft.js'
+import { createScriptSyncPanel } from './script-sync.js'
+import { createControlGuidSyncPanel } from './control-guid-sync.js'
+import { createPlayLauncher } from './play-launcher.js'
+import { createImagePreview, createImageTypeField } from './image-preview.js'
+import { createColorField } from './color-field.js'
+import { controlTransformStyle } from './control-transform.js'
+import { textPreviewStyle } from './text-preview.js'
+import { isRemoteImage, imageAssetKey } from '../studio/assets/catalog.js'
+import { refreshBrowserImage } from '../studio/assets/browser.js'
+import { loadBrowserFont } from '../studio/play/browser-font.js'
 
 export function createEditor(React, { api, playUrl, saveToWorkspace = false }) {
     const e = React.createElement
+    const ScriptSyncPanel = createScriptSyncPanel(React)
+    const ControlGuidSyncPanel = createControlGuidSyncPanel(React)
+    const usePlayLauncher = createPlayLauncher(React)
+    const ImagePreview = createImagePreview(React)
+    const ImageTypeField = createImageTypeField(React)
+    const ColorField = createColorField(React)
 
     const STYLE_ID = 'qxqy-simulator-style'
     const CSS = `
 .qxsim-save-overlay{position:absolute;inset:0;z-index:30;display:grid;place-items:center;background:#0006}.qxsim-save-dialog{width:min(440px,90%);padding:24px;border:1px solid var(--line);border-radius:12px;background:var(--panel);box-shadow:0 12px 48px #0005}.qxsim-save-dialog h2{margin:0 0 16px;font-size:17px}.qxsim-save-dialog input{width:100%;margin:8px 0 16px;padding:10px;border:1px solid var(--line);border-radius:6px;background:var(--input)}.qxsim-save-dialog footer{display:flex;justify-content:flex-end;gap:8px}.qxsim-save-dialog [role=alert]{color:var(--danger);margin-bottom:12px;overflow-wrap:anywhere}
+.qxsim-play-overlay{position:fixed;inset:0;width:100%;height:100%;max-width:none;max-height:none;margin:0;padding:0;border:0;background:var(--bg);color:var(--text)}.qxsim-play-overlay[open]{display:flex;flex-direction:column}.qxsim-play-overlay::backdrop{background:#0008}.qxsim-play-header{display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px;padding:4px 12px;border-bottom:1px solid var(--line);background:var(--panel)}.qxsim-play-overlay iframe{display:block;flex:1;width:100%;min-height:0;border:0;background:var(--bg)}.qxsim-play-error{padding:8px 12px;color:var(--danger);overflow-wrap:anywhere}html[data-windows-titlebar] .qxsim-play-overlay{top:40px;height:calc(100% - 40px)}
+.qxsim-color-editor .qxsim-field{margin:0 0 8px}.qxsim-alpha-row{display:grid;grid-template-columns:minmax(0,1fr) 72px;gap:7px;align-items:center}.qxsim-alpha-row input[type=range]{width:100%;accent-color:var(--blue)}.qxsim-alpha-value{display:grid;grid-template-columns:minmax(0,1fr) 13px;align-items:center;gap:3px}.qxsim-alpha-value input{min-width:0;width:100%;height:30px;border:1px solid var(--line);border-radius:5px;background:var(--input);padding:3px 5px}.qxsim-alpha-value span{color:var(--muted);font-size:10px}.qxsim-color-error{color:var(--danger)!important}
 .qxsim{--blue:#477cf0;--danger:#e75a6a;position:relative;display:flex;flex:1 1 0;align-self:stretch;flex-direction:column;width:100%;height:100%;min-width:0;min-height:0;max-height:none;container-type:inline-size;color:var(--text);background:var(--bg);font:13px/1.4 Inter,"Microsoft YaHei UI","Microsoft YaHei",sans-serif;overflow:hidden;color-scheme:inherit}
 .qxsim[data-theme=dark]{--bg:#20242e;--panel:#181d27;--panel2:#202632;--input:#151b25;--line:#363e4d;--lineSoft:#2b3240;--text:#edf1f7;--muted:#929baa;--hover:#252c37;--workspace:#383d47;--toolbarA:#242a35;--toolbarB:#1e232d;--status:#242a33;--button:#1d2430;--shadow:#0004}
 .qxsim[data-theme=light]{--bg:#f5f6f8;--panel:#fff;--panel2:#f4f6f8;--input:#fff;--line:#d6dbe3;--lineSoft:#e7e9ed;--text:#20242a;--muted:#69717d;--hover:#eef1f5;--workspace:#d9dde3;--toolbarA:#fff;--toolbarB:#f3f5f8;--status:#f7f8fa;--button:#f7f8fa;--shadow:#18203318}
@@ -91,6 +109,7 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false }) {
     }
     function colorHex(value) { return `#${(Number(value) >>> 0).toString(16).padStart(8, '0').toUpperCase()}` }
     function shape(primitive, color) {
+      if (primitive === 'sprite') return { background: 'transparent' }
       if (primitive === 'circle') return { borderRadius: '50%', background: color }
       if (primitive === 'ring') return { borderRadius: '50%', border: `7px solid ${color}`, background: 'transparent' }
       if (primitive === 'triangle') return { background: color, clipPath: 'polygon(50% 0,100% 100%,0 100%)' }
@@ -223,10 +242,7 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false }) {
         const percent = Math.round(Number(choiceValue || 0) * 100)
         return e('div', { className: 'qxsim-field' }, e('label', { className: 'qxsim-field-label' }, field.label), e('span', { className: 'qxsim-percent' }, e('input', { type: 'range', min: 0, max: 100, value: percent, disabled: !!field.readonly, onInput: (event) => submitChoice(Number(event.target.value) / 100) }), e('output', null, `${percent}%`)), retryChoice)
       }
-      if (field.type === 'color') {
-        const normalized = /^#[0-9a-f]{8}$/i.test(draft) ? draft : colorHex(field.value)
-        return e('label', { className: 'qxsim-field' }, e('span', { className: 'qxsim-field-label' }, field.label, e('small', null, 'ARGB')), e('span', { className: 'qxsim-color-row' }, e('span', { className: 'qxsim-color-swatch', title: '打开取色器' }, e('input', { type: 'color', value: `#${normalized.slice(3)}`, disabled: !!field.readonly, onInput: (event) => { const value = `#${normalized.slice(1, 3)}${event.target.value.slice(1).toUpperCase()}`; editDraft(value); void submitDraft(value) } })), e('input', { type: 'text', value: draft, spellCheck: false, disabled: !!field.readonly, 'aria-label': `${field.label} ARGB`, onChange: (event) => editDraft(event.target.value), onBlur: () => { if (draftStateRef.current.dirty) void submitDraft(draftStateRef.current.value) }, onKeyDown: (event) => { if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') resetDraft() } }), retryDraft))
-      }
+      if (field.type === 'color') return e(ColorField, { field, commit })
       const inputProps = { value: draft, disabled: !!field.readonly, readOnly: !!field.readonly, onChange: (event) => editDraft(event.target.value), onBlur: () => { if (!field.readonly && draftStateRef.current.dirty) void submitDraft(draftStateRef.current.value) }, onKeyDown: (event) => { if (event.key === 'Enter' && field.type !== 'text') event.currentTarget.blur(); if (event.key === 'Escape') resetDraft() } }
       return e('label', { className: 'qxsim-field' }, e('span', { className: 'qxsim-field-label' }, axis ? e('b', { className: `qxsim-axis ${axis.toLowerCase()}` }, axis) : null, field.label), field.type === 'text' ? e('textarea', { ...inputProps, rows: 4 }) : e('input', { ...inputProps, type: field.type === 'number' ? 'number' : 'text', step: field.type === 'number' ? 'any' : undefined }), retryDraft)
     }
@@ -272,7 +288,9 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false }) {
       const f = mapFields(inspector.fields)
       const renderField = (field) => field?.type === 'node'
         ? e(NodeReferenceField, { key: field.key, field, commit, createStateChild })
-        : field ? e(DraftField, { key: field.key, field, commit }) : null
+        : field?.key === 'imageType' && inspector.kind === 'image'
+          ? e(ImageTypeField, { key: field.key, imageId: f.imageId?.value, imageSource: f.imageSource?.value, value: field.value, commit })
+          : field ? e(DraftField, { key: field.key, field, commit }) : null
       const isGroupField = (field) => !!field && !field.readonly && !['N', 'U'].includes(field.evidence)
         && field.type !== 'note' && !Object.hasOwn(field, 'unknownValue')
         && !(typeof field.value === 'string' && field.value.startsWith('__unrecognized:'))
@@ -312,11 +330,48 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false }) {
       const typeTitle = inspector.kind === 'textbox' ? '文本框设置' : inspector.kind === 'button' ? '按钮设置' : `${inspector.label}设置`
       return e(React.Fragment, null,
         e(Section, { title: '节点信息', open: false }, e(DraftField, { field: f.name, commit })),
-        groupSection('transform', '变换', [transformHeader, f.posX ? e(Pair, { key: 'position', label: '位置', x: f.posX, y: f.posY, commit }) : null, f.width ? e(Pair, { key: 'size', label: '大小', x: f.width, y: f.height, xAxis: 'W', yAxis: 'H', commit }) : null, extraTransformFields, f.rotationZ ? e(DraftField, { key: 'rotationZ', field: f.rotationZ, commit }) : null, f.syncAllDevices ? e(DraftField, { key: 'syncAllDevices', field: f.syncAllDevices, commit }) : null, f.anchorType ? e(DraftField, { key: 'anchorType', field: f.anchorType, commit }) : null, f.anchorMinX ? e(Pair, { key: 'anchorMin', label: 'Min', x: f.anchorMinX, y: f.anchorMinY, commit }) : null, f.anchorMaxX ? e(Pair, { key: 'anchorMax', label: 'Max', x: f.anchorMaxX, y: f.anchorMaxY, commit }) : null, f.pivotX ? e(Pair, { key: 'pivot', label: '中心', x: f.pivotX, y: f.pivotY, commit }) : null], ['posX', 'posY', 'width', 'height', 'rotationZ', 'syncAllDevices', 'anchorType', 'anchorMinX', 'anchorMinY', 'anchorMaxX', 'anchorMaxY', 'pivotX', 'pivotY']),
+        groupSection('transform', '变换', [transformHeader, f.posX ? e(Pair, { key: 'position', label: '位置', x: f.posX, y: f.posY, commit }) : null, f.width ? e(Pair, { key: 'size', label: '大小', x: f.width, y: f.height, xAxis: 'W', yAxis: 'H', commit }) : null, extraTransformFields, ...['rotationX', 'rotationY', 'rotationZ'].map(key => f[key] ? e(DraftField, { key, field: f[key], commit }) : null), f.syncAllDevices ? e(DraftField, { key: 'syncAllDevices', field: f.syncAllDevices, commit }) : null, f.anchorType ? e(DraftField, { key: 'anchorType', field: f.anchorType, commit }) : null, f.anchorMinX ? e(Pair, { key: 'anchorMin', label: 'Min', x: f.anchorMinX, y: f.anchorMinY, commit }) : null, f.anchorMaxX ? e(Pair, { key: 'anchorMax', label: 'Max', x: f.anchorMaxX, y: f.anchorMaxY, commit }) : null, f.pivotX ? e(Pair, { key: 'pivot', label: '中心', x: f.pivotX, y: f.pivotY, commit }) : null], ['posX', 'posY', 'width', 'height', 'rotationX', 'rotationY', 'rotationZ', 'syncAllDevices', 'anchorType', 'anchorMinX', 'anchorMinY', 'anchorMaxX', 'anchorMaxY', 'pivotX', 'pivotY']),
         groupSection('creation', '创建设置', [f.active ? e(DraftField, { key: 'active', field: f.active, commit }) : null, f.visible ? e(DraftField, { key: 'visible', field: f.visible, commit }) : null], ['active', 'visible']),
         typeSections || (typeFields.length ? groupSection('control', typeTitle, typeFields, TYPE_KEYS[inspector.kind] || []) : null),
         f.canControllerFocus || f.locked ? groupSection('editor', '编辑器设置', [f.locked ? e(DraftField, { key: 'locked', field: f.locked, commit }) : null, f.canControllerFocus ? e(DraftField, { key: 'canControllerFocus', field: f.canControllerFocus, commit }) : null], ['locked', 'canControllerFocus'], false) : null,
         f.incomplete ? e(Section, { title: '实现状态' }, e(DraftField, { field: f.incomplete, commit })) : null)
+    }
+    function ControlGuidEditor({ inspector, autofill, onSave }) {
+      const [draft, setDraft] = React.useState(String(inspector.guid ?? ''))
+      const [automatic, setAutomatic] = React.useState(false)
+      const [busy, setBusy] = React.useState(false)
+      const [error, setError] = React.useState('')
+      React.useEffect(() => { setDraft(String(inspector.guid ?? '')); setAutomatic(false); setError('') }, [inspector.id, inspector.guid])
+      const canAutofill = autofill?.count > 1 && autofill.selectedOffset >= 0
+      const firstGuid = /^[0-9]+$/.test(draft.trim()) ? Number(draft) - (autofill?.selectedOffset || 0) : NaN
+      const lastGuid = firstGuid + (autofill?.count || 0) - 1
+      const validRange = Number.isSafeInteger(firstGuid) && firstGuid >= 1 && lastGuid <= 2147483647
+      async function submit(event) {
+        event.preventDefault()
+        const value = draft.trim()
+        if (!/^[0-9]+$/.test(value) || Number(value) < 1 || Number(value) > 2147483647) {
+          setError('请输入 1–2147483647 之间的整数索引。')
+          return
+        }
+        setBusy(true); setError('')
+        try { await onSave(inspector.id, Number(value), automatic && canAutofill) }
+        catch (reason) { setError(reason?.message || String(reason)) }
+        finally { setBusy(false) }
+      }
+      return e('form', { onSubmit: submit, style: { marginTop: 8 } },
+        e('label', { className: 'qxsim-field' },
+          e('span', { className: 'qxsim-field-label' }, '客户端控件索引'),
+          e('div', { style: { display: 'flex', gap: 6 } },
+            e('input', { type: 'text', inputMode: 'numeric', 'aria-label': '客户端控件索引', value: draft, disabled: busy, onChange: (event) => { setDraft(event.target.value); setError('') }, onKeyDown: (event) => { if (event.key === 'Escape') { setDraft(String(inspector.guid ?? '')); setError('') } } }),
+            e('button', { type: 'submit', className: 'qxsim-action', disabled: busy || (!automatic && draft.trim() === String(inspector.guid ?? '')) || (automatic && !validRange) }, busy ? '保存中' : '修改'))),
+        canAutofill ? e('label', { style: { display: 'flex', gap: 6, alignItems: 'center', margin: '6px 0' } },
+          e('input', { type: 'checkbox', checked: automatic, disabled: busy, onChange: (event) => setAutomatic(event.target.checked) }), '自动修改其他客户端索引值') : null,
+        automatic && canAutofill ? e('div', { className: 'qxsim-note', 'aria-label': '自动填充索引预览' },
+          `以当前控件为基准，按 GIA 导入顺序填充 ${autofill.count} 个控件（${autofill.templateCount} 个模板及其子控件）。`,
+          e('div', null, validRange ? `索引范围：${firstGuid}–${lastGuid}` : '索引范围超出有效范围，请检查输入。'),
+          e('div', null, '适用于整批导入后未增删、重排的模板。服务端界面和脚本索引需单独填写。')) : null,
+        error ? e('div', { role: 'alert', className: 'qxsim-note' }, error) : null,
+        e('div', { className: 'qxsim-muted', style: { lineHeight: 1.5 } }, '填写 GIA 导入后实际显示的索引；修改后从页面上方继续同步 Lua。'))
     }
     function ScriptPage({ snap, selectedScriptId, selectScript, draft, updateDraft, saveScript, addScript, removeScript, exportLua, exportScripts, exportScriptsGia, notice }) {
       const scripts = snap.scripts || []
@@ -562,19 +617,25 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false }) {
       if (selected && selected.kind !== 'server-container') return selected.id
       return parentContainer(root, selectedId)
     }
-    function renderControl(item, snap, canvasWidth, canvasHeight, zoom, dragOffset) {
-      const box = item; const kind = item.kind
+    function renderControl(item, snap, canvasWidth, canvasHeight, zoom, dragOffset, fontFamily) {
+      const kind = item.kind
       const textKind = kind === 'textbox' || kind === 'textwindow'
-      const left = (box.renderLeft ?? box.left) + (dragOffset?.id === item.id ? dragOffset.dx : 0)
-      const bottom = (box.renderBottom ?? box.bottom) + (dragOffset?.id === item.id ? dragOffset.dy : 0)
-      const width = box.renderWidth ?? box.width; const height = box.renderHeight ?? box.height
-      const rotationZ = box.renderRotationZ ?? item.rotationZ ?? 0
+      const offset = dragOffset?.id === item.id ? dragOffset : null
+      const left = (item.renderLeft ?? item.left) + (offset?.dx || 0)
+      const bottom = (item.renderBottom ?? item.bottom) + (offset?.dy || 0)
+      const width = item.renderWidth ?? item.width; const height = item.renderHeight ?? item.height
+      const rotationZ = item.renderRotationZ ?? item.rotationZ ?? 0
       const style = { left: `${left / canvasWidth * 100}%`, bottom: `${bottom / canvasHeight * 100}%`, width: `${width / canvasWidth * 100}%`, height: `${height / canvasHeight * 100}%`, '--rotation': `${-Number(rotationZ)}deg`, fontSize: `${Math.max(1, Number(item.fontSize || 12) * zoom)}px`, color: textKind ? argb(item.fontColor, 0xffffffff) : '#fff' }
+      Object.assign(style, controlTransformStyle(item, canvasWidth, canvasHeight, offset))
       if (kind === 'image') Object.assign(style, shape(item.primitive, argb(item.imageColor, 0xffffffff)))
       else if (textKind) { style.background = argb(item.bgColor, 0x00ffffff); style.justifyContent = item.horizontalAlignment === 'Right' ? 'flex-end' : item.horizontalAlignment === 'Middle' ? 'center' : 'flex-start'; style.alignItems = item.verticalAlignment === 'Bottom' ? 'flex-end' : item.verticalAlignment === 'Middle' ? 'center' : 'flex-start'; style.textShadow = item.enableOutline === false ? 'none' : `0 0 2px ${argb(item.outlineColor, 0xff000000)}` }
       else if (kind === 'container') style.background = 'transparent'
       const selected = item.id === snap.selectedId
-      const content = textKind ? (item.text || '') : kind === 'image' && item.primitive === 'missing' ? e('span', { className: 'qxsim-box-label' }, `缺少图片 ${item.imageId || ''}`) : kind !== 'container' && kind !== 'image' ? e('span', { className: 'qxsim-box-label' }, item.name || KIND_META[kind]?.[1] || kind) : null
+      const content = kind === 'image' && item.primitive === 'sprite'
+        ? e(ImagePreview, { key: imageAssetKey(item.imageId, item.imageSource), item })
+        : textKind ? e('span', { style: textPreviewStyle(item, zoom, fontFamily) }, item.textLayout?.lines?.join('\n') ?? item.text ?? '')
+          : kind === 'image' && item.primitive === 'missing' ? e('span', { className: 'qxsim-box-label' }, `缺少图片 ${item.imageId || ''}`)
+            : kind !== 'container' && kind !== 'image' ? e('span', { className: 'qxsim-box-label' }, item.name || KIND_META[kind]?.[1] || kind) : null
       return e('div', { key: item.id, 'data-control-id': item.id, className: `qxsim-box ${kind}${selected ? ' selected' : ''}${item.instantiated ? ' dynamic' : ''}${item.pressed ? ' pressed' : ''}`, style }, content, selected && kind !== 'container' ? ['tl', 'tr', 'bl', 'br'].map((pos) => e('i', { key: pos, className: `qxsim-handle ${pos}` })) : null)
     }
 
@@ -582,8 +643,18 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false }) {
       const theme = useHostTheme()
       const [snap, setSnap] = React.useState(null); const snapRef = React.useRef(null); const queueRef = React.useRef(Promise.resolve())
       const [error, setError] = React.useState('')
+      const [fontFamily, setFontFamily] = React.useState(null)
+      React.useEffect(() => {
+        let active = true
+        loadBrowserFont().then(family => { if (active) setFontFamily(family) }, reason => {
+          if (active) setError(reason?.message || '本地字体加载失败')
+        })
+        return () => { active = false }
+      }, [])
+      const playLauncher = usePlayLauncher({ sessionId, api: callApi, playUrl, onError: setError })
       const [savePath, setSavePath] = React.useState(null)
       const [saving, setSaving] = React.useState(false)
+      const [refreshingImage, setRefreshingImage] = React.useState(false)
       const [notice, setNotice] = React.useState(''); const fileInputRef = React.useRef(null)
       const [exportWarnings, setExportWarnings] = React.useState([])
       const [archives, setArchives] = React.useState([])
@@ -625,8 +696,8 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false }) {
         }
       }, [sessionId])
       React.useEffect(() => { reload(); void refreshArchives() }, [reload, refreshArchives])
-      function patch(op) {
-        const run = async () => { const current = snapRef.current; if (!current) throw new Error('editor is not ready'); try { const next = await callApi(sessionId, 'patch', { op: { ...op, expectedRevision: current.version } }); setError(''); return accept(next) } catch (reason) { setError(reason?.message || String(reason)); if (/revision conflict/.test(String(reason?.message || reason))) await reload(); throw reason } }
+      function patch(op, assetType = '') {
+        const run = async () => { const current = snapRef.current; if (!current) throw new Error('editor is not ready'); try { if (assetType && current.asset?.type !== assetType) throw new Error('当前资产已切换，请重新选择控件后修改索引'); const operation = typeof op === 'function' ? op(current) : op; const next = await callApi(sessionId, 'patch', { op: { ...operation, expectedRevision: current.version } }); setError(''); return accept(next) } catch (reason) { setError(reason?.message || String(reason)); if (/revision conflict/.test(String(reason?.message || reason))) await reload(); throw reason } }
         queueRef.current = queueRef.current.then(run, run); return queueRef.current
       }
       function finishCanvasDrag(drag) {
@@ -700,7 +771,49 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false }) {
         if (dragRef.current?.pointerId !== event.pointerId) return
         dragRef.current = null; setDragOffset(null)
       }
-      const commit = (key, value) => void patch({ op: 'set', key, value }).catch(() => {})
+      const changeControlGuid = async (id, guid, assetType, automatic = false) => {
+        await saveScriptDraft()
+        await patch({ op: 'setControlGuid', id, guid, autoFillClientGuids: automatic }, assetType)
+        setNotice('控件索引已修改。请选择上方「全量替换脚本索引」或「复制提示词给 AI」。')
+      }
+      const copyGuidChanges = async () => {
+        await saveScriptDraft()
+        await saveLogicDraft()
+        await queueRef.current
+        const current = snapRef.current
+        if (!current.storage?.path) {
+          if (saveToWorkspace) setSavePath(`${current.save?.name || 'project'}.save.json`)
+          throw new Error('请先保存完整存档，再复制提示词；AI 需要读取这次实际修改的存档。')
+        }
+        await callApi(sessionId, 'save', { path: current.storage.path, expectedRevision: current.version })
+        const changes = current.controlGuidChanges || []
+        const prompt = ['请完成模拟器控件索引与 Lua 引用同步。',
+          `工作区：${current.workspace?.path || '请先核对工作区'}`,
+          `最新完整存档：${current.storage.path}（编辑器已保存）`,
+          `Lua 文件：${(current.scripts || []).map(row => row.path || `内联脚本 ${row.id}`).join('、') || '暂无'}`,
+          '先从上述文件重新加载最新存档，不要使用另一个 MCP/Web 进程里的旧工程。',
+          `获取新旧映射：读取该 JSON 顶层的 controlGuidChanges 数组，当前共 ${changes.length} 条，必须读取全部记录。oldGuid 是旧索引，newGuid 是新索引；controlAsset + controlId 标识控件，controlName 是名称，id 是记录编号，batchId 是批次。`,
+          '获取脚本：读取 assets.scripts 数组；每项的 source 是存档内源码，path 是脚本文件路径（相对路径以工作区为基准）。',
+          '按控件身份和变更顺序核对全部 Lua 脚本的索引常量、配置表与调用，修改存档中的 source 及相关 Lua 源文件和生成器映射，避免重建后覆盖。不要全局替换同值数字，也不要改运行时实例 ID 或图片资源 ID。',
+          '同一 batchId 是同时映射，须按原值一次性应用，不能逐条替换导致索引串改。',
+          '检查旧索引引用并重新试玩；仅在引用全部同步或明确没有引用后，用 acknowledgeControlGuidChanges 的 changeIds 清除已核对记录，保存完整存档。未判断的记录继续保留。',
+          '完成后告知用户重新载入这个存档，再通过「Lua 脚本 → 实机脚本同步」更新游戏文件；不要重新导入 GIA，也不要擅自复制到游戏目录。'].join('\n')
+        try { await navigator.clipboard.writeText(prompt); setNotice('存档已保存，提示词已复制，包含完整映射的读取方式。粘贴给 AI；处理后重新载入存档。') }
+        catch { setNotice('存档已保存。剪贴板不可用，可从下方文本框手动复制提示词。') }
+        return prompt
+      }
+      const commit = (key, value) => void patch(current => ({ op: 'set', key, value: typeof value === 'function' ? value(current.inspector?.fields?.find(field => field.key === key)?.value) : value })).catch(() => {})
+      async function refreshSelectedImage() {
+        const { imageId, imageSource } = snapRef.current?.boxes?.find(item => item.id === snapRef.current.selectedId) || {}
+        if (!isRemoteImage(imageId, imageSource)) return
+        setRefreshingImage(true)
+        try {
+          await callApi(sessionId, 'image-refresh', { imageId, imageSource })
+          refreshBrowserImage(imageId, imageSource)
+          setNotice(`图片 ${imageId} 已重新下载；同源试玩页会同步刷新。`)
+        } catch (reason) { setError(reason?.message || String(reason)) }
+        finally { setRefreshingImage(false) }
+      }
       async function createStateChild(key, label) {
         const buttonId = snapRef.current?.inspector?.id
         if (!buttonId) return
@@ -832,17 +945,13 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false }) {
         finally { if (fileInputRef.current) fileInputRef.current.value = '' }
       }
       async function startPlay() {
-        const playTab = window.open('about:blank', '_blank')
-        if (!playTab) { setError('浏览器阻止了试玩标签页，请允许此站点打开新标签页后重试。'); return }
-        playTab.document.write('<!doctype html><meta charset="utf-8"><title>正在准备试玩…</title><style>html{color-scheme:light dark;font:14px system-ui}body{min-height:100vh;margin:0;display:grid;place-items:center;background:Canvas;color:CanvasText}</style><p>正在保存项目并准备试玩…</p>')
-        try {
+        void playLauncher.open(async () => {
+          await queueRef.current.catch(() => {})
           await saveScriptDraft()
           await saveLogicDraft()
-          playTab.location.replace(playUrl(sessionId))
-        } catch (reason) {
-          playTab.close()
-          setError(reason?.message || String(reason))
-        }
+          await queueRef.current
+          setError('')
+        })
       }
       async function saveWorkspace() {
         if (saving || !savePath?.trim()) return
@@ -904,6 +1013,7 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false }) {
         : []
       const selectedParentId = selectedRow?.parentId || snap.root.id
       return e('div', { className: 'qxsim', 'data-theme': theme, 'data-qxsim-session-id': sessionId },
+        playLauncher.overlay,
         savePath !== null ? e('div', { className: 'qxsim-save-overlay' },
           e('form', { className: 'qxsim-save-dialog', role: 'dialog', 'aria-modal': true, 'aria-label': '保存到工作区', onSubmit: event => { event.preventDefault(); void saveWorkspace() } },
             e('h2', null, '保存到工作区'),
@@ -911,7 +1021,7 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false }) {
             error ? e('div', { role: 'alert' }, error) : null,
             e('footer', null, e('button', { className: 'qxsim-action', type: 'button', disabled: saving, onClick: () => setSavePath(null) }, '取消'), e('button', { className: 'qxsim-action primary', type: 'submit', disabled: saving || !savePath.trim() }, saving ? '保存中…' : '保存')))) : null,
         e('header', { className: 'qxsim-toolbar' },
-          e('div', { className: 'qxsim-brand', title: `${snap.workspace?.bound ? snap.workspace.path : '工作区未绑定'}\n${snap.meta?.sourceFile || '尚未导入文件'}` }, e('span', { className: 'qxsim-appicon' }, 'UI'), e('span', { className: 'qxsim-brand-text' }, e('strong', null, `存档：${snap.save?.name || snap.meta?.name || '未命名存档'}`), e('span', null, `工作区：${snap.workspace?.bound ? snap.workspace.name : '未绑定'} · 当前资产：${snap.asset?.label || 'UI控件'}`))),
+          e('div', { className: 'qxsim-brand', title: `千星look3 UI 动画编辑器\n${snap.workspace?.bound ? snap.workspace.path : '工作区未绑定'}\n${snap.meta?.sourceFile || '尚未导入文件'}` }, e('span', { className: 'qxsim-appicon' }, 'L3'), e('span', { className: 'qxsim-brand-text' }, e('strong', null, `千星look3 · 存档：${snap.save?.name || snap.meta?.name || '未命名存档'}`), e('span', null, `工作区：${snap.workspace?.bound ? snap.workspace.name : '未绑定'} · 当前资产：${snap.asset?.label || 'UI控件'}`))),
           e('div', { className: 'qxsim-toolbar-center' }, page === 'ui' ? e(React.Fragment, null,
             e('div', { className: 'qxsim-device-switch', role: 'group', 'aria-label': '目标设备' },
               DEVICE_GROUPS.map((group) => e('button', { key: group.key, className: snap.canvas.platform === group.key ? 'active' : '', title: group.title, onClick: () => switchDevice(group.key) }, group.label))),
@@ -925,9 +1035,13 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false }) {
               e('select', { className: 'qxsim-control zoom', 'aria-label': '从工作区拉取存档', defaultValue: '', onFocus: () => void refreshArchives(), onChange: (event) => { const path = event.target.value; event.target.value = ''; if (path) void loadWorkspaceArchive(path) } }, e('option', { value: '', disabled: true }, snap.workspace?.bound ? '⤓ 工作区存档' : '工作区未绑定'), ...(archives.length ? archives.map((row) => e('option', { key: row.path, value: row.path }, `${row.name} · ${row.path}`)) : [e('option', { value: '', disabled: true }, snap.workspace?.bound ? '未发现 qxqy-simulator-save' : '先绑定会话工作区')])),
               e('button', { className: 'qxsim-action', title: '导入存档、单项 UI 资产或 Lua', onClick: () => fileInputRef.current?.click() }, '⇧ 导入'),
               e('select', { className: 'qxsim-control zoom', 'aria-label': '导出格式', defaultValue: '', onChange: (event) => { const [format, arg = ''] = event.target.value.split('|'); event.target.value = ''; if (format) void exportFile(format, arg) } }, e('option', { value: '', disabled: true }, '⇩ 导出'), e('option', { value: 'save' }, '资产包 JSON（三类合一）'), e('option', { value: 'save-gia' }, '资产包 GIA（已改动项）'), e('option', { value: 'gia-combined' }, '资产包 GIA 整合包（控件+脚本）'), e('optgroup', { label: '当前界面（左栏正在看的那棵树）' }, e('option', { value: 'json' }, '当前界面 Authoring JSON'), e('option', { value: 'gia' }, '当前界面 GIA')), e('optgroup', { label: '服务器控件模板' }, e('option', { value: 'json|server-control-template' }, 'Authoring JSON'), e('option', { value: 'gia|server-control-template' }, 'GIA')), e('optgroup', { label: '客户端控件模板（仅当左栏切到「UI控件-客户端」时才是页面内容）' }, e('option', { value: 'json|client-control-template' }, 'Authoring JSON'), e('option', { value: 'gia|client-control-template' }, 'GIA')), e('optgroup', { label: 'Lua 脚本' }, e('option', { value: 'scripts' }, '脚本包 JSON（全部脚本）'), e('option', { value: 'scripts-gia' }, '脚本包 GIA（全部脚本）')))),
-            e('button', { className: 'qxsim-action primary', title: '在独立标签页中试玩', onClick: startPlay }, '▷ 试玩 ↗'),
+            e('button', { className: 'qxsim-action primary', title: '打开试玩；新窗口不可用时在应用内试玩', disabled: playLauncher.opening, onClick: startPlay }, playLauncher.opening ? '正在准备…' : '▷ 试玩 ↗'),
             e('button', { className: 'qxsim-iconbtn', title: '重新载入', onClick: reload }, '↻'))),
         e('nav', { className: 'qxsim-editor-nav', 'aria-label': '编辑页面' }, e('button', { className: page === 'ui' ? 'active' : '', onClick: () => leavePage('ui') }, 'UI 编辑'), e('button', { className: page === 'script' ? 'active' : '', onClick: () => leavePage('script') }, 'Lua 脚本'), e('button', { className: page === 'logic' ? 'active' : '', onClick: () => leavePage('logic') }, '服务端逻辑'), e('span', { className: 'save-summary' }, '一个存档 · 服务器控件模板 + 客户端控件模板 + Lua 脚本 + 服务端逻辑')),
+        page === 'script' ? e(ScriptSyncPanel, { snap, patch, request: (action, body) => callApi(sessionId, action, body), refresh: async () => accept(await callApi(sessionId, 'get')), prepare: async () => { await queueRef.current; await saveScriptDraft(); await saveLogicDraft(); return snapRef.current } }) : null,
+        e(ControlGuidSyncPanel, { snap, patch, prepare: saveScriptDraft, copy: copyGuidChanges,
+          onScripts: () => leavePage('script'), onError: setError,
+          reloadArchive: () => { const path = snapRef.current?.storage?.path; return path ? loadWorkspaceArchive(path) : Promise.reject(new Error('请先保存完整存档后再重新载入')) } }),
         exportWarnings.length ? e('details', { className: 'qxsim-export-warnings', open: true, role: 'status', style: { flexShrink: 0, maxHeight: 180, overflow: 'auto', padding: '8px 16px', borderBottom: '1px solid currentColor' } },
           e('summary', { style: { cursor: 'pointer' } }, `上次导出说明（${exportWarnings.length} 项，请核对导入后的效果）`),
           e('button', { className: 'qxsim-action', onClick: () => setExportWarnings([]) }, '关闭导出说明'),
@@ -949,15 +1063,18 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false }) {
               clientTemplates && selectedRow ? e('div', { className: 'qxsim-hierarchy' }, e('div', { className: 'qxsim-hierarchy-head' }, e('strong', null, '层级与模板边界'), e('span', null, selectedRow.name)), e('div', { className: 'qxsim-parent-row' }, e('select', { 'aria-label': '父级控件', value: selectedParentId, onChange: (event) => void patch({ op: 'reparent', id: selectedRow.id, parentId: event.target.value }).then(() => setNotice(event.target.value === snap.root.id ? '已提升为可实例化顶层模板' : '已调整控件父级')).catch(() => {}) }, e('option', { value: snap.root.id }, '顶层模板（可实例化）'), parentCandidates.map((row) => e('option', { key: row.id, value: row.id }, `${'　'.repeat(row.depth)}${row.name}`))), e('button', { title: '在同级中上移', disabled: selectedRow.siblingIndex <= 0, onClick: () => void patch({ op: 'moveSibling', id: selectedRow.id, direction: 'up' }).catch(() => {}) }, '↑'), e('button', { title: '在同级中下移', disabled: selectedRow.siblingIndex >= selectedRow.siblingCount - 1, onClick: () => void patch({ op: 'moveSibling', id: selectedRow.id, direction: 'down' }).catch(() => {}) }, '↓')), e('div', { className: 'qxsim-hierarchy-note' }, selectedRow.depth === 0 ? '该节点会写入独立 UIControlTemplate，可直接作为 prefabId。' : `当前为第 ${selectedRow.depth} 层子控件，不会单独成为 prefabId。`)) : null,
               e('div', { className: 'qxsim-palette-head' }, e('span', { title: clientTemplates && addMode === 'template' ? '新增独立可实例化模板' : `添加到${selectedRow ? selectedRow.name : '当前控件'}` }, clientTemplates && addMode === 'template' ? '新增顶层模板' : `添加到${selectedRow ? `“${selectedRow.name}”` : '当前控件'}`), clientTemplates ? e('span', { className: 'qxsim-add-mode' }, e('button', { className: addMode === 'template' ? 'active' : '', onClick: () => setAddMode('template') }, '顶层'), e('button', { className: addMode === 'child' ? 'active' : '', onClick: () => setAddMode('child') }, '子控件')) : null),
               e('div', { className: 'qxsim-add' }, CONTROL_TYPES.filter(([kind]) => clientTemplates || kind !== 'container').map(([kind, label]) => e('button', { key: kind, title: `${clientTemplates && addMode === 'template' ? '新增' : '添加'}${label}`, onClick: () => addControl(kind, label) }, `＋ ${label}`))))),
-          e('main', { className: 'qxsim-center' }, e('div', { className: 'qxsim-workspace', ref: workspaceRef }, e('div', { className: 'qxsim-stage-shell', style: { width: `${Math.max(40, Math.round(canvasWidth * effectiveZoom))}px` } }, e('div', { className: 'qxsim-stage-label' }, e('b', null, clientTemplates ? 'Lua 模板预览' : '界面控件组'), e('span', { className: 'qxsim-platform-tag' }, snap.canvas.platform), e('span', null, `${activeRatio} · ${canvasWidth}×${canvasHeight} · 左下原点`)), e('div', { className: 'qxsim-stage', style: { width: '100%', aspectRatio: `${canvasWidth} / ${canvasHeight}`, touchAction: 'none' }, onPointerDown: canvasPointerDown, onPointerMove: canvasPointerMove, onPointerUp: canvasPointerUp, onPointerCancel: canvasPointerCancel }, renderBoxes.map((item) => renderControl(item, snap, canvasWidth, canvasHeight, effectiveZoom, dragOffset))))), error ? e('div', { className: 'qxsim-status error' }, '⚠ ', error) : e('div', { className: 'qxsim-status' }, e('span', null, `● ${snap.asset?.label || '控件'}编辑`), e('span', null, notice || (selectedRow ? `当前：${selectedRow.name}` : '')), e('span', { className: 'spacer' }), e('span', null, clientTemplates ? 'GIA 导出后可在 Lua 中按 prefabId 实例化' : '点击选中，拖动移动；保存后写盘'))),
+          e('main', { className: 'qxsim-center' }, e('div', { className: 'qxsim-workspace', ref: workspaceRef }, e('div', { className: 'qxsim-stage-shell', style: { width: `${Math.max(40, Math.round(canvasWidth * effectiveZoom))}px` } }, e('div', { className: 'qxsim-stage-label' }, e('b', null, clientTemplates ? 'Lua 模板预览' : '界面控件组'), e('span', { className: 'qxsim-platform-tag' }, snap.canvas.platform), e('span', null, `${activeRatio} · ${canvasWidth}×${canvasHeight} · 左下原点`)), e('div', { className: 'qxsim-stage', style: { width: '100%', aspectRatio: `${canvasWidth} / ${canvasHeight}`, touchAction: 'none' }, onPointerDown: canvasPointerDown, onPointerMove: canvasPointerMove, onPointerUp: canvasPointerUp, onPointerCancel: canvasPointerCancel }, renderBoxes.map((item) => renderControl(item, snap, canvasWidth, canvasHeight, effectiveZoom, dragOffset, fontFamily))))), error ? e('div', { className: 'qxsim-status error' }, '⚠ ', error) : e('div', { className: 'qxsim-status' }, e('span', null, `● ${snap.asset?.label || '控件'}编辑`), e('span', null, notice || (selectedRow ? `当前：${selectedRow.name}` : '')), e('span', { className: 'spacer' }), e('span', null, clientTemplates ? 'GIA 导出后可在 Lua 中按 prefabId 实例化' : '点击选中，拖动移动；保存后写盘'))),
           e('aside', { className: 'qxsim-inspector' }, snap.inspector ? e(React.Fragment, null,
-            e('div', { className: 'qxsim-inspector-head' }, e('div', { className: 'qxsim-inspector-line' }, e('span', { className: 'qxsim-kind' }, (KIND_META[snap.inspector.kind] || ['◇'])[0]), e('strong', null, snap.inspector.label), clientTemplates && selectedRow?.depth === 0 ? e('span', { className: 'qxsim-template-tag' }, '可实例化') : null), e('div', { className: 'qxsim-node-id' }, clientTemplates && selectedRow?.depth === 0 ? '导出 prefabId ' : '控件 GUID ', e('code', null, snap.inspector.guid ?? snap.inspector.id), ' · ', selectedRow?.name || '节点', clientTemplates && selectedRow?.depth === 0 ? e('small', null, '（真实编辑器导入后可能重映射）') : null)),
+            e('div', { className: 'qxsim-inspector-head' }, e('div', { className: 'qxsim-inspector-line' }, e('span', { className: 'qxsim-kind' }, (KIND_META[snap.inspector.kind] || ['◇'])[0]), e('strong', null, snap.inspector.label), clientTemplates && selectedRow?.depth === 0 ? e('span', { className: 'qxsim-template-tag' }, '可实例化') : null), e('div', { className: 'qxsim-node-id' }, clientTemplates && selectedRow?.depth === 0 ? '导出 prefabId ' : '控件 GUID ', e('code', null, snap.inspector.guid ?? snap.inspector.id), ' · ', selectedRow?.name || '节点', clientTemplates && selectedRow?.depth === 0 ? e('small', null, '（真实编辑器导入后可能重映射）') : null), snap.inspector.kind !== 'server-container' ? e(ControlGuidEditor, { key: `${snap.asset?.type}:${snap.inspector.id}`, inspector: snap.inspector, autofill: snap.clientGuidAutofill, onSave: (id, guid, automatic) => changeControlGuid(id, guid, snap.asset?.type, automatic) }) : null),
             e('div', { className: 'qxsim-tabs', style: canInspectorScript ? undefined : { gridTemplateColumns: '1fr' } },
               e('button', { className: inspectorTab === 'base' ? 'active' : '', onClick: () => setInspectorTab('base') }, '基础属性'),
               canInspectorScript ? e('button', { className: inspectorTab === 'script' ? 'active' : '', onClick: () => setInspectorTab('script') }, '脚本') : null),
             e('div', { className: 'qxsim-inspector-scroll' }, canInspectorScript && inspectorTab === 'script'
               ? e(ControlScriptTab, { snap, addScriptMounted: (controlId) => void addScript({ controlId, controlAsset: snap.asset?.type }).then(() => leavePage('script')), mountScriptTo, unmountScript, openScript: (id) => { setSelectedScriptId(id); leavePage('script') } })
-              : e(BaseInspector, { inspector: snap.inspector, commit, createStateChild })),
+              : e(React.Fragment, null, e(BaseInspector, { key: `${snap.asset?.type}:${snap.inspector.id}`, inspector: snap.inspector, commit, createStateChild }),
+                snap.boxes?.some(item => item.id === snap.selectedId && isRemoteImage(item.imageId, item.imageSource)) ? e('div', { className: 'qxsim-section-body' },
+                  e('button', { className: 'qxsim-action', disabled: refreshingImage, onClick: refreshSelectedImage }, refreshingImage ? '正在刷新素材…' : '↻ 重新下载此素材'),
+                  e('p', { className: 'qxsim-muted' }, '白名单图片按需缓存；刷新会重新访问素材源。')) : null)),
             e('div', { className: 'qxsim-tree-foot' }, e('button', { className: 'qxsim-action danger', style: { width: '100%' }, onClick: () => void patch({ op: 'remove' }).catch(() => {}) }, clientTemplates && selectedRow?.depth === 0 ? '⌫ 删除当前模板' : '⌫ 删除当前控件')))
           : e('div', { className: 'qxsim-empty' }, '请选择一个控件'))) : page === 'script' ? e(ScriptPage, { snap, selectedScriptId, selectScript: (id) => { saveScriptDraftSilently(); setSelectedScriptId(id) }, draft: scriptDraft, updateDraft, saveScript: () => void saveScriptDraft().then(() => setNotice('Lua 脚本已保存到当前存档')).catch(() => {}), addScript: () => void addScript(), removeScript, exportLua: (id) => void exportFile('lua', id), exportScripts: () => void exportFile('scripts'), exportScriptsGia: () => void exportFile('scripts-gia'), notice }) : e(ServerLogicPage, { snap, draft: logicDraft, setDraft: setLogicDraft, saveLogic: () => void saveLogicDraft().catch(() => {}), notice, error }))
     }

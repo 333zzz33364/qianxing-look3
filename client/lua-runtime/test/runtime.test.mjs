@@ -126,9 +126,27 @@ test('script.path exposes the mounted script short name', () => {
   rt.mountScript({
     path: 'workspace/path/Example.lua',
     control: root,
-    source: 'function OnStart() if script.path ~= "Example" then error("unexpected script path") end end',
+    source: 'function OnStart() assert(script.path == "Example"); assert(script.object:GetScriptByPath("workspace/path/Example") == script) end',
   })
   assert.equal(rt.mountErrors.length, 0)
+})
+
+test('GetScriptByPath distinguishes mounted scripts with the same basename', () => {
+  const rt = createRuntime()
+  try {
+    const root = rt.addRoot({ active: true, name: 'R', kind: 'container' })
+    for (const directory of ['one', 'two']) {
+      rt.mountScript({
+        path: `${directory}/Example.lua`,
+        control: root,
+        source: `function OnStart() assert(script.path == 'Example'); assert(script.object:GetScriptByPath('${directory}/Example') == script) end`,
+      })
+    }
+    assert.deepEqual(rt.mountErrors, [])
+    assert.notEqual(root.GetScriptByPath('one/Example'), root.GetScriptByPath('two/Example'))
+  } finally {
+    rt.destroy()
+  }
 })
 
 test('require resolves dotted module names to registered slash paths', () => {
@@ -1020,4 +1038,336 @@ end
   })
   assert.match(logText(rt), /after\t120\t340/)
   rt.destroy()
+})
+
+test('removing one subscription keeps other listeners of the same Lua function alive', () => {
+  const rt = createRuntime()
+  const root = rt.addRoot({ active: true, name: 'Root', kind: 'container', children: [
+    { active: true, name: 'A', kind: 'container' },
+    { active: true, name: 'B', kind: 'container' },
+    { active: true, name: 'C', kind: 'container' },
+  ] })
+  rt.mountScript({ path: 'shared-callback', control: root, source: `
+local K = Enum.KeyEventType
+local function F() print("F") end
+function OnStart()
+  local root = script.object
+  root:AddKeyEventListener(K.KeyboardCraftspersonKey1Down, F)
+  root:AddKeyEventListener(K.KeyboardCraftspersonKey2Down, F)
+  root:RemoveKeyEventListener(K.KeyboardCraftspersonKey1Down, F)
+  root:AddKeyEventListener(K.KeyboardCraftspersonKey3Down, function() print("G") end)
+  root:GetChild("A"):AddKeyEventListener(K.KeyboardCraftspersonKey4Down, F)
+  root:GetChild("B"):AddKeyEventListener(K.KeyboardCraftspersonKey4Down, F)
+  root:GetChild("C"):AddKeyEventListener(K.KeyboardCraftspersonKey5Down, function()
+    root:RemoveAllKeyEventListeners()
+    root:GetChild("B"):RemoveAllKeyEventListeners()
+  end)
+  root:GetChild("C"):AddKeyEventListener(K.KeyboardCraftspersonKey6Down, function()
+    root:AddKeyEventListener(K.KeyboardCraftspersonKey1Down, F)
+  end)
+end` })
+  const press = (n) => {
+    rt.logs.length = 0
+    rt.injectKey(`KeyboardCraftspersonKey${n}Down`)
+    return rt.logs.map(entry => entry.text)
+  }
+  assert.deepEqual(press(1), [])
+  assert.deepEqual(press(2), ['F'])
+  assert.deepEqual(press(3), ['G'])
+  rt.destroyControl(root.GetChild('A'))
+  assert.deepEqual(press(4), ['F'])
+  assert.deepEqual(press(5), [])
+  assert.equal(rt.luaFunctions.size, 2, 'only the two listeners on C stay referenced')
+  assert.deepEqual([2, 3, 4].flatMap(press), [])
+  assert.deepEqual(press(6), [])
+  assert.deepEqual(press(1), ['F'])
+})
+
+// Device evidence: probes/tween-invoke-20260928 (TWINV v1, PC, 2026-09-29).
+test('TweenSequence loops replay from the start, children reset at their own slot', () => {
+  const rt = createRuntime()
+  const lanes = {}
+  for (const id of ['L2', 'L3', 'L4', 'L5', 'L6']) {
+    lanes[id] = rt.addRoot({ active: true, name: id, kind: 'image', anchoredPositionX: 0, anchoredPositionY: 0 })
+  }
+  const host = rt.addRoot({ active: true, name: 'Host', kind: 'container' })
+  rt.mountScript({
+    path: 'seq-loops',
+    control: host,
+    source: `
+ev = {}
+local function on(tag) return function() ev[tag] = (ev[tag] or 0) + 1 end end
+local function x(c, v, d) return game.Tween(c, { anchoredPositionX = v }, d):SetEase(Enum.EaseType.Linear) end
+function OnStart()
+  local R = script.object
+  local function lane(n) return game.FindClientUIRoot(n) end
+  game.TweenSequence():Append(x(lane("L2"), 200, 1)):SetLoops(2):SetOnComplete(on("L2c")):Play()
+  game.TweenSequence():Append(x(lane("L3"), 200, 0.5))
+    :Append(game.Tween(lane("L3"), { anchoredPositionY = 30 }, 0.5):SetEase(Enum.EaseType.Linear))
+    :AppendCallback(on("L3cb")):SetLoops(3)
+    :SetOnStepComplete(on("L3s")):SetOnComplete(on("L3c")):Play()
+  L4 = game.TweenSequence():Append(x(lane("L4"), 200, 1)):SetOnComplete(on("L4c")):Play()
+  L5 = game.TweenSequence():Append(x(lane("L5"), 200, 1)):SetLoops(-1):SetOnComplete(on("L5c")):Play()
+  game.TweenSequence():Append(x(lane("L6"), 100, 1):SetRelative(true)):SetLoops(2):Play()
+end
+function Restart4() L4:Restart() end
+function Kill5() L5:Kill(false) end
+function Count(tag) return ev[tag] or 0 end
+`,
+  })
+  const script = rt.mountedScripts[0]
+  const call = (name, ...args) => script.invoke(name, args)
+  let t = 0
+  const until = (end) => { while (t < end - 1e-9) { rt.step(0.05); t += 0.05 } }
+  const near = (value, expected, label) => assert.ok(Math.abs(value - expected) < 1e-6, `${label}=${value}`)
+  until(1.3)
+  // Second loop moves again (device L2 t=1.309 -> 59.8).
+  assert.ok(lanes.L2.anchoredPositionX > 20 && lanes.L2.anchoredPositionX < 100, `L2 loop2 x=${lanes.L2.anchoredPositionX}`)
+  // X child replays while Y keeps its end value until its slot (device L3 t=1.209 -> 79.6/30).
+  assert.ok(lanes.L3.anchoredPositionX < 200, `L3 x=${lanes.L3.anchoredPositionX}`)
+  near(lanes.L3.anchoredPositionY, 30, 'L3 y')
+  // Relative child does not accumulate (device L6 t=1.309 -> 29.9).
+  assert.ok(lanes.L6.anchoredPositionX < 60, `L6 x=${lanes.L6.anchoredPositionX}`)
+  near(lanes.L4.anchoredPositionX, 200, 'L4 x')
+  call('Restart4')
+  until(1.7)
+  // Y slot started: reset to 0 then moving (device L3 t=1.606 -> 5.8).
+  assert.ok(lanes.L3.anchoredPositionY < 20, `L3 y=${lanes.L3.anchoredPositionY}`)
+  // Restart after completion replays from the start, 0.4 s in (device: 0.1 s after Restart -> 19.8).
+  assert.ok(lanes.L4.anchoredPositionX > 40 && lanes.L4.anchoredPositionX < 100, `L4 x=${lanes.L4.anchoredPositionX}`)
+  until(2.3)
+  assert.ok(lanes.L5.anchoredPositionX < 100, `L5 loop3 x=${lanes.L5.anchoredPositionX}`)
+  call('Kill5')
+  const killedAt = lanes.L5.anchoredPositionX
+  until(3.5)
+  assert.equal(lanes.L5.anchoredPositionX, killedAt)
+  near(lanes.L2.anchoredPositionX, 200, 'L2 x')
+  near(lanes.L6.anchoredPositionX, 100, 'L6 x')
+  near(lanes.L3.anchoredPositionX, 200, 'L3 x')
+  near(lanes.L3.anchoredPositionY, 30, 'L3 y')
+  assert.deepEqual(['L2c', 'L3cb', 'L3s', 'L3c', 'L4c', 'L5c'].map(tag => call('Count', tag)), [1, 3, 3, 1, 2, 0])
+})
+
+test('script:Invoke passes host objects and tables through unchanged', () => {
+  const rt = createRuntime()
+  const root = rt.addRoot({ active: true, name: 'R', kind: 'image' })
+  rt.mountScript({
+    path: 'invoke-identity',
+    control: root,
+    source: `
+function Echo(...) return ... end
+function OnStart()
+  local items = {
+    script.object,
+    game.Tween(script.object, { anchoredPositionX = 1 }, 1),
+    game.TweenSequence(),
+    game.ServerSignal("NEVER_SENT"),
+  }
+  for _, v in ipairs(items) do
+    local back = script:Invoke("Echo", v)
+    local t = { v }
+    local wrapped = script:Invoke("Echo", t)
+    print("id", typeof(v), rawequal(back, v), rawequal(wrapped, t), rawequal(wrapped[1], v))
+  end
+  local a, b, c = script:Invoke("Echo", 1, "x", { 2, 3 })
+  print("multi", a, b, type(c), #c)
+  print("missing", select("#", script:Invoke("NoSuchFunction")))
+  print("error", pcall(function() return script:Invoke("error", "boom") end))
+end
+`,
+  })
+  const t = logText(rt)
+  for (const kind of ['ClientUIImageControl', 'Tween', 'TweenSequence', 'ServerSignal']) {
+    assert.match(t, new RegExp(`id\t${kind}\ttrue\ttrue\ttrue`))
+  }
+  assert.match(t, /multi\t1\tx\ttable\t2/)
+  assert.match(t, /missing\t0/)
+  assert.match(t, /error\tfalse\tboom/)
+})
+
+// Device evidence: probes/tween-semantics-20260929 (TWSEM v1, PC, 2026-09-29).
+test('rotation reads back as normalised Euler floats and tweens start from the readback', () => {
+  const rt = createRuntime()
+  const root = rt.addRoot({ active: true, name: 'R', kind: 'image' })
+  rt.mountScript({ path: 'rot', control: root, source: `
+local function read(field, v)
+  script.object[field] = v
+  local r = script.object[field]
+  script.object[field] = 0
+  return math.type(r) .. ":" .. string.format("%.3f", r)
+end
+function OnStart()
+  local out = {}
+  for _, v in ipairs({ -116, 370, -180, 90.5 }) do
+    out[#out + 1] = read("localRotationX", v) .. "/" .. read("localRotationZ", v)
+  end
+  print("rot", table.concat(out, " "))
+  script.object.localRotationZ = -116
+  game.Tween(script.object, { localRotationZ = -136 }, 1):SetEase(Enum.EaseType.Linear):Play()
+end
+` })
+  assert.match(logText(rt), /rot\tfloat:296\.000\/float:244\.000 float:10\.000\/float:10\.000 float:0\.000\/float:180\.000 float:89\.500\/float:90\.500/)
+  rt.step(0.5)
+  // 244 -> -136 over 1 s (device R1: the long 380-degree path).
+  assert.ok(Math.abs(root.luaFieldValue('localRotationZ') - 54) < 1e-6, String(root.luaFieldValue('localRotationZ')))
+})
+
+test('sequence events: capture timing, same-time order, end callbacks and Complete', () => {
+  const rt = createRuntime()
+  const names = ['C1', 'C2', 'O1', 'O2', 'E1', 'K1', 'K3']
+  const c = Object.fromEntries(names.map(n => [n, rt.addRoot({ active: true, name: n, kind: 'image', anchoredPositionX: 0 })]))
+  const host = rt.addRoot({ active: true, name: 'Host', kind: 'container' })
+  rt.mountScript({ path: 'seq-events', control: host, source: `
+log = {}
+local function C(n) return game.FindClientUIRoot(n) end
+local function X(n, v, d) return game.Tween(C(n), { anchoredPositionX = v }, d):SetEase(Enum.EaseType.Linear) end
+local function ev(tag, n) return function() log[#log + 1] = tag .. "=" .. string.format("%.1f", C(n).anchoredPositionX) end end
+function OnStart()
+  local c1 = X("C1", 100, 1); C("C1").anchoredPositionX = 50; c1:Play()
+  local c2 = X("C2", 100, 1); C("C2").anchoredPositionX = 20
+  game.TweenSequence():Insert(0.5, c2):Play()
+  C2SET = function() C("C2").anchoredPositionX = 50 end
+  game.TweenSequence():InsertCallback(0.5, function() C("O1").anchoredPositionX = 30 end):Insert(0.5, X("O1", 100, 1)):Play()
+  game.TweenSequence():Insert(0.5, X("O2", 100, 1)):InsertCallback(0.5, function() C("O2").anchoredPositionX = 30 end):Play()
+  local fired = false
+  game.TweenSequence():InsertCallback(0, function() fired = true end):Play()
+  log[#log + 1] = "O3=" .. tostring(fired)
+  game.TweenSequence():Insert(0, X("E1", 100, 0.5)):InsertCallback(0.5, ev("E1cb", "E1"))
+    :SetOnComplete(ev("E1done", "E1")):Play()
+  K1 = game.TweenSequence():Insert(0, X("K1", 100, 1)):InsertCallback(0.2, ev("K1cb2", "K1"))
+    :InsertCallback(0.8, ev("K1cb8", "K1")):SetOnStepComplete(ev("K1step", "K1")):SetOnComplete(ev("K1done", "K1")):Play()
+  game.TweenSequence():Insert(0, X("K3", 100, 1)):InsertCallback(0.3, ev("K3cb", "K3")):SetOnComplete(ev("K3done", "K3")):Complete()
+end
+function CompleteK1() K1:Complete() end
+function Log() return table.concat(log, " ") end
+` })
+  const script = rt.mountedScripts[0]
+  for (let i = 0; i < 3; i++) rt.step(0.1)
+  script.invoke('C2SET', [])
+  rt.step(0.1)
+  script.invoke('CompleteK1', [])
+  for (let i = 0; i < 2; i++) rt.step(0.1)
+  const near = (value, expected) => assert.ok(Math.abs(value - expected) < 1e-6, `${value} != ${expected}`)
+  near(c.C1.anchoredPositionX, 80) // captured 50 at Play, 0.6 s in
+  near(c.C2.anchoredPositionX, 55) // captured 50 when its 0.5 s slot started
+  near(c.O1.anchoredPositionX, 37) // both orders: same-time callback runs first
+  near(c.O2.anchoredPositionX, 37)
+  assert.equal(script.invoke('Log', []), [
+    // K1cb2 fires on the update reaching 0.2 and sees the previous frame's value.
+    'O3=false', 'K3cb=0.0', 'K3done=100.0', 'K1cb2=10.0',
+    'K1cb8=40.0', 'K1step=100.0', 'K1done=100.0', 'E1cb=100.0', 'E1done=100.0',
+  ].join(' '))
+})
+
+test('fontSize tweens truncate, color channels truncate and ToRGBA returns integers', () => {
+  const rt = createRuntime()
+  const text = rt.addRoot({ active: true, name: 'T', kind: 'textbox', fontSize: 20 })
+  const image = rt.addRoot({ active: true, name: 'I', kind: 'image' })
+  rt.mountScript({ path: 'trunc', control: text, source: `
+function OnStart()
+  game.Tween(script.object, { fontSize = 30 }, 1):SetEase(Enum.EaseType.Linear):Play()
+  local img = game.FindClientUIRoot("I")
+  img.imageColor = Color.FromRGBA(0, 3, 0, 255)
+  game.Tween(img, { imageColor = Color.FromRGBA(3, 0, 3, 252) }, 1):SetEase(Enum.EaseType.Linear):Play()
+end
+function Read()
+  local r, g, b, a = Color.ToRGBA(game.FindClientUIRoot("I").imageColor)
+  return math.type(script.object.fontSize) .. ":" .. script.object.fontSize .. " "
+    .. table.concat({ math.type(r), r, g, b, a }, ",")
+end
+` })
+  rt.step(0.099)
+  assert.equal(rt.mountedScripts[0].invoke('Read', []), 'integer:20 integer,0,2,0,254')
+  rt.step(0.25)
+  assert.equal(rt.mountedScripts[0].invoke('Read', []), 'integer:23 integer,1,1,1,253')
+})
+
+test('tweens and sequences update together in Play order', () => {
+  const rt = createRuntime()
+  const root = rt.addRoot({ active: true, name: 'R', kind: 'image' })
+  rt.mountScript({ path: 'order', control: root, source: `
+order = {}
+function OnStart()
+  game.TweenSequence():InsertCallback(0.05, function() order[#order + 1] = "seq" end):Play()
+  game.Tween(script.object, { anchoredPositionX = 1 }, 0.05):SetOnComplete(function() order[#order + 1] = "tween" end):Play()
+end
+function Order() return table.concat(order, ",") end
+` })
+  rt.step(0.1)
+  assert.equal(rt.mountedScripts[0].invoke('Order', []), 'seq,tween')
+})
+
+// Device evidence: probes/tween-coverage-20260929 (TWALL v1, PC, 2026-09-29).
+test('tween lifecycle: relative loops, zero duration, Play while playing, Play after Kill, Complete twice', () => {
+  const rt = createRuntime()
+  const ids = ['S1', 'S2', 'S3', 'S4', 'S6']
+  const c = Object.fromEntries(ids.map(n => [n, rt.addRoot({ active: true, name: n, kind: 'image', anchoredPositionX: 0 })]))
+  const host = rt.addRoot({ active: true, name: 'Host', kind: 'container' })
+  rt.mountScript({ path: 'lifecycle', control: host, source: `
+n = {}
+local function C(id) return game.FindClientUIRoot(id) end
+local function X(id, v, d) return game.Tween(C(id), { anchoredPositionX = v }, d):SetEase(Enum.EaseType.Linear) end
+local function count(tag) return function() n[tag] = (n[tag] or 0) + 1 end end
+function OnStart()
+  X("S1", 100, 0.5):SetRelative(true):SetLoops(2):Play()
+  X("S2", 100, 0):SetOnComplete(count("S2")):Play()
+  S2AFTER = C("S2").anchoredPositionX
+  S3 = X("S3", 100, 1):Play()
+  S4 = X("S4", 100, 0.2):SetOnComplete(count("S4")):Play()
+  S4Q = game.TweenSequence():InsertCallback(0.1, count("S4q cb")):SetOnComplete(count("S4q")):Play()
+  S6 = X("S6", 100, 1):Play()
+end
+function KillS6() S6:Kill(false) end
+function Later() S3:Play(); S6:Play(); S4:Complete(); S4:Complete(); S4Q:Complete(); S4Q:Complete() end
+function Report() return S2AFTER .. " " .. (n.S2 or 0) .. " " .. (n.S4 or 0) .. " " .. (n.S4q or 0) .. " " .. (n["S4q cb"] or 0) end
+` })
+  const script = rt.mountedScripts[0]
+  rt.step(0.3)
+  script.invoke('KillS6', [])
+  rt.step(0.2)
+  assert.equal(c.S1.anchoredPositionX, 100)
+  script.invoke('Later', [])
+  rt.step(0.1)
+  // Relative loops restart from the first capture: 0 -> 100 again, not 100 -> 200.
+  assert.ok(Math.abs(c.S1.anchoredPositionX - 20) < 1e-6, String(c.S1.anchoredPositionX))
+  // Play() while playing keeps the original timeline (0.6 s in).
+  assert.ok(Math.abs(c.S3.anchoredPositionX - 60) < 1e-6, String(c.S3.anchoredPositionX))
+  // Play() after Kill(false) does nothing.
+  assert.ok(Math.abs(c.S6.anchoredPositionX - 30) < 1e-6, String(c.S6.anchoredPositionX))
+  // Zero duration: nothing on Play, end value and one completion next update;
+  // Complete() on finished tweens/sequences fires nothing again.
+  assert.equal(script.invoke('Report', []), '0.0 1 1 1 1')
+})
+
+test('sequence child with SetLoops occupies duration * loops and loops on its own clock', () => {
+  const rt = createRuntime()
+  const a = rt.addRoot({ active: true, name: 'A', kind: 'image', anchoredPositionX: 0 })
+  const b = rt.addRoot({ active: true, name: 'B', kind: 'image', anchoredPositionX: 0 })
+  rt.mountScript({ path: 'child-loops', control: a, source: `
+function OnStart()
+  local function X(id, v, d) return game.Tween(game.FindClientUIRoot(id), { anchoredPositionX = v }, d):SetEase(Enum.EaseType.Linear) end
+  game.TweenSequence():Append(X("A", 100, 0.3):SetLoops(2)):Append(X("B", 100, 0.3)):Play()
+end
+` })
+  const xs = []
+  for (let i = 0; i < 9; i++) { rt.step(0.1); xs.push([Math.round(a.anchoredPositionX), Math.round(b.anchoredPositionX)]) }
+  // Loop boundary frame holds 100, the next loop restarts from 0; B waits for 0.6 s.
+  assert.deepEqual(xs.map(p => p.join('/')), ['33/0', '67/0', '100/0', '33/0', '67/0', '100/0', '100/33', '100/67', '100/100'])
+})
+
+test('number fields read back as floats; destroyed controls only expose alive', () => {
+  const rt = createRuntime()
+  const root = rt.addRoot({ active: true, name: 'R', kind: 'textbox', sizeDeltaX: 137, fontSize: 20,
+    children: [{ active: true, name: 'Doomed', kind: 'image' }] })
+  rt.mountScript({ path: 'types', control: root, source: `
+function OnStart()
+  local o = script.object
+  print("types", math.type(o.sizeDeltaX), math.type(o.localScaleX), math.type(o.fontSize), math.type(o.Id))
+  local d = o:GetChild("Doomed")
+  game.DestroyClientUIControl(d)
+  print("destroyed", d.alive, (pcall(function() return d.anchoredPositionX end)))
+end
+` })
+  assert.match(logText(rt), /types\tfloat\tfloat\tinteger\tinteger/)
+  assert.match(logText(rt), /destroyed\tfalse\tfalse/)
 })

@@ -1,11 +1,11 @@
 {
-  "name": "look2-mcp",
-  "version": "2.0.25",
+  "name": "look3-mcp",
+  "version": "3.0.0",
   "description": "MCP stdio server for the Qianxing UI simulator",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "look2-mcp": "dist/index.js"
+    "look3-mcp": "dist/index.js"
   },
   "files": [
     "dist",

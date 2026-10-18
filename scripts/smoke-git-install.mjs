@@ -89,7 +89,7 @@ async function sourceFiles() {
   }
   // Local derivatives may have no Git metadata. Exclude dependencies, build
   // output, caches, and the named workspace directories; other folders remain eligible.
-  const excluded = new Set(['node_modules', 'dist', 'release', 'look2-workspace', 'look-workspace', 'look2-image-cache', 'coverage', 'frontend'])
+  const excluded = new Set(['node_modules', 'dist', 'release', 'look2-workspace', 'look3-workspace', '上游', 'archive', 'look-workspace', 'look2-image-cache', 'coverage', 'frontend'])
   const generated = new Set(['dsh-plugin/skill.md', 'dsh-plugin/presets', ...['editor.js', 'play-renderer.js', 'play.html', 'play.js', 'play.css', 'look2-fit-worker.js', 'look2-psd-worker.js'].map(name => `web/public/${name}`)])
   const files = []
   async function visit(path = '') {
@@ -154,9 +154,9 @@ try {
   if (dshCli) {
     run(process.execPath, [dshCli, 'plugin', '--profile', 'web', 'add', spec], temporary, { env: dshEnv, stdio: 'inherit' })
     const profile = JSON.parse(await readFile(join(consumer, 'package.json'), 'utf8'))
-    assert.ok(profile.dsh.profile.bundles.includes('look2-dsh-plugin'))
+    assert.ok(profile.dsh.profile.bundles.includes('look3-dsh-plugin'))
     const config = run(process.execPath, [dshCli, '--profile', 'web', '--dump-config'], temporary, { env: dshEnv })
-    for (const entry of ['look2-simulator', 'look2-simulator-skill', 'look2-simulator-preset']) assert.ok(config.includes(entry), entry)
+    for (const entry of ['look3-simulator', 'look3-simulator-skill', 'look3-simulator-preset']) assert.ok(config.includes(entry), entry)
     console.log('PASS Harness plugin add and --dump-config in isolated DSH_HOME')
   } else {
     console.log(`Installing @deepseek-ai/dsh-tools ${dshToolsVersion} and @deepseek-ai/cordis 4.0.4`)

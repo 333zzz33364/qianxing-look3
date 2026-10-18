@@ -2,6 +2,12 @@ import { createRequire } from 'node:module'
 import { imageFillRect } from './play/image-fill.js'
 import { imageMaskSpec, imageMaskCoverage, groupMaskedPaint } from './play/image-mask.js'
 import { applyMatrix, invertMatrix } from './ui/layout.js'
+import { tintedImage } from './assets/raster.js'
+import { rasterizeSlices, resolveImageType } from './assets/image-stretch.js'
+import { imageAssetKey } from './assets/catalog.js'
+import { scrollBarGeometry } from './play/scroll-geometry.js'
+import { localFontStack } from './host/local-font.js'
+import { textLayout } from './play/text-layout.js'
 
 const require = createRequire(import.meta.url)
 
@@ -9,7 +15,7 @@ const TRI_POINTS = [0, -0.5, 0.5, 0.5, -0.5, 0.5]
 const STAR4_POINTS = [0, -0.5, 0.12, -0.12, 0.5, 0, 0.12, 0.12, 0, 0.5, -0.12, 0.12, -0.5, 0, -0.12, -0.12]
 const STAR5_POINTS = [0, -0.5, 0.11, -0.15, 0.48, -0.15, 0.18, 0.07, 0.29, 0.41, 0, 0.2, -0.29, 0.41, -0.18, 0.07, -0.48, -0.15, -0.11, -0.15]
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
-const SCENE_PAINT_KINDS = new Set(['image', 'textbox', 'textwindow', 'button'])
+const SCENE_PAINT_KINDS = new Set(['image', 'textbox', 'textwindow', 'button', 'grid'])
 const KIND_LABEL = {
   cursor: '光标检测区域',
   reference: '模板引用控件',
@@ -128,7 +134,8 @@ function drawTextItem(ctx, item, width, height) {
   const bg = argb(item.bgColor, 0x00ffffff)
   ctx.fillStyle = cssColor(bg)
   ctx.fillRect(-width / 2, -height / 2, width, height)
-  const font = Math.max(8, finite(item.fontSize, 12))
+  const layout = item.textLayout || textLayout(item, width, height)
+  const font = layout.fontSize
   const color = argb(item.fontColor, 0xffffffff)
   const horizontal = item.horizontalAlignment === 'Right' ? 1 : item.horizontalAlignment === 'Middle' ? 0.5 : 0
   const vertical = item.verticalAlignment === 'Bottom' ? 1 : item.verticalAlignment === 'Middle' ? 0.5 : 0
@@ -136,27 +143,39 @@ function drawTextItem(ctx, item, width, height) {
   ctx.beginPath()
   ctx.rect(-width / 2, -height / 2, width, height)
   ctx.clip()
-  ctx.font = `${font}px "Microsoft YaHei UI","Microsoft YaHei",sans-serif`
+  ctx.font = `${font}px ${localFontStack()}`
   ctx.fillStyle = cssColor(color)
   ctx.textAlign = horizontal === 1 ? 'right' : horizontal === 0.5 ? 'center' : 'left'
-  ctx.textBaseline = vertical === 1 ? 'bottom' : vertical === 0.5 ? 'middle' : 'top'
+  const scroll = item.kind === 'textwindow' ? item.scroll : null
+  ctx.textBaseline = scroll ? 'top' : vertical === 1 ? 'bottom' : vertical === 0.5 ? 'middle' : 'top'
   if (item.enableOutline) {
     const outline = argb(item.outlineColor, 0xff000000)
     ctx.strokeStyle = cssColor(outline)
     ctx.lineWidth = Math.max(2, font * 0.12)
     ctx.lineJoin = 'round'
   }
-  const x = horizontal === 0 ? -width / 2 + 2 : horizontal === 1 ? width / 2 - 2 : 0
+  const x = scroll ? -width / 2 + 2 + horizontal * scroll.textWidth : horizontal === 0 ? -width / 2 + 2 : horizontal === 1 ? width / 2 - 2 : 0
   const y = vertical === 0 ? -height / 2 : vertical === 1 ? height / 2 : 0
-  const lines = String(item.text || '').split('\n')
-  const lineHeight = font * 1.2
-  const startY = vertical === 0.5 ? y - (lines.length - 1) * lineHeight / 2 : vertical === 1 ? y - (lines.length - 1) * lineHeight : y
+  const lines = scroll?.lines || layout.lines
+  const lineHeight = scroll?.lineHeight || layout.lineHeight
+  const startY = scroll ? -height / 2 - scroll.offset + (scroll.max > 0 ? 0 : vertical * (height - scroll.contentLength))
+    : vertical === 0.5 ? y - (lines.length - 1) * lineHeight / 2 : vertical === 1 ? y - (lines.length - 1) * lineHeight : y
   for (let i = 0; i < lines.length; i += 1) {
     const lineY = startY + i * lineHeight
+    if (scroll && (lineY + lineHeight < -height / 2 || lineY > height / 2)) continue
     if (item.enableOutline) ctx.strokeText(lines[i], x, lineY)
     ctx.fillText(lines[i], x, lineY)
   }
   ctx.restore()
+}
+
+function drawScrollBar(ctx, item, width, height) {
+  const bar = scrollBarGeometry(item.scroll, width, height)
+  if (!bar) return
+  for (const [rect, color] of [[bar.track, '#263447'], [bar.thumb, '#90aecb']]) {
+    ctx.fillStyle = color
+    ctx.fillRect(rect.x, rect.y, rect.width, rect.height)
+  }
 }
 
 function drawButtonItem(ctx, item, width, height) {
@@ -173,9 +192,25 @@ function drawButtonItem(ctx, item, width, height) {
   }
 }
 
-function drawPrimitive(ctx, item, width, height) {
+function drawPrimitive(ctx, item, width, height, assets) {
   const color = argb(item.imageColor, 0xffffffff)
-  if (item.primitive === 'missing') {
+  const assetKey = imageAssetKey(item.imageId, item.imageSource)
+  const image = assets?.images?.get(assetKey)
+  if (item.primitive === 'sprite' && image) {
+    const meta = assets.imageMetadata?.get(assetKey)
+    const type = resolveImageType(meta, item.imageType)
+    const key = `${assetKey}:${Number(item.imageColor ?? 0xffffffff) & 0xffffff}:${type}:${type === 'Stretch' ? `${width}:${height}` : ''}`
+    let tinted = assets.tints.get(key)
+    if (!tinted) {
+      const raster = type === 'Stretch' ? rasterizeSlices(image, meta, width, height, loadCanvas().createCanvas) : image
+      tinted = tintedImage(raster, item.imageColor, loadCanvas().createCanvas)
+      assets.tints.set(key, tinted)
+    }
+    ctx.globalAlpha *= color.a
+    ctx.drawImage(tinted, -width / 2, -height / 2, width, height)
+    return
+  }
+  if (item.primitive === 'missing' || item.primitive === 'sprite') {
     ctx.fillStyle = 'rgba(72,34,40,0.36)'
     ctx.fillRect(-width / 2, -height / 2, width, height)
     ctx.strokeStyle = '#ff7481'
@@ -206,22 +241,29 @@ function drawPrimitive(ctx, item, width, height) {
   ctx.fillRect(-width / 2, -height / 2, width, height)
 }
 
-function drawPaintItem(ctx, item, canvasHeight) {
+function drawPaintItem(ctx, item, canvasHeight, assets) {
   const width = Math.max(0, finite(item.sourceWidth, finite(item.width)))
   const height = Math.max(0, finite(item.sourceHeight, finite(item.height)))
   ctx.save()
+  for (const polygon of item.clipPolygons || []) {
+    ctx.beginPath()
+    polygon.forEach((point, index) => index ? ctx.lineTo(point.x, canvasHeight - point.y) : ctx.moveTo(point.x, canvasHeight - point.y))
+    ctx.closePath()
+    ctx.clip()
+  }
   applyItemTransform(ctx, item, canvasHeight)
   if (item.kind === 'textbox' || item.kind === 'textwindow') drawTextItem(ctx, item, width, height)
   else if (item.kind === 'button') drawButtonItem(ctx, item, width, height)
-  else {
+  else if (item.kind !== 'grid') {
     const clip = imageFillRect(item, width, height)
     if (clip) {
       ctx.beginPath()
       ctx.rect(clip.x, clip.y, clip.width, clip.height)
       ctx.clip()
     }
-    drawPrimitive(ctx, item, width, height)
+    drawPrimitive(ctx, item, width, height, assets)
   }
+  drawScrollBar(ctx, item, width, height)
   ctx.restore()
 }
 
@@ -295,7 +337,7 @@ export function flattenScenePaint(scene) {
     list.sort((a, b) => finite(a.z) - finite(b.z))
   }
   const out = []
-  function emit(node, world, masks) {
+  function emit(node, world, clips, masks) {
     if (!SCENE_PAINT_KINDS.has(node.kind)) return
     const width = Math.abs(finite(node.sourceWidth) * Math.hypot(world.a, world.b))
     const height = Math.abs(finite(node.sourceHeight) * Math.hypot(world.c, world.d))
@@ -307,20 +349,30 @@ export function flattenScenePaint(scene) {
       height,
       rotationZ: Math.atan2(world.b, world.a) * 180 / Math.PI,
       matrix: { a: world.a, b: world.b, c: world.c, d: world.d, tx: world.tx, ty: world.ty },
+      ...(clips.length ? { clipPolygons: clips } : {}),
       ...(masks.length ? { masks } : {}),
     })
   }
-  function visit(parentKey, parentWorld, masks = []) {
+  function visit(parentKey, parentWorld, parentNode = null, clips = [], masks = []) {
     const list = children.get(parentKey) || []
     for (let i = list.length - 1; i >= 0; i -= 1) {
       const node = list[i]
       const world = parentWorld
         ? multiplyAffine(parentWorld, sceneLocalMatrix(node))
         : sceneLocalMatrix(node)
-      const mask = imageMaskSpec(node, world)
-      const nextMasks = mask ? [...masks, mask] : masks
-      emit(node, world, nextMasks)
-      visit(String(node.id), world, nextMasks)
+      let itemClips = clips
+      if (node.clipToParent && parentWorld && parentNode) {
+        const w = parentNode.sourceWidth / 2, h = parentNode.sourceHeight / 2
+        itemClips = [...clips, [[-w, -h], [w, -h], [w, h], [-w, h]].map(([x, y]) => ({
+          x: parentWorld.a * x + parentWorld.c * y + parentWorld.tx,
+          y: parentWorld.b * x + parentWorld.d * y + parentWorld.ty,
+        }))]
+      }
+      const spec = imageMaskSpec(node, world)
+      const nextMasks = spec ? [...masks, spec] : masks
+      if (node.kind !== 'grid') emit(node, world, itemClips, nextMasks)
+      visit(String(node.id), world, node, itemClips, nextMasks)
+      if (node.kind === 'grid') emit(node, world, itemClips, nextMasks)
     }
   }
   visit('', null)
@@ -334,13 +386,13 @@ export function renderScenePng(scene, canvasWidth, canvasHeight, options = {}) {
 function maskPixelBounds(mask, target, size) {
   if (!(mask.width > 0 && mask.height > 0) || !invertMatrix(mask.matrix)) return null
   const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([x, y]) => {
-    const point = applyMatrix(mask.matrix, x * mask.width / 2, y * mask.height / 2)
-    return { x: point.x * size.pixelRatio, y: (size.height - point.y) * size.pixelRatio }
+    const p = applyMatrix(mask.matrix, x * mask.width / 2, y * mask.height / 2)
+    return { x: p.x * size.pixelRatio, y: (size.height - p.y) * size.pixelRatio }
   })
-  const x = Math.max(target.x, Math.floor(Math.min(...corners.map(point => point.x))))
-  const y = Math.max(target.y, Math.floor(Math.min(...corners.map(point => point.y))))
-  const right = Math.min(target.x + target.canvas.width, Math.ceil(Math.max(...corners.map(point => point.x))))
-  const bottom = Math.min(target.y + target.canvas.height, Math.ceil(Math.max(...corners.map(point => point.y))))
+  const x = Math.max(target.x, Math.floor(Math.min(...corners.map(p => p.x))))
+  const y = Math.max(target.y, Math.floor(Math.min(...corners.map(p => p.y))))
+  const right = Math.min(target.x + target.canvas.width, Math.ceil(Math.max(...corners.map(p => p.x))))
+  const bottom = Math.min(target.y + target.canvas.height, Math.ceil(Math.max(...corners.map(p => p.y))))
   return right > x && bottom > y ? { x, y, width: right - x, height: bottom - y } : null
 }
 
@@ -351,6 +403,7 @@ function compositeMaskedGroup(target, layer, mask, size) {
   const image = target.ctx.getImageData(dx, dy, width, height)
   const dst = image.data
   const inverse = invertMatrix(mask.matrix)
+  // One inverse per group and one bounded readback/composite, not per item/pixel.
   for (let y = 0; y < height; y++) {
     const worldY = size.height - (layer.y + y + 0.5) / size.pixelRatio
     for (let x = 0; x < width; x++) {
@@ -367,22 +420,24 @@ function compositeMaskedGroup(target, layer, mask, size) {
       dst[i + 3] = Math.round(outA * 255)
     }
   }
+  // Keep readback writes in backing pixels, independent of the cropped layer's
+  // draw transform (also avoids transformed putImageData quirks in native Canvas).
   target.ctx.save()
   target.ctx.setTransform(1, 0, 0, 1, 0, 0)
   target.ctx.putImageData(image, dx, dy)
   target.ctx.restore()
 }
 
-function drawPaintGroups(target, entries, size) {
+function drawPaintGroups(target, entries, size, assets) {
   for (const entry of entries) {
-    if (entry.item) { drawPaintItem(target.ctx, entry.item, size.height); continue }
+    if (entry.item) { drawPaintItem(target.ctx, entry.item, size.height, assets); continue }
     const bounds = maskPixelBounds(entry.mask, target, size)
-    if (!bounds) continue
+    if (!bounds) continue // Enabled empty/singular mask means empty coverage.
     const canvas = loadCanvas().createCanvas(bounds.width, bounds.height)
     const ctx = canvas.getContext('2d')
     ctx.setTransform(size.pixelRatio, 0, 0, size.pixelRatio, -bounds.x, -bounds.y)
     const layer = { canvas, ctx, x: bounds.x, y: bounds.y }
-    drawPaintGroups(layer, entry.children, size)
+    drawPaintGroups(layer, entry.children, size, assets)
     compositeMaskedGroup(target, layer, entry.mask, size)
   }
 }
@@ -395,7 +450,8 @@ export function renderPaintPng(paint, canvasWidth, canvasHeight, options = {}) {
   ctx.scale(size.pixelRatio, size.pixelRatio)
   if (options.background !== 'transparent') drawStageBackground(ctx, size.width, size.height)
   const items = Array.isArray(paint) ? paint : []
-  drawPaintGroups({ canvas, ctx, x: 0, y: 0 }, groupMaskedPaint(items), size)
+  const assets = { images: options.images, imageMetadata: options.imageMetadata, tints: new Map() }
+  drawPaintGroups({ canvas, ctx, x: 0, y: 0 }, groupMaskedPaint(items), size, assets)
   return {
     data: toPng(canvas),
     width: size.width,
@@ -406,6 +462,11 @@ export function renderPaintPng(paint, canvasWidth, canvasHeight, options = {}) {
 }
 
 function editorBoxStyle(item) {
+  if (item.renderMatrix) {
+    const center = applyMatrix(item.renderMatrix, item.centerX, item.centerY)
+    return { kind: item.kind, width: item.width, height: item.height,
+      matrix: { ...item.renderMatrix, tx: center.x, ty: center.y } }
+  }
   return {
     kind: item.kind,
     left: finite(item.renderLeft, item.left),
@@ -419,7 +480,7 @@ function editorBoxStyle(item) {
 function drawEditorLabel(ctx, text, width) {
   const label = String(text || '')
   if (!label) return
-  ctx.font = '10px "Microsoft YaHei UI","Microsoft YaHei",sans-serif'
+  ctx.font = `10px ${localFontStack()}`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
   const metrics = ctx.measureText(label)
@@ -431,16 +492,22 @@ function drawEditorLabel(ctx, text, width) {
   ctx.fillText(label, 0, 0)
 }
 
-function drawEditorItem(ctx, item, canvasHeight, selectedId) {
+function drawEditorItem(ctx, item, canvasHeight, selectedId, assets) {
   const box = editorBoxStyle(item)
   if (box.width <= 0 || box.height <= 0) return
   ctx.save()
-  ctx.translate(box.left + box.width / 2, canvasHeight - box.bottom - box.height / 2)
-  ctx.rotate(-box.rotationZ * Math.PI / 180)
+  applyItemTransform(ctx, box, canvasHeight)
   const x = -box.width / 2
   const y = -box.height / 2
   if (item.kind === 'image') {
-    drawPrimitive(ctx, item, box.width, box.height)
+    ctx.save()
+    // Slice before parent/local scaling: borders are local UI units.
+    const width = Math.max(0, finite(item.width, box.width)), height = Math.max(0, finite(item.height, box.height))
+    ctx.scale(width ? box.width / width : 1, height ? box.height / height : 1)
+    const fill = item.enableFill ? imageFillRect(item, width, height) : null
+    if (fill) { ctx.beginPath(); ctx.rect(fill.x, fill.y, fill.width, fill.height); ctx.clip() }
+    drawPrimitive(ctx, item, width, height, assets)
+    ctx.restore()
   } else if (item.kind === 'textbox' || item.kind === 'textwindow') {
     drawTextItem(ctx, item, box.width, box.height)
   } else if (item.kind === 'button') {
@@ -495,9 +562,10 @@ export function renderEditorPng(snapshot, options = {}) {
   drawStageBackground(ctx, size.width, size.height, { checker: true })
   const boxes = Array.isArray(snapshot?.boxes) ? snapshot.boxes : []
   const selectedId = snapshot?.selectedId
+  const assets = { images: options.images, imageMetadata: options.imageMetadata, tints: new Map() }
   for (const item of boxes) {
     if (!item || item.kind === 'server-container' || item.visible === false) continue
-    drawEditorItem(ctx, item, size.height, selectedId)
+    drawEditorItem(ctx, item, size.height, selectedId, assets)
   }
   return {
     data: toPng(canvas),

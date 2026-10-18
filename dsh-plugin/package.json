@@ -1,5 +1,5 @@
 {
-  "name": "look2-dsh-adapter",
+  "name": "look3-dsh-plugin-source",
   "private": true,
   "type": "module",
   "scripts": {
@@ -15,5 +15,6 @@
     "qxqy-editor-ui": "workspace:*",
     "qxqy-studio": "workspace:*"
   },
-  "license": "GPL-3.0-only"
+  "license": "GPL-3.0-only",
+  "version": "3.0.0"
 }

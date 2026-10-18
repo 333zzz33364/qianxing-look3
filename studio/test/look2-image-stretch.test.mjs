@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { Container, Matrix, Mesh, Sprite, Texture } from 'pixi.js'
 import { normalizeImageMeta, sliceRegions } from '../assets/image-stretch.js'
+import { imageAssetKey } from '../assets/catalog.js'
 import { PixiPlayRenderer } from '../play/pixi-renderer.js'
 
 test('nine-slice preserves borders on each axis and Pixi selects its mesh', () => {
@@ -15,15 +16,20 @@ test('nine-slice preserves borders on each axis and Pixi selects its mesh', () =
   const renderer = Object.create(PixiPlayRenderer.prototype)
   renderer.scratch = new Matrix()
   renderer.canvasHeight = 160
-  renderer.materialTextures = new Map([[42, { meta }]])
-  renderer.materialTexture = () => Texture.WHITE
+  renderer.imageTextures = new Map([[imageAssetKey(42, 'StaticReference'), { texture: Texture.WHITE, meta }]])
   const root = new Container()
-  const item = { id: 'image', kind: 'image', primitive: 'missing', imageId: 42,
+  const item = { id: 'image', kind: 'image', primitive: 'sprite', imageId: 42,
     imageType: 'Stretch', imageColor: 0xffffffff, sourceWidth: 100, sourceHeight: 60 }
   renderer.updateNode(root, item)
-  assert.ok(root.__visual.__materialSprite instanceof Mesh)
+  const mesh = root.__visual.children.find(child => child instanceof Mesh)
+  assert.ok(mesh)
+  // Nine regions become nine indexed Pixi quads (four vertices / six indices
+  // apiece), so both source borders and target geometry reach the draw mesh.
+  assert.equal(mesh.geometry.getBuffer('aPosition').data.length, regions.length * 8)
+  assert.equal(mesh.geometry.getIndex().data.length, regions.length * 6)
+  assert.deepEqual(Array.from(mesh.geometry.getBuffer('aPosition').data.slice(0, 8)), [-50, -30, -46, -30, -46, -26, -50, -26])
   renderer.updateNode(root, { ...item, imageType: 'Basic' })
-  assert.ok(root.__visual.__materialSprite instanceof Sprite)
+  assert.ok(root.__visual.children.find(child => child instanceof Sprite))
   renderer.clearVisual(root)
   root.destroy({ children: true })
 })

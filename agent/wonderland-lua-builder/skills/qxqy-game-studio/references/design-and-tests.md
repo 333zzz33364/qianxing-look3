@@ -110,10 +110,10 @@ HTML（若存在）与 Lua 可以有不同适配层；稳定的状态、动作�
 
 | 层 | 验证 | 证据 |
 |---|---|---|
-| L0 | JSON、路径、挂载、控件树 | 静态检查、`look2_studio_get` |
+| L0 | JSON、路径、挂载、控件树 | 静态检查、`look3_studio_get` |
 | L1 | 纯状态、计分、碰撞、生成、边界 | 纯函数/窄接口回放 |
 | L2 | 输入→状态/日志/控件/变量/信号 | `qxqy-autotest` + `runCase` |
-| L3 | 布局、层级、裁切、反馈、动画 | `look2_studio_ui_screenshot` / `look2_studio_play_screenshot` |
+| L3 | 布局、层级、裁切、反馈、动画 | `look3_studio_ui_screenshot` / `look3_studio_play_screenshot` |
 | L4 | 易懂、公平、节奏、触控、真机 | 观察式试玩、用户反馈、真机 |
 
 可选 HTML 只能提前沟通体验；不能替代 L2–L4。模拟器看不见的官方图不算视觉回归失败，记目标 ID，真机看效果。

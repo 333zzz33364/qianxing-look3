@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs'
+import { randomUUID } from 'node:crypto'
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
 import { applyPatch, createProject, snapshotProject } from './ui/project.js'
 import { adoptSiteCanvas } from './ui/canvas.js'
@@ -32,6 +33,9 @@ import { exportTimelineData, importTimelineData, exportTimelineLibrary, luaValue
 import { bakePrimitives, buildPrimitiveData, exportPrimitiveLibrary, renderPrimitiveSvg, exportPrimitiveCss } from './look2/primitives.js'
 import { buildAnimationScripts } from './look2/player.js'
 import { EditHistory } from './look2/history.js'
+import { normalizeScriptSync } from './script-sync-config.js'
+import { collectClientNodes } from './gia/client-order.js'
+import { scriptGuidSignature } from './control-guid-lua.js'
 
 // 脚本与测试从 qxqy-studio 包入口直接消费这些 GIA 工具导出。
 export { exportGia, exportCombinedGia, importGia, inspectGia, validateGiaCompatibility, validateServerGiaCompatibility, exportScriptGia, importScriptGia, isScriptGia }
@@ -81,6 +85,37 @@ const ASSET_LABELS = {
 
 function assetKey(assetType) {
   return assetType === CLIENT_ASSET ? 'client' : 'server'
+}
+
+function controlGuid(value) {
+  const numeric = typeof value === 'number' || (typeof value === 'string' && /^\d+$/.test(value.trim()))
+  if (!numeric || !isValidGuid(value)) throw new Error('控件索引必须是 1–2147483647 范围内的整数')
+  return Number(value)
+}
+
+function readControlGuidChanges(raw = []) {
+  if (!Array.isArray(raw)) throw new Error('controlGuidChanges 必须是数组')
+  const ids = new Set()
+  return raw.map((entry) => {
+    if (!entry || typeof entry.id !== 'string' || !entry.id || ids.has(entry.id)
+      || ![SERVER_ASSET, CLIENT_ASSET].includes(entry.controlAsset)
+      || typeof entry.controlId !== 'string' || !entry.controlId || typeof entry.controlName !== 'string') {
+      throw new Error('controlGuidChanges 包含无效或重复的变更记录')
+    }
+    ids.add(entry.id)
+    if (entry.batchId !== undefined && (typeof entry.batchId !== 'string' || !entry.batchId)) {
+      throw new Error('controlGuidChanges 包含无效的 batchId')
+    }
+    if (entry.scriptSignature !== undefined && !/^[a-f0-9]{64}$/.test(entry.scriptSignature)) {
+      throw new Error('controlGuidChanges 包含无效的 scriptSignature')
+    }
+    return {
+      id: entry.id, controlAsset: entry.controlAsset, controlId: entry.controlId, controlName: entry.controlName,
+      oldGuid: controlGuid(entry.oldGuid), newGuid: controlGuid(entry.newGuid),
+      ...(entry.batchId ? { batchId: entry.batchId } : {}),
+      ...(entry.scriptSignature ? { scriptSignature: entry.scriptSignature } : {}),
+    }
+  })
 }
 
 function normalizeScriptGuid(raw) {

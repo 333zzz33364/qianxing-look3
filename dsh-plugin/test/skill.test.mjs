@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 import { name, inject, apply, SKILL_NAME, SKILL_DESCRIPTION } from '../lib/skill.js'
 
 test('skill plugin registers the simulator usage skill from the bundled body', () => {
-  assert.equal(name, 'look2-simulator-skill')
+  assert.equal(name, 'look3-simulator-skill')
   assert.deepEqual(inject, ['skills'])
   assert.match(SKILL_NAME, /^[a-z0-9]+(-[a-z0-9]+)*$/)
   assert.ok(SKILL_DESCRIPTION.length > 20)
@@ -17,10 +17,10 @@ test('skill plugin registers the simulator usage skill from the bundled body', (
   assert.equal(registered[0].description, SKILL_DESCRIPTION)
 
   const content = registered[0].content
-  assert.match(content, /look2_studio_get/)
-  assert.match(content, /look2_studio_patch/)
-  assert.match(content, /look2_studio_play/)
-  assert.match(content, /look2_studio_load/)
+  assert.match(content, /look3_studio_get/)
+  assert.match(content, /look3_studio_patch/)
+  assert.match(content, /look3_studio_play/)
+  assert.match(content, /look3_studio_load/)
   assert.match(content, /工作流一：把 UI 转成 JSON/)
   assert.match(content, /工作流二：自定义交互测试队列/)
   assert.match(content, /qxqy-autotest/)

@@ -67,44 +67,44 @@ test('MCP handshake exposes simulator tools and supports an edit/save round trip
       clientInfo: { name: 'test', version: '1' },
     })
     assert.equal(initialized.result.protocolVersion, '2024-11-05')
-    assert.equal(initialized.result.serverInfo.name, 'look2-mcp')
+    assert.equal(initialized.result.serverInfo.name, 'look3-mcp')
     assert.ok(initialized.result.capabilities.tools)
     server.notify('notifications/initialized')
 
     const listed = await server.request('tools/list')
     const names = listed.result.tools.map((tool) => tool.name)
     assert.deepEqual(names, [
-      'look2_project_open', 'look2_project_save', 'look2_studio_get', 'look2_studio_patch',
-      'look2_studio_transaction', 'look2_studio_history', 'look2_studio_template',
-      'look2_animation_set', 'look2_animation_export',
-      'look2_studio_play', 'look2_studio_ui_screenshot', 'look2_studio_play_screenshot', 'look2_studio_load',
+      'look3_project_open', 'look3_project_save', 'look3_studio_get', 'look3_studio_patch',
+      'look3_studio_transaction', 'look3_studio_history', 'look3_studio_template',
+      'look3_animation_set', 'look3_animation_export',
+      'look3_studio_play', 'look3_studio_ui_screenshot', 'look3_studio_play_screenshot', 'look3_studio_load',
     ])
-    const playArgsSchema = listed.result.tools.find((tool) => tool.name === 'look2_studio_play').inputSchema.properties.args
+    const playArgsSchema = listed.result.tools.find((tool) => tool.name === 'look3_studio_play').inputSchema.properties.args
     assert.deepEqual(playArgsSchema.properties.asset.enum, ['server', 'client'])
     assert.equal(playArgsSchema.properties.templateRootId.type, 'string')
     assert.equal(playArgsSchema.properties.animationId.type, 'string')
     assert.equal(playArgsSchema.properties.expectedRevision.type, 'integer')
 
     const archives = await server.request('tools/call', {
-      name: 'look2_studio_load',
+      name: 'look3_studio_load',
       arguments: {},
     })
     assert.deepEqual(archives.result.structuredContent.archives, [])
 
-    const opened = await server.request('tools/call', { name: 'look2_project_open', arguments: {} })
+    const opened = await server.request('tools/call', { name: 'look3_project_open', arguments: {} })
     assert.equal(opened.result.isError, undefined)
     const handle = opened.result.structuredContent.handle
 
-    const got = await server.request('tools/call', { name: 'look2_studio_get', arguments: { handle } })
+    const got = await server.request('tools/call', { name: 'look3_studio_get', arguments: { handle } })
     const revision = got.result.structuredContent.version
     const patched = await server.request('tools/call', {
-      name: 'look2_studio_patch',
+      name: 'look3_studio_patch',
       arguments: { handle, op: { op: 'renameSave', name: 'MCP test', expectedRevision: revision } },
     })
     assert.equal(patched.result.structuredContent.save.name, 'MCP test')
 
     const saved = await server.request('tools/call', {
-      name: 'look2_project_save',
+      name: 'look3_project_save',
       arguments: { handle, path: 'nested/test.save.json' },
     })
     assert.ok(saved.result.structuredContent, JSON.stringify(saved))
@@ -114,27 +114,27 @@ test('MCP handshake exposes simulator tools and supports an edit/save round trip
     assert.equal(savedJson.meta.name, 'MCP test')
 
     const screenshot = await server.request('tools/call', {
-      name: 'look2_studio_ui_screenshot',
+      name: 'look3_studio_ui_screenshot',
       arguments: { handle },
     })
     assert.equal(screenshot.result.content[1].type, 'image')
     assert.equal(screenshot.result.content[1].mimeType, 'image/png')
     assert.ok(screenshot.result.content[1].data.length > 100)
 
-    const beforePlay = await server.request('tools/call', { name: 'look2_studio_get', arguments: { handle } })
+    const beforePlay = await server.request('tools/call', { name: 'look3_studio_get', arguments: { handle } })
     const started = await server.request('tools/call', {
-      name: 'look2_studio_play',
+      name: 'look3_studio_play',
       arguments: { handle, action: 'start', args: { asset: 'server', expectedRevision: beforePlay.result.structuredContent.version } },
     })
     assert.equal(started.result.structuredContent.running, true)
     assert.equal(started.result.structuredContent.playTarget.asset, 'server')
     const playScreenshot = await server.request('tools/call', {
-      name: 'look2_studio_play_screenshot',
+      name: 'look3_studio_play_screenshot',
       arguments: { handle },
     })
     assert.equal(playScreenshot.result.content[1].type, 'image')
     const stopped = await server.request('tools/call', {
-      name: 'look2_studio_play',
+      name: 'look3_studio_play',
       arguments: { handle, action: 'stop', args: {} },
     })
     assert.equal(stopped.result.structuredContent.running, false)
@@ -167,11 +167,11 @@ test('MCP JSON-RPC executes look2 transactions, history, animation updates, and 
   try {
     await server.request('initialize', { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'look2 integration', version: '1' } })
     server.notify('notifications/initialized')
-    const opened = value(await tool('look2_project_open'))
+    const opened = value(await tool('look3_project_open'))
     const handle = opened.handle
-    let snapshot = value(await tool('look2_studio_get', { handle }))
+    let snapshot = value(await tool('look3_studio_get', { handle }))
 
-    snapshot = value(await tool('look2_studio_transaction', {
+    snapshot = value(await tool('look3_studio_transaction', {
       handle,
       label: 'select client template for integration export',
       expectedRevision: snapshot.version,
@@ -217,8 +217,8 @@ test('MCP JSON-RPC executes look2 transactions, history, animation updates, and 
       ],
     }]
 
-    const historyBefore = value(await tool('look2_studio_history', { handle, action: 'list' }))
-    const committed = value(await tool('look2_studio_transaction', {
+    const historyBefore = value(await tool('look3_studio_history', { handle, action: 'list' }))
+    const committed = value(await tool('look3_studio_transaction', {
       handle,
       label: 'atomic primitive and animation setup',
       expectedRevision: snapshot.version,
@@ -233,7 +233,7 @@ test('MCP JSON-RPC executes look2 transactions, history, animation updates, and 
 
     const alteredState = structuredClone(committed.look2)
     alteredState.primitiveResources[0].name = 'must roll back'
-    const failedTransaction = await tool('look2_studio_transaction', {
+    const failedTransaction = await tool('look3_studio_transaction', {
       handle,
       label: 'failing atomic transaction',
       expectedRevision: committed.version,
@@ -244,45 +244,45 @@ test('MCP JSON-RPC executes look2 transactions, history, animation updates, and 
       state: alteredState,
     })
     assert.equal(failedTransaction.isError, true)
-    const afterFailure = value(await tool('look2_studio_get', { handle }))
+    const afterFailure = value(await tool('look3_studio_get', { handle }))
     assert.equal(afterFailure.version, committed.version)
     assert.deepEqual(afterFailure.look2, committed.look2)
     assert.equal(findNode(afterFailure.root, image.id).imageId, 100001)
 
-    const conflict = await tool('look2_studio_transaction', {
+    const conflict = await tool('look3_studio_transaction', {
       handle, expectedRevision: committed.version - 1,
       ops: [{ op: 'set', id: image.id, key: 'imageId', value: 100003 }],
     })
     assert.equal(conflict.isError, true)
-    const afterConflict = value(await tool('look2_studio_get', { handle }))
+    const afterConflict = value(await tool('look3_studio_get', { handle }))
     assert.equal(afterConflict.version, committed.version)
     assert.deepEqual(afterConflict.look2, committed.look2)
 
-    const undone = value(await tool('look2_studio_history', { handle, action: 'undo', expectedRevision: committed.version }))
+    const undone = value(await tool('look3_studio_history', { handle, action: 'undo', expectedRevision: committed.version }))
     assert.equal(undone.look2.primitiveResources.length, beforeLook2.primitiveResources.length)
     assert.equal(findNode(undone.root, image.id).imageId, image.imageId)
     assert.equal(undone.history.canRedo, true)
-    const redone = value(await tool('look2_studio_history', { handle, action: 'redo', expectedRevision: undone.version }))
+    const redone = value(await tool('look3_studio_history', { handle, action: 'redo', expectedRevision: undone.version }))
     assert.equal(redone.look2.primitiveResources.length, beforeLook2.primitiveResources.length + 1)
     assert.equal(findNode(redone.root, image.id).imageId, 100001)
 
     const editedAnimation = structuredClone(redone.look2)
     editedAnimation.animations[0].keyframeTracks[0].keyframes[1].value = 20
-    const animationSet = value(await tool('look2_animation_set', {
+    const animationSet = value(await tool('look3_animation_set', {
       handle, expectedRevision: redone.version, state: editedAnimation,
     }))
     assert.equal(animationSet.look2.animations[0].keyframeTracks[0].keyframes[1].value, 20)
-    const staleAnimation = await tool('look2_animation_set', {
+    const staleAnimation = await tool('look3_animation_set', {
       handle, expectedRevision: redone.version, state: redone.look2,
     })
     assert.equal(staleAnimation.isError, true)
 
-    const beforeExports = value(await tool('look2_studio_get', { handle }))
+    const beforeExports = value(await tool('look3_studio_get', { handle }))
     const exported = new Map()
     for (const format of ['timeline-lib', 'primitive-data', 'primitive-lib', 'primitive-svg', 'primitive-css']) {
       const rootId = format === 'primitive-data' ? templateRoot.id
         : format === 'primitive-svg' || format === 'primitive-css' ? image.id : undefined
-      const result = value(await tool('look2_animation_export', { handle, format, ...(rootId ? { rootId } : {}) }))
+      const result = value(await tool('look3_animation_export', { handle, format, ...(rootId ? { rootId } : {}) }))
       assert.equal(result.encoding, 'base64', format)
       assert.ok(result.data.length > 0, format)
       exported.set(format, Buffer.from(result.data, 'base64').toString('utf8'))
@@ -309,7 +309,7 @@ test('MCP JSON-RPC executes look2 transactions, history, animation updates, and 
     assertFitRoundTrip(importPrimitiveSvg(exported.get('primitive-svg')), expectedFit)
     assertFitRoundTrip(importPrimitiveCss(exported.get('primitive-css')), expectedFit)
 
-    const afterExports = value(await tool('look2_studio_get', { handle }))
+    const afterExports = value(await tool('look3_studio_get', { handle }))
     assert.equal(afterExports.version, beforeExports.version, 'exports are read-only')
     assert.deepEqual(afterExports.look2, beforeExports.look2)
     assert.deepEqual(afterExports.root, beforeExports.root, 'GIA/primitive exports must not bake into the authoring project')
@@ -324,7 +324,7 @@ test('tool failures are returned as MCP isError results', async () => {
   const server = startServer(workspace)
   try {
     const result = await server.request('tools/call', {
-      name: 'look2_studio_get',
+      name: 'look3_studio_get',
       arguments: { handle: 'missing' },
     })
     assert.equal(result.result.isError, true)

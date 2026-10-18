@@ -7,7 +7,7 @@ node scripts/build.mjs web
 node web/dist/server.js --workspace ./look2-workspace --port 4174
 ```
 
-本地预构建包可从项目根 `release/manifest.json` 查找后安装，命令为 `look2-web --workspace <工作区绝对路径> --port 4174`。look2.0 当前没有公开 npm 安装渠道。
+本地预构建包可从项目根 `release/manifest.json` 查找后安装，命令为 `look3-web --workspace <工作区绝对路径> --port 4174`。look2.0 当前没有公开 npm 安装渠道。
 
 `/editor` 是动画与 Look 全功能编辑器；`/` 监听已保存存档作预览。正式文件只在显式保存时写入，浏览器自动草稿保存在 IndexedDB。其他客户端修改同一磁盘文件时，编辑器会拒绝覆盖，重新加载后再编辑。
 

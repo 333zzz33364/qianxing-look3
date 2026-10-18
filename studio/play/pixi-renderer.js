@@ -1,7 +1,12 @@
-import { Application, CanvasSource, Container, DOMAdapter, Graphics, Matrix, Mesh, MeshGeometry, Sprite, Text, TextStyle, Texture } from 'pixi.js'
+import { Application, CanvasSource, ImageSource, Container, DOMAdapter, Graphics, Matrix, Mesh, MeshGeometry, Sprite, Text, TextStyle, Texture } from 'pixi.js'
 import { imageFillRect } from './image-fill.js'
-import { imageMaskSpec, paintMaskCanvas } from './image-mask.js'
-import { normalizeImageMeta, resolveImageType, sliceRegions } from '../assets/image-stretch.js'
+import { imageMaskSpec, paintMaskCanvas, maskedPaintScene } from './image-mask.js'
+import { scrollBarGeometry, visibleTextLines, intersectClipPolygons } from './scroll-geometry.js'
+import { loadBrowserImageAsset, subscribeImageRefresh } from '../assets/browser.js'
+import { sliceRegions, resolveImageType } from '../assets/image-stretch.js'
+import { imageAssetKey, imageSourceName } from '../assets/catalog.js'
+export { loadBrowserFont } from './browser-font.js'
+import { DEFAULT_FONT } from '../fonts.js'
 // Pixi's default uniform sync uses Function().  Local Web intentionally has a
 // restrictive CSP, so register Pixi's static sync implementation instead.
 import 'pixi.js/unsafe-eval'
@@ -13,7 +18,7 @@ import 'pixi.js/unsafe-eval'
 const TRI_POINTS = [0, -0.5, 0.5, 0.5, -0.5, 0.5]
 const STAR4_POINTS = [0, -0.5, 0.12, -0.12, 0.5, 0, 0.12, 0.12, 0, 0.5, -0.12, 0.12, -0.5, 0, -0.12, -0.12]
 const STAR5_POINTS = [0, -0.5, 0.11, -0.15, 0.48, -0.15, 0.18, 0.07, 0.29, 0.41, 0, 0.2, -0.29, 0.41, -0.18, 0.07, -0.48, -0.15, -0.11, -0.15]
-const PAINT_KINDS = new Set(['image', 'textbox', 'textwindow', 'button'])
+const PAINT_KINDS = new Set(['image', 'textbox', 'textwindow', 'button', 'grid'])
 
 function argb(value, fallback = 0xffffffff) {
   const raw = Number(value == null ? fallback : value) >>> 0
@@ -55,12 +60,14 @@ function pointsFor(item, width, height) {
 }
 
 function visualKeyOf(item, width, height) {
-  if (spriteCircle(item)) return [item.kind, item.primitive, item.imageId, 'sprite'].join('\t')
+  if (spriteCircle(item)) return [item.kind, item.primitive, item.imageId, imageSourceName(item.imageSource), 'sprite'].join('\t')
   return [
-    item.kind, item.primitive, width, height, item.imageColor, item.imageId, item.imageType,
+    item.kind, item.primitive, width, height, item.imageColor, item.imageId, imageSourceName(item.imageSource), item.imageType,
     item.fillType, item.fillHorizontalType, item.fillVerticalType, item.fillAmount,
     item.text, item.fontSize, item.fontColor, item.bgColor, item.enableOutline,
+    item.adaptiveFontSize, item.minimumFontSize, JSON.stringify(item.textLayout),
     item.outlineColor, item.horizontalAlignment, item.verticalAlignment, item.pressed,
+    JSON.stringify(item.scroll),
   ].join('\t')
 }
 
@@ -85,20 +92,22 @@ export function createCircleTexture(size) {
  * the flattened paint list remains for tests and fallbacks.
  */
 export class PixiPlayRenderer {
-  constructor(canvas) {
+  constructor(canvas, { fontReady = null } = {}) {
     this.canvas = canvas
-    this.destroyed = false
     this.app = null
     this.nodes = new Map()
     this.circleTextures = new Map()
-    this.materialTextures = new Map()
+    this.imageTextures = new Map()
+    this.disposed = false
+    this.unsubscribeImages = subscribeImageRefresh(key => this.invalidateImage(key))
     this.canvasWidth = 0
     this.canvasHeight = 0
     this.scratch = new Matrix()
-    this.ready = this.initialize()
+    this.ready = this.initialize(fontReady)
   }
 
-  async initialize() {
+  async initialize(fontReady) {
+    this.fontFamily = await fontReady
     const app = new Application()
     await app.init({
       canvas: this.canvas,
@@ -115,10 +124,6 @@ export class PixiPlayRenderer {
       preference: 'webgl',
       powerPreference: 'high-performance',
     })
-    if (this.destroyed) {
-      app.destroy({ removeView: false }, { children: true, texture: true, textureSource: true })
-      return
-    }
     app.ticker.stop()
     app.stage.eventMode = 'none'
     app.stage.sortableChildren = true
@@ -174,38 +179,53 @@ export class PixiPlayRenderer {
     return texture
   }
 
-  materialTexture(imageId) {
-    if (this.destroyed || typeof Image !== 'function') return null
-    const id = Number(imageId)
-    if (!Number.isSafeInteger(id) || id < 1) return null
-    const cached = this.materialTextures.get(id)
-    if (cached) return cached.texture || null
-    const entry = { texture: null, meta: null, error: false }
-    this.materialTextures.set(id, entry)
-    const picture = new Image()
-    entry.picture = picture
-    picture.decoding = 'async'
-    picture.onload = () => {
-      if (this.destroyed || !this.app) return
-      entry.texture = Texture.from(picture)
-      this.refreshMaterial(id)
-    }
-    picture.onerror = () => { entry.error = true }
-    picture.src = `/look2-assets/sprite/${id}.png`
-    fetch(`/look2-assets/border/${id}.json`).then(response => response.ok ? response.json() : null)
-      .then(raw => { entry.meta = normalizeImageMeta(raw); this.refreshMaterial(id) })
-      .catch(() => {})
-    return null
+  imageTexture(id, source) {
+    this.imageTextures ||= new Map()
+    const key = imageAssetKey(id, source)
+    if (this.imageTextures.has(key)) return this.imageTextures.get(key)
+    const entry = { texture: null, error: '' }
+    this.imageTextures.set(key, entry)
+    // Do not block scene polling or Lua time on network I/O. Completion
+    // repaints even a paused/static scene, using each node's latest item.
+    entry.promise = loadBrowserImageAsset(id, source).then(({ image, meta, error }) => {
+      if (this.disposed || this.imageTextures.get(key) !== entry) return
+      // Renderer-owned GPU source; never destroy another renderer's texture
+      // through Pixi's global Texture.from(resource) cache.
+      entry.texture = new Texture({ source: new ImageSource({ resource: image }) })
+      entry.meta = meta
+      entry.error = error
+      for (const root of this.nodes.values()) {
+        const item = root.__sceneItem
+        if (item?.kind !== 'image' || imageAssetKey(item.imageId, item.imageSource) !== key) continue
+        root.__visualKey = ''
+        this.updateNode(root, item, { nested: !root.__flat && item.parent != null })
+      }
+      this.app?.render()
+    }).catch(error => { entry.error = error.message })
+    return entry
   }
 
-  refreshMaterial(id) {
-    if (this.destroyed || !this.app) return
+  invalidateImage(key) {
+    const entry = this.imageTextures.get(key)
+    this.imageTextures.delete(key)
     for (const root of this.nodes.values()) {
-      if (Number(root.__lastItem?.imageId) !== id) continue
+      const item = root.__sceneItem
+      if (item?.kind !== 'image' || imageAssetKey(item.imageId, item.imageSource) !== key) continue
       root.__visualKey = ''
-      this.updateNode(root, root.__lastItem, { nested: root.__lastNested })
+      this.updateNode(root, item, { nested: !root.__flat && item.parent != null })
     }
-    this.app.render()
+    entry?.texture?.destroy(true)
+    this.app?.render()
+  }
+
+  pruneImageTextures() {
+    if (!this.imageTextures?.size) return
+    const used = new Set([...this.nodes.values()].filter(root => root.__sceneItem?.primitive === 'sprite').map(root => imageAssetKey(root.__sceneItem.imageId, root.__sceneItem.imageSource)))
+    for (const [id, entry] of this.imageTextures || []) {
+      if (used.has(id)) continue
+      this.imageTextures.delete(id)
+      entry.texture?.destroy(true)
+    }
   }
 
   replaceVisual(root, item, width, height) {
@@ -215,66 +235,41 @@ export class PixiPlayRenderer {
     visual.eventMode = 'none'
     visual.label = `visual:${item.id}`
     // Runtime children use negative zIndex values for front-to-back order.
-    // Keep this control's own artwork behind every child after Pixi sorts,
-    // including inside the sortable image-mask content container.
-    visual.zIndex = Number.NEGATIVE_INFINITY
-    const material = item.kind === 'image' ? this.materialTexture(item.imageId) : null
-    if (material) {
-      const meta = this.materialTextures.get(Number(item.imageId))?.meta
-      let picture
-      if (width > 0 && height > 0 && resolveImageType(meta, item.imageType) === 'Stretch') {
-        const positions = [], uvs = [], indices = []
-        for (const { source: [sx, sy, sw, sh], target: [x, y, w, h] } of sliceRegions(meta, width, height)) {
-          const start = positions.length / 2
-          const left = x - width / 2, top = y - height / 2
-          positions.push(left, top, left + w, top, left + w, top + h, left, top + h)
-          uvs.push(sx / meta.width, sy / meta.height, (sx + sw) / meta.width, sy / meta.height,
-            (sx + sw) / meta.width, (sy + sh) / meta.height, sx / meta.width, (sy + sh) / meta.height)
-          indices.push(start, start + 1, start + 2, start, start + 2, start + 3)
-        }
-        const geometry = new MeshGeometry({ positions: new Float32Array(positions), uvs: new Float32Array(uvs), indices: new Uint32Array(indices) })
-        visual.__sliceGeometry = geometry
-        picture = new Mesh({ geometry, texture: material })
-      } else {
-        picture = new Sprite({ texture: material, anchor: 0.5 })
-        picture.width = width; picture.height = height
-      }
-      visual.__materialSprite = picture
-      const color = argb(item.imageColor, 0xffffffff)
-      picture.tint = color.color; picture.alpha = color.alpha
-      const fill = imageFillRect(item, width, height)
-      if (fill) {
-        picture.visible = fill.width > 0 && fill.height > 0
-        if (picture.visible) {
-          const clip = new Graphics().rect(fill.x, fill.y, fill.width, fill.height).fill({ color: 0xffffff, alpha: 1 })
-          picture.mask = clip; visual.addChild(clip)
-        }
-      }
-      visual.addChild(picture)
-    } else if (item.kind === 'textbox' || item.kind === 'textwindow') {
+    // Keep each control's own artwork below every child after Pixi sorts;
+    // only the grid scrollbar is an overlay and may sit above its items.
+    visual.zIndex = item.kind === 'grid' ? Number.MAX_SAFE_INTEGER : Number.NEGATIVE_INFINITY
+    if (item.kind === 'textbox' || item.kind === 'textwindow') {
       const background = new Graphics()
       const bg = argb(item.bgColor, 0x00ffffff)
       background.rect(-width / 2, -height / 2, width, height).fill(bg)
       visual.addChild(background)
-      const font = Math.max(8, finite(item.fontSize, 12))
+      const layout = item.textLayout
+      const font = layout?.fontSize ?? Math.max(1, finite(item.fontSize, 12))
       const anchor = textAnchor(item)
+      const scroll = item.kind === 'textwindow' ? item.scroll : null
+      const slice = scroll ? visibleTextLines(scroll, height) : null
       const text = new Text({
-        text: String(item.text || ''),
+        text: slice ? slice.text : layout ? layout.lines.join('\n') : String(item.text || ''),
         style: new TextStyle({
-          fontFamily: 'Inter, "Microsoft YaHei UI", "Microsoft YaHei", sans-serif',
+          fontFamily: this.fontFamily || DEFAULT_FONT,
           fontSize: font,
           fill: argb(item.fontColor, 0xffffffff),
-          stroke: item.enableOutline ? { color: argb(item.outlineColor, 0xff000000).color, width: Math.max(2, font * 0.12), join: 'round' } : undefined,
-          wordWrap: true,
+          stroke: item.enableOutline ? { ...argb(item.outlineColor, 0xff000000), width: Math.max(2, font * 0.12), join: 'round' } : undefined,
+          wordWrap: !scroll && !layout,
           wordWrapWidth: Math.max(4, width - 4),
           breakWords: true,
           align: anchor.x === 1 ? 'right' : anchor.x === 0.5 ? 'center' : 'left',
-          lineHeight: font * 1.2,
+          lineHeight: layout?.lineHeight ?? font * 1.2,
         }),
       })
       text.anchor.set(anchor.x, anchor.y)
       text.x = anchor.x === 0 ? -width / 2 + 2 : anchor.x === 1 ? width / 2 - 2 : 0
       text.y = anchor.y === 0 ? -height / 2 : anchor.y === 1 ? height / 2 : 0
+      if (scroll) {
+        text.anchor.set(anchor.x, 0)
+        text.x = -width / 2 + 2 + anchor.x * scroll.textWidth
+        text.y = -height / 2 - scroll.offset + slice.y + (scroll.max > 0 ? 0 : anchor.y * (height - scroll.contentLength))
+      }
       const clip = new Graphics().rect(-width / 2, -height / 2, width, height).fill({ color: 0xffffff, alpha: 1 })
       text.mask = clip
       visual.addChild(clip, text)
@@ -284,14 +279,47 @@ export class PixiPlayRenderer {
       graphic.roundRect(-width / 2, -height / 2, width, height, 6).stroke({ color: 0x70a0ff, alpha: 0.8, width: 1 })
       if (item.pressed) graphic.roundRect(-width / 2, -height / 2, width, height, 6).fill({ color: 0x000000, alpha: 0.28 })
       visual.addChild(graphic)
+    } else if (item.kind === 'image' && item.primitive === 'sprite' && this.imageTexture(item.imageId, item.imageSource).texture) {
+      const entry = this.imageTextures.get(imageAssetKey(item.imageId, item.imageSource))
+      let sprite
+      if (width > 0 && height > 0 && resolveImageType(entry.meta, item.imageType) === 'Stretch') {
+        const positions = [], uvs = [], indices = []
+        for (const { source: [sx, sy, sw, sh], target: [x, y, w, h] } of sliceRegions(entry.meta, width, height)) {
+          const start = positions.length / 2
+          const left = x - width / 2, top = y - height / 2
+          positions.push(left, top, left + w, top, left + w, top + h, left, top + h)
+          const u0 = sx / entry.meta.width, u1 = (sx + sw) / entry.meta.width
+          const v0 = sy / entry.meta.height, v1 = (sy + sh) / entry.meta.height
+          uvs.push(u0, v0, u1, v0, u1, v1, u0, v1)
+          indices.push(start, start + 1, start + 2, start, start + 2, start + 3)
+        }
+        const geometry = new MeshGeometry({ positions: new Float32Array(positions), uvs: new Float32Array(uvs), indices: new Uint32Array(indices) })
+        visual.__sliceGeometry = geometry
+        sprite = new Mesh({ geometry, texture: entry.texture })
+      } else {
+        sprite = new Sprite({ texture: entry.texture, anchor: 0.5 })
+        sprite.width = width
+        sprite.height = height
+      }
+      const color = argb(item.imageColor, 0xffffffff)
+      sprite.tint = color.color
+      sprite.alpha = color.alpha
+      const fill = imageFillRect(item, width, height)
+      sprite.visible = width > 0 && height > 0 && (!fill || (fill.width > 0 && fill.height > 0))
+      if (fill && sprite.visible) {
+        const clip = new Graphics().rect(fill.x, fill.y, fill.width, fill.height).fill(0xffffff)
+        sprite.mask = clip
+        visual.addChild(clip)
+      }
+      visual.addChild(sprite)
     } else if (spriteCircle(item)) {
       const circle = new Sprite({ texture: this.circleTexture(Math.max(width, height)), anchor: 0.5 })
       visual.__circle = circle
       visual.addChild(circle)
-    } else {
+    } else if (item.kind !== 'grid') {
       const graphic = new Graphics()
       const color = argb(item.imageColor, 0xffffffff)
-      if (item.primitive === 'missing') {
+      if (item.primitive === 'missing' || item.primitive === 'sprite') {
         graphic.rect(-width / 2, -height / 2, width, height).fill({ color: 0x482228, alpha: 0.36 })
         graphic.rect(-width / 2 + 0.5, -height / 2 + 0.5, Math.max(0, width - 1), Math.max(0, height - 1)).stroke({ color: 0xff7481, alpha: 1, width: 1 })
       } else if (item.primitive === 'circle') {
@@ -316,8 +344,16 @@ export class PixiPlayRenderer {
       }
       visual.addChild(graphic)
     }
+    const bar = scrollBarGeometry(item.scroll, width, height)
+    if (bar) {
+      const graphic = new Graphics()
+      graphic.label = 'scrollbar'
+      for (const [rect, color] of [[bar.track, 0x263447], [bar.thumb, 0x90aecb]]) graphic.rect(rect.x, rect.y, rect.width, rect.height).fill({ color, alpha: 1 })
+      visual.addChild(graphic)
+    }
     visual.scale.set(item.pressed ? 0.98 : 1)
-    ;(root.__imageContent || root).addChildAt(visual, 0)
+    const content = root.__imageContent || root
+    content.addChildAt(visual, 0)
     root.__visual = visual
   }
 
@@ -342,8 +378,6 @@ export class PixiPlayRenderer {
   }
 
   updateNode(root, item, { nested = false } = {}) {
-    root.__lastItem = item
-    root.__lastNested = nested
     const width = Math.max(0, finite(item.sourceWidth, finite(item.width)))
     const height = Math.max(0, finite(item.sourceHeight, finite(item.height)))
     const visualKey = visualKeyOf(item, width, height)
@@ -355,12 +389,6 @@ export class PixiPlayRenderer {
       root.__visualKey = visualKey
     }
     if (root.__visual) root.__visual.scale.set(item.pressed ? 0.98 : 1)
-    const picture = root.__visual?.__materialSprite
-    if (picture) {
-      const color = argb(item.imageColor, 0xffffffff)
-      if (picture instanceof Sprite) { picture.width = width; picture.height = height }
-      picture.tint = color.color; picture.alpha = color.alpha
-    }
     const circle = root.__visual?.__circle
     if (circle) {
       const diameter = Math.max(width, height)
@@ -377,16 +405,15 @@ export class PixiPlayRenderer {
   }
 
   updateImageMask(root, item, width, height) {
-    const spec = imageMaskSpec({ ...item, sourceWidth: width, sourceHeight: height },
-      { a: 1, b: 0, c: 0, d: 1, tx: 0, ty: 0 })
+    const spec = item.kind === 'image' ? imageMaskSpec({ ...item, sourceWidth: width, sourceHeight: height }, { a: 1, b: 0, c: 0, d: 1, tx: 0, ty: 0 }) : null
     const key = spec ? [spec.width, spec.height, spec.featherX, spec.featherY].join(':') : ''
     if (root.__maskKey === key) return
     root.__maskKey = key
-    if (spec && !root.__imageContent) {
+    if (!root.__imageContent && spec) {
       const content = new Container()
       content.sortableChildren = true
       content.eventMode = 'none'
-      for (const child of [...root.children]) content.addChild(child)
+      for (const child of [...root.children]) if (child !== root.__viewportClip) content.addChild(child)
       root.addChildAt(content, 0)
       root.__imageContent = content
     }
@@ -397,12 +424,14 @@ export class PixiPlayRenderer {
     const textureWidth = Math.min(2048, Math.max(1, Math.ceil(width)))
     const textureHeight = Math.min(2048, Math.max(1, Math.ceil(height)))
     const previous = root.__imageMask
+    // Width-only Tween updates reuse a bounded texture rather than creating a
+    // GPU resource every frame. Viewport clipping stays on the outer root.
     if (soft && content.visible && previous instanceof Sprite
-        && previous.texture.source.resource.width === textureWidth
-        && previous.texture.source.resource.height === textureHeight) {
+        && previous.texture.source.resource.width === textureWidth && previous.texture.source.resource.height === textureHeight) {
       paintMaskCanvas(previous.texture.source.resource, spec)
       previous.texture.source.update()
-      previous.width = width; previous.height = height
+      previous.width = width
+      previous.height = height
       return
     }
     content.mask = null
@@ -414,7 +443,8 @@ export class PixiPlayRenderer {
       const canvas = DOMAdapter.get().createCanvas(textureWidth, textureHeight)
       paintMaskCanvas(canvas, spec)
       clip = new Sprite({ texture: new Texture({ source: new CanvasSource({ resource: canvas }) }), anchor: 0.5 })
-      clip.width = width; clip.height = height
+      clip.width = width
+      clip.height = height
     } else {
       clip = new Graphics().rect(-width / 2, -height / 2, width, height).fill(0xffffff)
     }
@@ -445,22 +475,51 @@ export class PixiPlayRenderer {
     }
     this.updateNode(root, item, { nested: item.parent != null })
     this.attachNode(root, item)
+    root.__sceneItem = item
+    root.__flat = false
+  }
+
+  updateViewportClip(root) {
+    const item = root.__sceneItem
+    const parent = this.nodes.get(item?.parent)?.__sceneItem
+    let polygons = item?.clipPolygons || []
+    if (!root.__flat && item?.clipToParent && parent) {
+      const w = parent.sourceWidth / 2, h = parent.sourceHeight / 2
+      polygons = [[[-w, -h], [w, -h], [w, h], [-w, h]].map(([x, y]) => ({ x, y }))]
+    }
+    const key = JSON.stringify([polygons, item?.matrix])
+    if (root.__clipKey === key) return
+    root.__clipKey = key
+    root.mask = null
+    root.__viewportClip?.destroy({ context: true })
+    root.__viewportClip = null
+    root.visible = true
+    if (!polygons.length) return
+    const values = affine(item)
+    if (!values || Math.abs(values[0] * values[3] - values[1] * values[2]) < 1e-8) { root.visible = false; return }
+    const matrix = new Matrix(...values).invert()
+    const points = intersectClipPolygons(polygons).flatMap(point => { const p = matrix.apply(point); return [p.x, -p.y] })
+    if (points.length < 6 || !points.every(Number.isFinite)) { root.visible = false; return }
+    const clip = new Graphics().poly(points).fill({ color: 0xffffff, alpha: 1 })
+    root.addChild(clip)
+    root.mask = clip
+    root.__viewportClip = clip
   }
 
   removeNode(id) {
     const root = this.nodes.get(id)
     if (!root) return
-    const content = root.__imageContent || root
-    for (const child of [...content.children]) {
-      if (child.__runtimeId != null) content.removeChild(child)
+    for (const child of [...root.children, ...(root.__imageContent?.children || [])]) {
+      if (child.__runtimeId != null) child.parent?.removeChild(child)
     }
     root.parent?.removeChild(root)
     this.clearVisual(root)
-    if (root.__imageContent) {
-      root.__imageContent.mask = null
-      root.__imageMask?.destroy({ context: true, texture: true, textureSource: true })
-      root.__imageContent.destroy({ children: false })
-    }
+    root.mask = null
+    if (root.__imageContent) root.__imageContent.mask = null
+    root.__imageMask?.destroy({ context: true, texture: true, textureSource: true })
+    root.__imageMask = null
+    root.__viewportClip?.destroy({ context: true })
+    root.__imageContent?.destroy({ children: false })
     root.destroy({ children: false })
     this.nodes.delete(id)
   }
@@ -471,7 +530,6 @@ export class PixiPlayRenderer {
 
   async applyScene(scene, width, height) {
     await this.ready
-    if (this.destroyed) return
     this.resize(width, height)
     if (!scene || scene.format !== 'tree-v1') {
       this.app.render()
@@ -486,12 +544,20 @@ export class PixiPlayRenderer {
       if (!this.nodes.has(item.id)) this.createNode(item, { group: item.group === true })
     }
     for (let i = 0; i < (list || []).length; i += 1) this.upsertSceneNode(list[i])
+    for (const root of this.nodes.values()) {
+      if (root.__sceneItem?.clipToParent || root.__sceneItem?.clipPolygons?.length || root.__clipKey !== undefined) this.updateViewportClip(root)
+    }
+    this.pruneImageTextures()
     this.app.render()
   }
 
   async render(items, width, height) {
+    if (items?.some(item => item?.masks?.length)) {
+      this.__maskedPaint = true
+      return this.applyScene(maskedPaintScene(items), width, height)
+    }
     await this.ready
-    if (this.destroyed) return
+    if (this.__maskedPaint) { this.clearNodes(); this.__maskedPaint = false }
     this.resize(width, height)
     const visible = new Set()
     const list = Array.isArray(items) ? items : []
@@ -501,6 +567,9 @@ export class PixiPlayRenderer {
       visible.add(item.id)
       const root = this.nodes.get(item.id) || this.createNode(item)
       this.updateNode(root, item)
+      root.__sceneItem = item
+      root.__flat = true
+      this.updateViewportClip(root)
       root.zIndex = index
       if (root.parent !== this.app.stage) this.app.stage.addChild(root)
     }
@@ -508,20 +577,18 @@ export class PixiPlayRenderer {
       if (visible.has(id)) continue
       this.removeNode(id)
     }
+    this.pruneImageTextures()
     this.app.render()
   }
 
   destroy() {
-    if (this.destroyed) return
-    this.destroyed = true
+    this.disposed = true
+    this.unsubscribeImages?.()
     this.clearNodes()
+    for (const entry of this.imageTextures?.values() || []) entry.texture?.destroy(true)
+    this.imageTextures?.clear()
     for (const texture of this.circleTextures.values()) texture.destroy(true)
     this.circleTextures.clear()
-    for (const entry of this.materialTextures.values()) {
-      if (entry.picture) { entry.picture.onload = null; entry.picture.onerror = null; entry.picture.src = '' }
-      entry.texture?.destroy(true)
-    }
-    this.materialTextures.clear()
     this.app?.destroy({ removeView: false }, { children: true, texture: true, textureSource: true })
     this.app = null
   }

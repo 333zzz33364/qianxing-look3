@@ -45,12 +45,13 @@ test('editor isolates tabs, preserves sessions on reload, and protects disk save
   for (const route of ['/editor', '/editor.js', '/editor.css', '/editor/play', '/editor/play.js', '/editor/play.css', '/editor/play-renderer.js']) {
     const response = await fetch(app.url + route)
     assert.equal(response.status, 200, route)
+    assert.ok(response.headers.get('content-security-policy').includes(`frame-ancestors '${route === '/editor/play' ? 'self' : 'none'}'`), route)
     assert.ok((await response.text()).length > 50, route)
   }
 })
 
 test('web serves bundled look2 workers and reads same-origin assets from the shared cache', async t => {
-  const workspace = mkdtempSync(join(tmpdir(), 'look2-web-routes-'))
+  const workspace = mkdtempSync(join(tmpdir(), 'look3-web-routes-'))
   const cacheDirectory = join(workspace, 'asset-cache')
   const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/u1sAAAAASUVORK5CYII=', 'base64')
   const requests = []

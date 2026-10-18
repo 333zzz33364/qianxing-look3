@@ -1,4 +1,7 @@
 /** Canvas presets share GIA platform slots. Simulator-policy sizes (PC 1600×900 observed). */
+import { isRemoteImage, imageSourceName } from './assets/catalog.js'
+
+export const DEFAULT_GIA_GAME_VERSION = '7.1.0'
 
 export const PLATFORMS = Object.freeze([
   'KEYBOARD',
@@ -124,6 +127,10 @@ export const IMAGE_PRIMITIVES = Object.freeze({
   100005: 'fivestar',
   100006: 'ring',
 })
+
+export function imagePrimitive(id, source) {
+  return (imageSourceName(source) === 'StaticReference' && IMAGE_PRIMITIVES[id]) || (isRemoteImage(id, source) ? 'sprite' : 'missing')
+}
 
 export const DEFAULT_CLICK_AUDIO_ID = 50888
 

@@ -1,0 +1,189 @@
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import { syncBuiltinESMExports } from 'node:module'
+import { dirname, join } from 'node:path'
+import { tmpdir } from 'node:os'
+import { createStudio } from '../index.js'
+import { SimulatorController } from '../host/controller.js'
+import { listWorkspaceArchives, resolveWorkspaceFile } from '../host/workspace.js'
+
+function workspaceFor(t) {
+  const limits = ['QXQY_SCAN_DIR_LIMIT', 'QXQY_SCAN_ENTRY_LIMIT', 'QXQY_SCAN_DEPTH_LIMIT']
+  const previous = limits.map(name => process.env[name])
+  for (const name of limits) delete process.env[name]
+  t.after(() => limits.forEach((name, i) => {
+    if (previous[i] === undefined) delete process.env[name]
+    else process.env[name] = previous[i]
+  }))
+  const workspace = fs.mkdtempSync(join(tmpdir(), 'qxqy-workspace-discovery-'))
+  t.after(() => fs.rmSync(workspace, { recursive: true, force: true }))
+  return workspace
+}
+
+function archiveAt(workspace, path, name = path, transform = (archive) => archive) {
+  const studio = createStudio()
+  studio.patch({ op: 'renameSave', name })
+  const absolute = join(workspace, path)
+  fs.mkdirSync(dirname(absolute), { recursive: true })
+  fs.writeFileSync(absolute, JSON.stringify(transform(studio.archiveData())))
+  return absolute
+}
+
+function mockBuiltin(t, method, implementation) {
+  const mock = t.mock.method(fs, method, implementation)
+  syncBuiltinESMExports()
+  t.after(() => {
+    mock.mock.restore()
+    syncBuiltinESMExports()
+  })
+}
+
+test('discovery finds a valid archive larger than 8 MiB without reading its entire payload', (t) => {
+  const workspace = workspaceFor(t)
+  archiveAt(workspace, 'large.save.json', 'Large archive', (archive) => {
+    archive.assets.scripts.push({ id: 'large-script', guid: 0, path: 'large.lua', source: `--${'x'.repeat(8 * 1024 * 1024)}`, controlId: '', controlAsset: '' })
+    return archive
+  })
+  const originalRead = fs.readSync
+  let bytesRead = 0
+  mockBuiltin(t, 'readSync', (...args) => {
+    const read = originalRead(...args)
+    bytesRead += read
+    return read
+  })
+  const result = listWorkspaceArchives(workspace)
+  assert.equal(result.archives.length, 1)
+  assert.equal(result.archives[0].path, 'large.save.json')
+  assert.equal(result.archives[0].name, 'Large archive')
+  assert.ok(result.archives[0].bytes > 8 * 1024 * 1024)
+  assert.equal(bytesRead, 4096)
+  assert.equal(result.discovery.truncated, false)
+  assert.deepEqual(result.discovery.warnings, [])
+  const controller = new SimulatorController(workspace)
+  controller.loadArchive('large.save.json')
+  assert.equal(controller.get().save.name, 'Large archive')
+})
+
+test('discovery keeps the latest 500 archives after scanning every candidate within its budget', (t) => {
+  const workspace = workspaceFor(t)
+  for (let index = 0; index < 510; index += 1) {
+    const path = archiveAt(workspace, `${String(index).padStart(3, '0')}.save.json`)
+    const modified = new Date(Date.UTC(2026, 0, 1) + index * 1000)
+    fs.utimesSync(path, modified, modified)
+  }
+  const { archives, discovery } = listWorkspaceArchives(workspace)
+  assert.equal(archives.length, 500)
+  assert.deepEqual(archives.map((archive) => archive.path), Array.from({ length: 500 }, (_, index) => `${String(509 - index).padStart(3, '0')}.save.json`))
+  assert.equal(discovery.matchedArchives, 510)
+  assert.equal(discovery.scannedJsonFiles, 510)
+  assert.equal(discovery.truncated, true)
+  assert.match(discovery.warnings.join('\n'), /510.*500/)
+})
+
+test('excluded and deep archives remain accessible by an explicit workspace path', (t) => {
+  const workspace = workspaceFor(t)
+  const deepPath = `${Array.from({ length: 9 }, (_, i) => `level-${i}`).join('/')}/deep.save.json`
+  const paths = ['.hidden/hidden.save.json', 'dist/generated.save.json', deepPath]
+  for (const path of paths) archiveAt(workspace, path, path)
+  const { archives, discovery } = listWorkspaceArchives(workspace)
+  assert.deepEqual(archives, [])
+  assert.equal(discovery.skippedDirectories, 2)
+  assert.equal(discovery.depthLimitedDirectories, 1)
+  assert.equal(discovery.truncated, true)
+  assert.equal(discovery.warnings.length, 2)
+  assert.equal(discovery.policy.hiddenEntries, false)
+  for (const path of paths) {
+    assert.equal(resolveWorkspaceFile(workspace, path), fs.realpathSync(join(workspace, path)))
+    const controller = new SimulatorController(workspace)
+    controller.loadArchive(path)
+    assert.equal(controller.get().save.name, path)
+  }
+})
+
+test('header discovery keeps malformed candidates visible and leaves JSON validation to opening', (t) => {
+  const workspace = workspaceFor(t)
+  fs.writeFileSync(join(workspace, 'broken.save.json'), '{"format":"qxqy-simulator-save","name":"bad\\q",')
+  fs.writeFileSync(join(workspace, 'unrelated.json'), '{broken ordinary json')
+  const { archives, discovery } = listWorkspaceArchives(workspace)
+  assert.equal(archives.length, 1)
+  assert.equal(archives[0].path, 'broken.save.json')
+  assert.equal(archives[0].name, 'broken.save')
+  assert.equal(discovery.unreadableEntries, 0)
+  assert.equal(discovery.policy.validatesJson, false)
+  assert.throws(() => new SimulatorController(workspace).loadArchive('broken.save.json'), /JSON|escape|Unexpected|position/i)
+})
+
+test('unreadable archives and directories produce one aggregated diagnostic', (t) => {
+  const workspace = workspaceFor(t)
+  const blockedFile = archiveAt(workspace, 'denied.save.json')
+  const readableFile = archiveAt(workspace, 'readable.save.json')
+  const blockedDirectory = join(workspace, 'denied-directory')
+  fs.mkdirSync(blockedDirectory)
+  // listWorkspaceArchives resolves the workspace root to its real path, so the fs
+  // calls receive realpath'd arguments. macOS tmpdir() lives behind the /var link.
+  const blockedFileReal = fs.realpathSync(blockedFile)
+  const blockedDirectoryReal = fs.realpathSync(blockedDirectory)
+  const originalOpen = fs.openSync
+  const originalOpenDir = fs.opendirSync
+  mockBuiltin(t, 'openSync', (...args) => {
+    if (args[0] === blockedFileReal) throw Object.assign(new Error('access denied'), { code: 'EACCES' })
+    return originalOpen(...args)
+  })
+  mockBuiltin(t, 'opendirSync', (...args) => {
+    if (args[0] === blockedDirectoryReal) throw Object.assign(new Error('access denied'), { code: 'EACCES' })
+    return originalOpenDir(...args)
+  })
+  const { archives, discovery } = listWorkspaceArchives(workspace)
+  assert.deepEqual(archives.map((archive) => archive.path), ['readable.save.json'])
+  assert.equal(discovery.unreadableEntries, 2)
+  assert.equal(discovery.warnings.length, 1)
+  assert.match(discovery.warnings[0], /无法读取 2/)
+  assert.equal(resolveWorkspaceFile(workspace, 'readable.save.json'), fs.realpathSync(readableFile))
+})
+
+test('discovery stops streaming entries at its budget and reports an incomplete list', (t) => {
+  const workspace = workspaceFor(t)
+  let reads = 0
+  let closed = false
+  mockBuiltin(t, 'opendirSync', () => ({
+    readSync() {
+      reads += 1
+      return { name: `${reads}.txt`, isDirectory: () => false, isFile: () => true }
+    },
+    closeSync() { closed = true },
+  }))
+  const { archives, discovery } = listWorkspaceArchives(workspace)
+  assert.deepEqual(archives, [])
+  assert.equal(discovery.scannedEntries, discovery.limits.entries)
+  assert.equal(reads, discovery.limits.entries + 1)
+  assert.equal(closed, true)
+  assert.equal(discovery.entryLimitReached, true)
+  assert.equal(discovery.truncated, true)
+  assert.match(discovery.warnings.join('\n'), /扫描上限/)
+})
+
+test('scan budgets read positive integers per invocation and expose the effective limits', t => {
+  const workspace = workspaceFor(t)
+  const path = 'one/two/deep.save.json'
+  archiveAt(workspace, path)
+  archiveAt(workspace, 'root.save.json')
+  process.env.QXQY_SCAN_DEPTH_LIMIT = '1'
+  assert.equal(listWorkspaceArchives(workspace).archives.some(row => row.path === path), false)
+  process.env.QXQY_SCAN_DEPTH_LIMIT = '3'
+  assert.equal(listWorkspaceArchives(workspace).archives.some(row => row.path === path), true)
+  process.env.QXQY_SCAN_DIR_LIMIT = '1'
+  const dirs = listWorkspaceArchives(workspace).discovery
+  assert.equal(dirs.scannedDirectories, 1)
+  assert.equal(dirs.directoryLimitReached, true)
+  delete process.env.QXQY_SCAN_DIR_LIMIT
+  process.env.QXQY_SCAN_ENTRY_LIMIT = '1'
+  const entries = listWorkspaceArchives(workspace).discovery
+  assert.equal(entries.scannedEntries, 1)
+  assert.equal(entries.entryLimitReached, true)
+  assert.equal(entries.limits.entries, 1)
+  for (const invalid of ['0', '-1', '0.5', '1.5', 'Infinity', 'invalid']) {
+    process.env.QXQY_SCAN_ENTRY_LIMIT = invalid
+    assert.equal(listWorkspaceArchives(workspace).discovery.limits.entries, 10000, invalid)
+  }
+})

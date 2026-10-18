@@ -337,26 +337,26 @@ test('plugin registers screenshot capture, API and standalone Pixi play routes, 
   }
   apply(ctx)
   assert.deepEqual(tools.map((tool) => tool.name), [
-    'look2_studio_transaction',
-    'look2_studio_history',
-    'look2_studio_template',
-    'look2_animation_set',
-    'look2_animation_export',
-    'look2_studio_get',
-    'look2_studio_play_screenshot',
-    'look2_studio_ui_screenshot',
-    'look2_studio_patch',
-    'look2_studio_play',
-    'look2_studio_load',
+    'look3_studio_transaction',
+    'look3_studio_history',
+    'look3_studio_template',
+    'look3_animation_set',
+    'look3_animation_export',
+    'look3_studio_get',
+    'look3_studio_play_screenshot',
+    'look3_studio_ui_screenshot',
+    'look3_studio_patch',
+    'look3_studio_play',
+    'look3_studio_load',
   ])
-  const playTool = tools.find((tool) => tool.name === 'look2_studio_play')
+  const playTool = tools.find((tool) => tool.name === 'look3_studio_play')
   assert.match(playTool.parameters.properties.args.description, /asset\(server\|client\)/)
   assert.match(playTool.parameters.properties.args.description, /templateRootId/)
   assert.match(playTool.parameters.properties.args.description, /animationId/)
   assert.match(playTool.parameters.properties.args.description, /expectedRevision/)
-  assert.equal(routes[0].path, '/look2-simulator/api')
-  assert.equal(routes[1].path, '/look2-simulator/play')
-  assert.equal(routes[2].path, '/look2-simulator/play-renderer.js')
+  assert.equal(routes[0].path, '/look3-simulator/api')
+  assert.equal(routes[1].path, '/look3-simulator/play')
+  assert.equal(routes[2].path, '/look3-simulator/play-renderer.js')
   const headers = {}
   let body = ''
   const response = {
@@ -364,7 +364,7 @@ test('plugin registers screenshot capture, API and standalone Pixi play routes, 
     setHeader(name, value) { headers[name] = value },
     end(value) { body = value || '' },
   }
-  routes[1].handler({ method: 'GET', url: '/look2-simulator/play' }, response)
+  routes[1].handler({ method: 'GET', url: '/look3-simulator/play' }, response)
   assert.equal(response.statusCode, 200)
   assert.match(headers['content-type'], /text\/html/)
   assert.match(body, /千星沙箱 · 独立试玩/)
@@ -402,7 +402,7 @@ test('plugin registers screenshot capture, API and standalone Pixi play routes, 
   assert.doesNotThrow(() => new Function(body.slice(scriptStart, scriptEnd).replace(/^\s*import[^\n]+\n/, '')))
   const rendererHeaders = {}
   let rendererBody = ''
-  routes[2].handler({ method: 'GET', url: '/look2-simulator/play-renderer.js' }, {
+  routes[2].handler({ method: 'GET', url: '/look3-simulator/play-renderer.js' }, {
     statusCode: 0,
     setHeader(name, value) { rendererHeaders[name] = value },
     end(value) { rendererBody = value || '' },
@@ -410,11 +410,11 @@ test('plugin registers screenshot capture, API and standalone Pixi play routes, 
   assert.match(rendererHeaders['content-type'], /text\/javascript/)
   assert.match(rendererBody, /WebGL/)
   for (const worker of ['look2-fit-worker', 'look2-psd-worker']) {
-    const route = routes.find((item) => item.path === `/look2-simulator/${worker}.js`)
+    const route = routes.find((item) => item.path === `/look3-simulator/${worker}.js`)
     assert.ok(route, `${worker} route registered`)
     const workerHeaders = {}
     let workerBody = ''
-    route.handler({ method: 'GET', url: `/look2-simulator/${worker}.js` }, {
+    route.handler({ method: 'GET', url: `/look3-simulator/${worker}.js` }, {
       statusCode: 200,
       setHeader(name, value) { workerHeaders[name] = value },
       end(value) { workerBody = Buffer.isBuffer(value) ? value.toString('utf8') : String(value || '') },
@@ -483,7 +483,7 @@ test('client bundle parses and includes editor-grade controls and workflow', () 
   assert.doesNotMatch(source, /100dvh/)
   assert.match(source, /window\.open\('about:blank', '_blank'\)/)
   assert.match(source, /playUrl\(sessionId\)/)
-  assert.match(readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8'), /\/look2-simulator\/play#/)
+  assert.match(readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8'), /\/look3-simulator\/play#/)
   assert.doesNotMatch(source, /function captureEditorScreenshot/)
   assert.doesNotMatch(source, /useUiScreenshotCapture/)
   assert.doesNotMatch(source, /ui-capture-poll/)
@@ -556,7 +556,7 @@ test('registered host tool definitions execute and render through the DSH tools 
   }
   apply(ctx)
   try {
-    const getTool = tools.find((tool) => tool.name === 'look2_studio_get')
+    const getTool = tools.find((tool) => tool.name === 'look3_studio_get')
     assert.equal(typeof getTool?.execute, 'function')
     assert.equal(typeof getTool.output?.render, 'function')
     const snapshot = await getTool.execute({}, { agent: { id: 'dsh-tools-contract-session' } })
@@ -620,11 +620,11 @@ test('editor HTTP get binds the live session cwd instead of the host startup dir
     },
   }
   apply(ctx)
-  const api = routes.find((route) => route.path === '/look2-simulator/api')
+  const api = routes.find((route) => route.path === '/look3-simulator/api')
   const chunks = [Buffer.from(JSON.stringify({ sessionId: 'sess-http' }))]
   const request = {
     method: 'POST',
-    url: '/look2-simulator/api/get',
+    url: '/look3-simulator/api/get',
     on(event, listener) {
       if (event === 'data') queueMicrotask(() => listener(chunks[0]))
       if (event === 'end') queueMicrotask(() => listener())

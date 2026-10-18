@@ -1,4 +1,4 @@
-import { closeSync, existsSync, openSync, readdirSync, readSync, realpathSync, statSync, unlinkSync } from 'node:fs'
+import { closeSync, existsSync, openSync, opendirSync, readSync, realpathSync, statSync, unlinkSync } from 'node:fs'
 import { spawn } from 'node:child_process'
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
 
@@ -7,8 +7,21 @@ import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:pat
 const SAVE_MARK = 'qxqy-simulator-save'
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', '.dsh', 'coverage'])
 const MAX_FILES = 500
-const MAX_HEADER_BYTES = 4096
-const MAX_DEPTH = 8
+const HEAD_BYTES = 4096
+// Scan budgets are env-overridable so large monorepo workspaces (thousands of
+// decompiled-source dirs) can still surface their saves in the archive picker;
+// defaults stay conservative. 2026-10-13: genshin-ts repo hit both limits and
+// workspace/hmlt-qixia/hmlt-qixia.save.json never appeared in the GUI list.
+const envInt = (name, fallback) => {
+  const n = Number(process.env[name])
+  return Number.isSafeInteger(n) && n > 0 ? n : fallback
+}
+// 调用时读取（非模块加载时定格）：进程中途变更/测试密闭性都友好
+const scanLimits = () => ({
+  entries: envInt('QXQY_SCAN_ENTRY_LIMIT', 10000),
+  directories: envInt('QXQY_SCAN_DIR_LIMIT', 1000),
+  depth: envInt('QXQY_SCAN_DEPTH_LIMIT', 8),
+})
 
 export function resolveWorkspaceRoot(value = '') {
   const candidate = resolve(String(value || process.cwd()))
@@ -56,12 +69,11 @@ export function resolveWorkspaceOutput(workspaceRoot, requestedPath) {
   return target
 }
 
-/** Read only a bounded prefix; listing must not load complete user archives. */
-function fileHead(path) {
-  const buffer = Buffer.alloc(MAX_HEADER_BYTES)
+function fileHead(path, size = HEAD_BYTES) {
+  const buffer = Buffer.alloc(size)
   const fd = openSync(path, 'r')
   try {
-    const bytes = readSync(fd, buffer, 0, buffer.length, 0)
+    const bytes = readSync(fd, buffer, 0, size, 0)
     return buffer.subarray(0, bytes).toString('utf8')
   } finally {
     closeSync(fd)
@@ -220,55 +232,106 @@ function archiveNameFromHead(text) {
   return null
 }
 
-function walk(dir, root, out, depth) {
-  if (out.length >= MAX_FILES || depth > MAX_DEPTH) return
-  let entries
-  try {
-    entries = readdirSync(dir, { withFileTypes: true })
-  } catch {
+function walk(dir, root, out, depth, discovery) {
+  const L = discovery.limits
+  if (depth > L.depth) {
+    discovery.depthLimitedDirectories += 1
     return
   }
-  // List this folder's own saves before descending, so a crowded nested folder
-  // (acceptance/repair output) can never crowd the user's root saves out.
-  const subdirectories = []
-  for (const entry of entries) {
-    if (out.length >= MAX_FILES) return
-    if (entry.name.startsWith('.') || SKIP_DIRS.has(entry.name)) continue
-    const full = join(dir, entry.name)
-    if (entry.isDirectory()) {
-      subdirectories.push(full)
-      continue
-    }
-    if (!entry.isFile() || !/\.json$/i.test(entry.name)) continue
-    try {
-      const stat = statSync(full)
-      if (stat.size < 20) continue
-      const head = fileHead(full)
-      // If the save marker is outside the bounded prefix, skip it without reading the whole file.
-      if (!head.includes(SAVE_MARK)) continue
-      const name = archiveNameFromHead(head) || basename(entry.name, '.json')
-      out.push({
-        path: relative(root, full).replaceAll('\\', '/'),
-        name,
-        bytes: stat.size,
-        mtime: stat.mtimeMs,
-      })
-    } catch {
-      // Ignore unreadable files while listing a workspace.
-    }
+  if (discovery.scannedDirectories >= L.directories) {
+    discovery.directoryLimitReached = true
+    return
   }
-  for (const subdirectory of subdirectories) {
-    if (out.length >= MAX_FILES) return
-    walk(subdirectory, root, out, depth + 1)
+  let entries
+  try {
+    // Stream directory entries so a single large directory cannot bypass the
+    // traversal budget by allocating an unbounded readdir array first.
+    discovery.scannedDirectories += 1
+    entries = opendirSync(dir)
+  } catch {
+    discovery.unreadableEntries += 1
+    return
+  }
+  const subdirectories = []
+  try {
+    let entry
+    while ((entry = entries.readSync())) {
+      if (discovery.scannedEntries >= L.entries) {
+        discovery.entryLimitReached = true
+        return
+      }
+      discovery.scannedEntries += 1
+      if (entry.name.startsWith('.') || (entry.isDirectory() && SKIP_DIRS.has(entry.name))) {
+        discovery.skippedEntries += 1
+        if (entry.isDirectory()) discovery.skippedDirectories += 1
+        continue
+      }
+      const full = join(dir, entry.name)
+      if (entry.isDirectory()) {
+        subdirectories.push(full)
+        continue
+      }
+      // Symlinks are deliberately not followed during discovery. Explicit file
+      // opens still use resolveWorkspaceFile's workspace boundary validation.
+      if (!entry.isFile() || !/\.json$/i.test(entry.name)) continue
+      discovery.scannedJsonFiles += 1
+      try {
+        const stat = statSync(full)
+        const head = fileHead(full)
+        if (!head.includes(SAVE_MARK)) continue
+        const name = archiveNameFromHead(head) || basename(entry.name, '.json')
+        out.push({
+          path: relative(root, full).replaceAll('\\', '/'),
+          name,
+          bytes: stat.size,
+          mtime: stat.mtimeMs,
+        })
+      } catch {
+        discovery.unreadableEntries += 1
+      }
+    }
+  } catch {
+    discovery.unreadableEntries += 1
+  } finally {
+    try { entries.closeSync() } catch { discovery.unreadableEntries += 1 }
+  }
+  for (const child of subdirectories) {
+    if (discovery.entryLimitReached || discovery.directoryLimitReached) break
+    walk(child, root, out, depth + 1, discovery)
   }
 }
 
 export function listWorkspaceArchives(workspaceRoot) {
   const root = resolveWorkspaceRoot(workspaceRoot)
   const archives = []
-  walk(root, root, archives, 0)
-  archives.sort((a, b) => b.mtime - a.mtime)
-  return { bound: true, workspace: root, archives }
+  const discovery = {
+    truncated: false,
+    warnings: [],
+    scannedDirectories: 0,
+    scannedEntries: 0,
+    scannedJsonFiles: 0,
+    matchedArchives: 0,
+    skippedDirectories: 0,
+    skippedEntries: 0,
+    unreadableEntries: 0,
+    depthLimitedDirectories: 0,
+    entryLimitReached: false,
+    directoryLimitReached: false,
+    limits: { archives: MAX_FILES, headBytes: HEAD_BYTES, ...scanLimits() },
+    policy: { excludedDirectories: [...SKIP_DIRS], hiddenEntries: false, symlinks: false, validatesJson: false },
+  }
+  walk(root, root, archives, 0, discovery)
+  // Select the newest files only after scanning the bounded workspace, instead
+  // of keeping whichever 50 files the filesystem happens to enumerate first.
+  archives.sort((a, b) => Number(a.path.includes('/')) - Number(b.path.includes('/')) || b.mtime - a.mtime || a.path.localeCompare(b.path))
+  discovery.matchedArchives = archives.length
+  if (archives.length > MAX_FILES) discovery.warnings.push(`发现 ${archives.length} 个存档，仅显示修改时间最新的 ${MAX_FILES} 个；其他存档可通过指定路径打开。`)
+  if (discovery.entryLimitReached || discovery.directoryLimitReached) discovery.warnings.push(`自动发现达到扫描上限（${discovery.limits.entries} 项 / ${discovery.limits.directories} 个目录），列表可能不完整；可通过指定路径打开存档。`)
+  if (discovery.depthLimitedDirectories) discovery.warnings.push(`自动发现跳过 ${discovery.depthLimitedDirectories} 个超过 ${discovery.limits.depth} 层的目录；可通过指定路径打开其中的存档。`)
+  if (discovery.skippedEntries) discovery.warnings.push('自动发现跳过隐藏项及生成目录（如 node_modules、dist）；可通过指定路径打开其中的存档。')
+  if (discovery.unreadableEntries) discovery.warnings.push(`自动发现无法读取 ${discovery.unreadableEntries} 个文件或目录；请检查访问权限，或通过指定路径查看具体错误。`)
+  discovery.truncated = archives.length > MAX_FILES || discovery.entryLimitReached || discovery.directoryLimitReached || discovery.depthLimitedDirectories > 0
+  return { bound: true, workspace: root, archives: archives.slice(0, MAX_FILES), discovery }
 }
 
 /** Permanently delete one workspace archive; the path must stay inside the workspace. */

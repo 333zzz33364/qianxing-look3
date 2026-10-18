@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { createWebServer } from '../server.js'
 
 test('editor delete-archive removes a save and reveal-archive rejects a missing path', async t => {
-  const workspace = mkdtempSync(join(tmpdir(), 'look2-web-archive-'))
+  const workspace = mkdtempSync(join(tmpdir(), 'look3-web-archive-'))
   const app = await createWebServer({ workspace, port: 0 })
   t.after(async () => { await app.close(); rmSync(workspace, { recursive: true, force: true }) })
   const call = async (sessionId, action, body = {}) => {

@@ -1,7 +1,7 @@
 {
-  "name": "look2-dsh-plugin",
-  "version": "2.0.25",
-  "description": "look2.0 千星奇域客户端 UI 动画编辑与试玩工具 for DeepSeek Harness",
+  "name": "look3-dsh-plugin",
+  "version": "3.0.0",
+  "description": "千星look3：保留 Look2 界面的 UI 动画编辑与 Lua 模拟器",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.15.0",
@@ -47,7 +47,11 @@
     "test:packages": "node scripts/smoke-packages.mjs",
     "test:git-install": "node scripts/smoke-git-install.mjs",
     "dev:web": "node scripts/build.mjs web && node web/server.js",
-    "start:web": "node web/dist/server.js"
+    "start:web": "node web/dist/server.js",
+    "upstream:check": "node scripts/upstream-sync.mjs check",
+    "upstream:status": "node scripts/upstream-sync.mjs status",
+    "test:upstream": "node --test scripts/test/upstream-sync.test.mjs",
+    "test:harness": "node scripts/smoke-harness.mjs"
   },
   "dependencies": {
     "@napi-rs/canvas": "0.1.100",
@@ -56,7 +60,7 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
-    "@deepseek-ai/dsh-tools": "^0.1.0-rc.6 || ^0.2.0-rc.2"
+    "@deepseek-ai/dsh-tools": "^0.1.0-rc.6 || ^0.2.0-rc.1"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "4.0.4",
