@@ -8,7 +8,7 @@ import { PLATFORMS } from '../constants.js'
 import { createNode } from '../ui/authoring.js'
 import { layoutTree, painterBoxes, hitTest } from '../ui/inspector.js'
 import { computeRect, canvasBox, localRectMatrix } from '../ui/layout.js'
-import { paintList, playSnapshot } from '../play/session.js'
+import { hitPlayControl, paintList, playSnapshot } from '../play/session.js'
 import { renderScenePng, renderPaintPng, renderEditorPng } from '../host-png.js'
 import { PixiPlayRenderer } from '../play/pixi-renderer.js'
 import { controlTransformStyle } from '../../editor-ui/control-transform.js'
@@ -132,4 +132,27 @@ test('XY-only Lua edits produce scene deltas', t => {
   const delta = playSnapshot(session, { view: true, sceneRev: before.revision }).scene
   assert.equal(delta.reset, false)
   close(delta.changed.find(c => c.id === image.Id).matrix.d, .5)
+})
+
+test('X/Y/Z play rotation uses the projected footprint for pointer hits', t => {
+  const runtime = createRuntime({ canvasWidth: 240, canvasHeight: 160 })
+  t.after(() => runtime.destroy())
+  const button = runtime.addRoot({ kind: 'button', active: true, visible: true, raycastTarget: true,
+    sizeDeltaX: 80, sizeDeltaY: 40, anchoredPositionX: 0, anchoredPositionY: 0 })
+  const session = { runtime, compiled: { canvasId: 'pc-16-9', platform: 'PC' } }
+
+  button.SetLocalRotation(0, 60, 0)
+  assert.equal(hitPlayControl(session, 139, 80), button)
+  assert.equal(hitPlayControl(session, 141, 80), null, 'Y rotation halves the projected width')
+
+  button.SetLocalRotation(60, 0, 0)
+  assert.equal(hitPlayControl(session, 120, 89), button)
+  assert.equal(hitPlayControl(session, 120, 91), null, 'X rotation halves the projected height')
+
+  button.SetLocalRotation(0, 0, 90)
+  assert.equal(hitPlayControl(session, 139, 80), button)
+  assert.equal(hitPlayControl(session, 141, 80), null, 'Z rotation swaps the hit footprint axes')
+
+  button.SetLocalRotation(90, 0, 0)
+  assert.equal(hitPlayControl(session, 120, 80), null, 'edge-on controls have no invertible 2D hit area')
 })

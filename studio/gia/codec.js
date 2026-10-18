@@ -2,6 +2,7 @@ import protobuf from 'protobufjs'
 import { PLATFORMS, LAYOUT_SCHEMA_VERSION, DEFAULT_GIA_GAME_VERSION } from '../constants.js'
 import { assertPlatformNode } from '../ui/transforms.js'
 import { toJson } from '../json.js'
+import { assertNativeKeyCode } from '../ui/keyhint.js'
 import { createNode, walk } from '../ui/authoring.js'
 import { GUID_BASE, collectUsedGuids, isValidGuid, nextFreeGuid } from './guid.js'
 import { extractSupportedUiGia } from './mixed-ui.js'
@@ -104,7 +105,7 @@ message ButtonPresetConfig {
 message KeyHintConfig { int32 field501 = 501; int32 field502 = 502; }
 message ImageSlotConfig { uint32 field502 = 502; uint32 assetId = 503; int32 imageType = 504; }
 message ImageConfig {
-  int32 enableMask = 501; int32 field502 = 502; int32 field504 = 504; int32 field505 = 505;
+  int32 enableMask = 501; int32 field502 = 502; int32 field503 = 503; int32 field506 = 506; int32 field504 = 504; int32 field505 = 505;
   int32 field507 = 507; int32 field508 = 508; int32 enableSoftEdge = 509; int32 softEdgePixel = 510;
   SliceVector border = 511; float field512 = 512; float field513 = 513; int32 enableFill = 514;
   int32 fillType = 515; int32 reverseMask = 516;
@@ -354,13 +355,13 @@ function typeData(node, guid, guidById, warnings) {
     const semanticFillType = { Horizontal: 1, Vertical: 2, Radial90: 3, Radial180: 4, Radial360: 5 }[node.fillType]
     const fillType = Number.isFinite(raw.imageFillType) ? Math.trunc(raw.imageFillType) : (semanticFillType || 1)
     if (node.enableFill && !fillType) warnings.push(`${node.name}: 填充形状原始枚举为 0，已关闭导出文件中的进度填充。`)
-    if (node.fillType === 'Horizontal' && node.fillHorizontalType !== 'Left') warnings.push(`${node.name}: 当前横向填充方向暂不支持写入 GIA。`)
-    if (node.fillType === 'Radial180' && node.fillRadialType !== 'Bottom') warnings.push(`${node.name}: 当前 180 度填充起点暂不支持写入 GIA。`)
     const image = {
       field502: raw.imageField502 ?? 1,
-      field504: raw.imageField504 ?? 1,
-      field505: raw.imageField505 ?? 1,
-      field507: raw.imageField507 ?? 2,
+      field503: ![0, 1].includes(raw.imageField503) ? raw.imageField503 : node.fillHorizontalType === "Right" ? 1 : 0,
+      field504: ![0, 1].includes(raw.imageField504) ? raw.imageField504 : ["Bottom", "Top"].indexOf(node.fillVerticalType),
+      field505: ![0, 1].includes(raw.imageField505) ? raw.imageField505 : node.fillClockwise !== false ? 1 : 0,
+      field506: ![0, 1, 2, 3].includes(raw.imageField506) ? raw.imageField506 : ["BottomLeft", "TopLeft", "TopRight", "BottomRight"].indexOf(node.fillRadial90Type),
+      field507: ![0, 1, 2, 3].includes(raw.imageField507) ? raw.imageField507 : ["Bottom", "Left", "Top", "Right"].indexOf(node.fillRadialType),
       field508: Math.round(Math.max(0, Math.min(1, Number(node.fillAmount) || 0)) * 100),
       border: {
         field501: finiteNumber(node.softEdgeWidthX, 8),
@@ -443,6 +444,8 @@ function typeData(node, guid, guidById, warnings) {
     }), footer]
   }
   if (node.kind === 'keyhint') {
+    assertNativeKeyCode(node.keyboardKeyCode, 'KeyboardKeyCode')
+    assertNativeKeyCode(node.controllerKeyCode, 'ControllerKeyCode')
     return [generic, ref(72, 95, 'empty82', 'keyHint', {
       field501: Number.isFinite(raw.keyHintField501) ? Math.trunc(raw.keyHintField501) : (node.controllerKeyCode ?? 1),
       field502: Number.isFinite(raw.keyHintField502) ? Math.trunc(raw.keyHintField502) : (node.keyboardKeyCode ?? 1),
@@ -978,9 +981,11 @@ function materializeControlForest(units, { reverseSiblings = false, idOffset = 0
         ...(kind === 'image' ? {
           imageSlotType: imageSlot?.imageType ?? 0,
           imageField502: image?.field502 ?? 1,
-          imageField504: image?.field504 ?? 1,
-          imageField505: image?.field505 ?? 1,
-          imageField507: image?.field507 ?? 2,
+          imageField503: image?.field503 ?? 0,
+          imageField506: image?.field506 ?? 0,
+          imageField504: image?.field504 ?? 0,
+          imageField505: image?.field505 ?? 0,
+          imageField507: image?.field507 ?? 0,
           imageFillType: image?.fillType ?? 1,
         } : {}),
         ...(kind === 'animation' ? { effectSlot: effectSlot ?? '' } : {}),
@@ -1012,6 +1017,11 @@ function materializeControlForest(units, { reverseSiblings = false, idOffset = 0
         softEdgeMode: image?.softEdgePixel === 1 ? 'Pixel' : 'Percentage',
         softEdgeWidthX: image?.border?.field501 ?? 8, softEdgeWidthY: image?.border?.field502 ?? 8,
         horizontalSoftRange: image?.field512 ?? 85, verticalSoftRange: image?.field513 ?? 85,
+        fillClockwise: (image?.field505 ?? 0) !== 0,
+        fillHorizontalType: ['Left', 'Right'][image?.field503 ?? 0] || 'Left',
+        fillVerticalType: ['Bottom', 'Top'][image?.field504 ?? 0] || 'Bottom',
+        fillRadial90Type: ['BottomLeft', 'TopLeft', 'TopRight', 'BottomRight'][image?.field506 ?? 0] || 'BottomLeft',
+        fillRadialType: ['Bottom', 'Left', 'Top', 'Right'][image?.field507 ?? 0] || 'Bottom',
         fillType: { 1: 'Horizontal', 2: 'Vertical', 3: 'Radial90', 4: 'Radial180', 5: 'Radial360' }[image?.fillType] || 'Horizontal',
         // field508 is a proto3 scalar, so a valid encoded zero is omitted.
         // When filling is enabled, its absence therefore means exactly 0.

@@ -691,7 +691,7 @@ test('JSON and GIA export-import round-trip supported control kinds in-process',
   const gia = studio.exportData('gia')
   const bytes = Buffer.from(gia.data, 'base64')
   assert.deepEqual(inspectGia(bytes), {
-    gameVersion: '7.0.50', graphName: '客户端控件容器', accessories: 11,
+    gameVersion: '7.1.0', graphName: '客户端控件容器', accessories: 11,
     assetType: 'server-control-template', templateCount: 0,
   })
   const imported = studio.importData('gia', gia.data, 'round-trip.gia')
@@ -860,7 +860,7 @@ test('new client template project exports one instantiable template with child c
   assert.deepEqual(compatibility.templates.map((item) => item.relatedGuids), [[], []])
   assert.deepEqual(compatibility.explicitEmpty, { field17: 12, rectField508: 24 })
   assert.deepEqual(inspectGia(Buffer.from(exported.data, 'base64')), {
-    gameVersion: '7.0.50', graphName: 'Lua实例化面板', accessories: 4,
+    gameVersion: '7.1.0', graphName: 'Lua实例化面板', accessories: 4,
     assetType: 'client-control-template', templateCount: 2,
   })
   const target = createStudio()

@@ -1,4 +1,4 @@
-import { CORE_KINDS, IMAGE_PRIMITIVES, KIND_LABELS } from '../constants.js'
+import { CORE_KINDS, imagePrimitive, KIND_LABELS } from '../constants.js'
 import {
   applyMatrix,
   canvasBox,
@@ -13,6 +13,8 @@ import {
 } from './layout.js'
 import { readCurrentTransform } from './sync.js'
 import { getPlatformTransform } from './transforms.js'
+import { keyCodeOptions } from './keyhint.js'
+import { textLayout } from '../play/text-layout.js'
 
 export function painterBoxes(root, boxes) {
   const out = []
@@ -46,6 +48,8 @@ export function layoutTree(root, canvasId, platform = typeof canvasId === 'objec
       name: node.name,
       visible: node.visible !== false,
       active: node.active !== false,
+      rotationX: transform.rotation.x,
+      rotationY: transform.rotation.y,
       rotationZ: transform.rotation.z,
       renderLeft: render.left,
       renderBottom: render.bottom,
@@ -53,10 +57,13 @@ export function layoutTree(root, canvasId, platform = typeof canvasId === 'objec
       renderHeight: render.height,
       renderRotationZ: render.rotationZ,
       renderMatrix: matrix,
-      primitive: node.kind === 'image' ? (IMAGE_PRIMITIVES[node.imageId] || 'missing') : null,
+      primitive: node.kind === 'image' ? imagePrimitive(node.imageId, node.imageSource) : null,
       ...((node.kind === 'textbox' || node.kind === 'textwindow') ? {
         text: node.text ?? '',
         fontSize: node.fontSize,
+        adaptiveFontSize: node.adaptiveFontSize === true,
+        minimumFontSize: node.minimumFontSize,
+        textLayout: textLayout(node, box.width, box.height),
         fontColor: node.fontColor,
         bgColor: node.bgColor,
         enableOutline: node.enableOutline !== false,
@@ -66,6 +73,7 @@ export function layoutTree(root, canvasId, platform = typeof canvasId === 'objec
       } : {}),
       ...(node.kind === 'image' ? {
         imageSource: node.imageSource,
+        imageType: node.imageType ?? null,
         imageId: node.imageId,
         imageColor: node.imageColor,
         enableMask: node.enableMask === true,
@@ -77,6 +85,7 @@ export function layoutTree(root, canvasId, platform = typeof canvasId === 'objec
         verticalSoftRange: node.verticalSoftRange,
         enableFill: node.enableFill === true,
         fillType: node.fillType,
+        fillClockwise: node.fillClockwise !== false,
         fillHorizontalType: node.fillHorizontalType,
         fillVerticalType: node.fillVerticalType,
         fillRadial90Type: node.fillRadial90Type,
@@ -145,6 +154,8 @@ export function inspectorDto(node, canvasId, box, guidById) {
     field('posY', '位置 Y', 'number', vis.posY, { computed: true }),
     field('width', '大小 W', 'number', vis.width, { computed: true }),
     field('height', '大小 H', 'number', vis.height, { computed: true }),
+    field('rotationX', '旋转 X', 'number', transform.rotation.x),
+    field('rotationY', '旋转 Y', 'number', transform.rotation.y),
     field('rotationZ', '旋转 Z', 'number', transform.rotation.z),
     field('syncAllDevices', '同步信息至所有设备', 'bool', node.syncAllDevices !== false),
     field('anchorType', '锚点类型', 'enum', classifyAnchor(transform), {
@@ -210,18 +221,19 @@ export function inspectorDto(node, canvasId, box, guidById) {
       field('text', '文本', 'text', node.text ?? ''),
     )
   }
+  if (node.kind === 'textwindow') fields.push(field('interactable', '允许滚动', 'bool', node.interactable !== false), field('showScrollBar', '显示滚动条', 'bool', node.showScrollBar !== false))
   if (node.kind === 'image') {
     const rawFillType = node.giaRaw?.imageFillType
     const fillType = [1, 2, 3, 4, 5].includes(rawFillType)
       ? node.fillType
       : `__unrecognized:${rawFillType}`
     fields.push(
-      field('imageSource', '图片源', 'enum', node.imageSource, { readonly: true, evidence: 'W', options: [
-        { value: 'StaticReference', label: '静态引用' },
+      field('imageSource', '图片源', 'enum', node.imageSource, { evidence: 'W', options: [
+        { value: 'StaticReference', label: '静态引用' }, { value: 'Prefab', label: '元件' },
       ] }),
       field('imageId', 'imageId', 'number', node.imageId ?? 0),
       field('imageType', '图片类型', 'enum', node.imageType, { gia: 'W', options: [
-        { value: 'Basic', label: '基础' }, { value: 'Stretch', label: '拉伸' },
+        { value: null, label: '自动' }, { value: 'Basic', label: '基础' }, { value: 'Stretch', label: '拉伸' },
       ] }),
       field('imageColor', '填充色', 'color', node.imageColor),
       field('enableMask', '开启遮罩', 'bool', node.enableMask === true),
@@ -265,6 +277,7 @@ export function inspectorDto(node, canvasId, box, guidById) {
         { value: 'Top', label: '上方' },
         { value: 'Right', label: '右侧' },
       ] }),
+      field('fillClockwise', '顺时针填充', 'bool', node.fillClockwise !== false),
       field('fillAmount', '进度', 'percent', node.fillAmount),
       field('reverseMaskArea', '遮罩区域反转', 'bool', node.reverseMaskArea === true, { gia: 'W' }),
     )
@@ -289,6 +302,14 @@ export function inspectorDto(node, canvasId, box, guidById) {
   }
   if (node.kind === 'grid') {
     fields.push(
+      field('itemPrefabId', '列表项模板索引', 'number', node.itemPrefabId ?? 0),
+      field('raycastTarget', '可被光标射线检测', 'bool', node.raycastTarget !== false),
+      field('interactable', '列表是否可用', 'bool', node.interactable !== false),
+      field('showScrollBar', '显示滚动条', 'bool', node.showScrollBar !== false),
+      field('scrollProgress', '滚动进度', 'percent', node.scrollProgress ?? 0),
+      field('scrollDirection', '滚动方向', 'enum', node.scrollDirection, { options: [{ value: 'Vertical', label: '竖直' }, { value: 'Horizontal', label: '水平' }] }),
+      field('layoutConstraint', '排列约束', 'enum', node.layoutConstraint, { options: [{ value: 'AutoWrap', label: '自动换行' }, { value: 'Fixed', label: '固定数量' }] }),
+      field('layoutConstraintFixedCount', '固定排列数量', 'number', node.layoutConstraintFixedCount ?? 1),
       field('cellSizeX', '列表项大小 W', 'number', node.cellSizeX, { evidence: 'W' }),
       field('cellSizeY', '列表项大小 H', 'number', node.cellSizeY, { evidence: 'W' }),
       field('spacingX', '列表项间隔 X', 'number', node.spacingX, { evidence: 'W' }),
@@ -302,15 +323,17 @@ export function inspectorDto(node, canvasId, box, guidById) {
   }
   if (node.kind === 'keyhint') {
     fields.push(
-      field('keyboardKeyCode', '键鼠按键', 'number', node.keyboardKeyCode ?? node.giaRaw?.keyHintField502 ?? 1, { gia: 'W' }),
-      field('controllerKeyCode', '手柄按键', 'number', node.controllerKeyCode ?? node.giaRaw?.keyHintField501 ?? 1),
+      field('keyboardKeyCode', '键鼠按键', 'enum', node.keyboardKeyCode ?? node.giaRaw?.keyHintField502 ?? 1, { options: keyCodeOptions('KeyboardKeyCode', node.keyboardKeyCode), gia: 'W' }),
+      field('controllerKeyCode', '手柄按键', 'enum', node.controllerKeyCode ?? node.giaRaw?.keyHintField501 ?? 1, { options: keyCodeOptions('ControllerKeyCode', node.controllerKeyCode) }),
     )
   }
   if (node.kind === 'animation' || node.kind === 'fullscreen') {
     fields.push(field('animationId', node.kind === 'animation' ? '动效索引' : '全屏动效索引', 'string', node.animationId ?? ''))
   }
-  if (!CORE_KINDS.includes(node.kind)) {
-    fields.push(field('incomplete', '完整度', 'note', '本阶段仅公共变换，业务槽不完整'))
+  if (!CORE_KINDS.includes(node.kind) || node.kind === 'textwindow' || node.kind === 'grid') {
+    fields.push(field('incomplete', '完整度', 'note', node.kind === 'textwindow' || node.kind === 'grid'
+      ? '基础滚动、滚动条及列表配置支持 JSON/Lua；相关 GIA 开关映射尚未核实。'
+      : '本阶段仅公共变换，业务槽不完整'))
   }
   return {
     id: node.id,

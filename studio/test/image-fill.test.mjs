@@ -80,21 +80,33 @@ test('real Lua fill methods and enum assignments project names and invalidate fi
     const changed = patch.changed.find(item => item.name === 'Image')
     assert.ok(changed, `${entry.direction} ${amount} must produce an incremental scene update`)
     assert.equal(changed.fillType, entry.axis)
+    assert.equal(changed.enableFill, true)
     assert.equal(changed['fill' + entry.axis + 'Type'], entry.direction)
     assert.equal(changed.fillAmount, amount)
     assert.equal(f.control['fill' + entry.axis + 'Type'].Name, entry.direction)
     const paint = paintList(f.session).find(item => item.name === 'Image')
     assert.equal(paint.fillType, changed.fillType)
+    assert.equal(paint.enableFill, true)
     assert.equal(paint['fill' + entry.axis + 'Type'], entry.direction)
     assert.equal(paint.fillAmount, amount)
     previous = f.scene()
   }
+  f.control.fillType = 'Vertical'
+  f.control.fillVerticalType = 'Bottom'
+  f.control.fillAmount = 0.5
+  f.control.enableFill = false
+  f.control.markPlayDirty()
+  const disabled = renderScenePng(f.scene(), 240, 160).data
+  assert.equal(f.node().enableFill, false)
   f.invoke('DirectFields')
   assert.equal(f.control.fillType.Name, 'Vertical')
   assert.equal(f.node().fillType, 'Vertical')
+  assert.equal(f.node().enableFill, true, 'a Lua fillType write enables its public runtime fill behavior')
   assert.equal(f.node().fillVerticalType, 'Bottom')
+  assert.notDeepEqual(renderScenePng(f.scene(), 240, 160).data, disabled)
   f.invoke('Unused')
   assert.equal(f.node().fillType, 'Unused')
+  assert.deepEqual(renderScenePng(f.scene(), 240, 160).data, disabled, 'disabled fill does not crop the image')
   assert.equal(f.runtime.logs.filter(item => item.level === 'error').length, 0)
 })
 

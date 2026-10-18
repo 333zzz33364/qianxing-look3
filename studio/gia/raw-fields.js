@@ -65,6 +65,8 @@ const KIND_FIELDS = Object.freeze({
   image: [
     { key: 'imageSlotType', label: '图片类型原始值', type: 'number', defaultValue: 0, wire: 'ImageSlotConfig.imageType' },
     { key: 'imageField502', label: '图片标记 field502', type: 'number', defaultValue: 1, wire: 'ImageConfig.field502' },
+    { key: 'imageField503', label: '横向填充起点原始值', type: 'number', defaultValue: 0, wire: 'ImageConfig.field503' },
+    { key: 'imageField506', label: '90度填充起点原始值', type: 'number', defaultValue: 0, wire: 'ImageConfig.field506' },
     { key: 'imageField504', label: '图片标记 field504', type: 'number', defaultValue: 1, wire: 'ImageConfig.field504' },
     { key: 'imageField505', label: '图片标记 field505', type: 'number', defaultValue: 1, wire: 'ImageConfig.field505' },
     { key: 'imageField507', label: '图片标记 field507', type: 'number', defaultValue: 2, wire: 'ImageConfig.field507' },

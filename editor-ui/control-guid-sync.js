@@ -1,3 +1,18 @@
+export function buildControlGuidSyncPrompt(current) {
+  const changes = current.controlGuidChanges || []
+  return ['请完成模拟器控件索引与 Lua 引用同步。',
+    `工作区：${current.workspace?.path || '请先核对工作区'}`,
+    `最新完整存档：${current.storage.path}（编辑器已保存）`,
+    `Lua 文件：${(current.scripts || []).map(row => row.path || `内联脚本 ${row.id}`).join('、') || '暂无'}`,
+    '先从上述文件重新加载最新存档，不要使用另一个 MCP/Web 进程里的旧工程。',
+    `获取新旧映射：读取该 JSON 顶层的 controlGuidChanges 数组，当前共 ${changes.length} 条，必须读取全部记录。oldGuid 是旧索引，newGuid 是新索引；controlAsset + controlId 标识控件，controlName 是名称，id 是记录编号，batchId 是批次。`,
+    '获取脚本：读取 assets.scripts 数组；每项的 source 是存档内源码，path 是脚本文件路径（相对路径以工作区为基准）。',
+    '按控件身份和变更顺序核对全部 Lua 脚本的索引常量、配置表与调用，修改存档中的 source 及相关 Lua 源文件和生成器映射，避免重建后覆盖。不要全局替换同值数字，也不要改运行时实例 ID 或图片资源 ID。',
+    '同一 batchId 是同时映射，须按原值一次性应用，不能逐条替换导致索引串改。',
+    '检查旧索引引用并重新试玩；仅在引用全部同步或明确没有引用后，用 acknowledgeControlGuidChanges 的 changeIds 清除已核对记录，保存完整存档。未判断的记录继续保留。',
+    '完成后告知用户重新载入这个存档，再通过编辑器下方面板的“同步”更新游戏文件；不要重新导入 GIA，也不要擅自复制到游戏目录。'].join('\n')
+}
+
 export function createControlGuidSyncPanel(React) {
   const e = React.createElement
   return function ControlGuidSyncPanel({ snap, prepare, patch, copy, onScripts, onError, reloadArchive }) {

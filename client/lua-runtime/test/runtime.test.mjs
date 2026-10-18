@@ -985,6 +985,31 @@ end
   assert.match(t, /script_set\tfalse\t.*cannot set tickEnabled, no such field/)
 })
 
+test('keyHint fields expose semantic enums and preserve legacy numeric values', () => {
+  const rt = createRuntime()
+  const root = rt.addRoot({ active: true, name: 'R', kind: 'keyhint', keyboardKeyCode: 'MoveForwardKey', controllerKeyCode: 4 })
+  rt.mountScript({
+    path: 'keyhint-enums',
+    control: root,
+    source: `
+function OnStart()
+  print("keyboard", script.object.keyboardKeyCode.Name)
+  print("keyboard_type", script.object.keyboardKeyCode.EnumType)
+  print("controller_type", math.type(script.object.controllerKeyCode))
+  script.object.controllerKeyCode = Enum.ControllerKeyCode.JumpKey
+  print("controller", script.object.controllerKeyCode.Name)
+end
+`,
+  })
+  const t = logText(rt)
+  assert.match(t, /keyboard\tMoveForwardKey/)
+  assert.match(t, /keyboard_type\tKeyboardKeyCode/)
+  assert.match(t, /controller_type\tinteger/)
+  assert.match(t, /controller\tJumpKey/)
+  assert.equal(root.controllerKeyCode.Name, 'JumpKey')
+  rt.destroy()
+})
+
 test('runtime active defaults to false; Instantiate inherits the template value', () => {
   const rt = createRuntime()
   const omitted = rt.addRoot({ name: 'Omitted', kind: 'container' })

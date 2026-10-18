@@ -63,7 +63,7 @@ function visualKeyOf(item, width, height) {
   if (spriteCircle(item)) return [item.kind, item.primitive, item.imageId, imageSourceName(item.imageSource), 'sprite'].join('\t')
   return [
     item.kind, item.primitive, width, height, item.imageColor, item.imageId, imageSourceName(item.imageSource), item.imageType,
-    item.fillType, item.fillHorizontalType, item.fillVerticalType, item.fillAmount,
+    item.enableFill, item.fillType, item.fillHorizontalType, item.fillVerticalType, item.fillAmount,
     item.text, item.fontSize, item.fontColor, item.bgColor, item.enableOutline,
     item.adaptiveFontSize, item.minimumFontSize, JSON.stringify(item.textLayout),
     item.outlineColor, item.horizontalAlignment, item.verticalAlignment, item.pressed,

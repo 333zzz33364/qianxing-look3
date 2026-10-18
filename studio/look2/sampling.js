@@ -25,6 +25,10 @@ export const TWEENABLE_FIELDS = Object.freeze([
   Object.freeze({ fieldKey: 'bgColor', label: '文字背景色', type: 'color', kinds: TEXT_KINDS, relative: false }),
   Object.freeze({ fieldKey: 'outlineColor', label: '描边颜色', type: 'color', kinds: TEXT_KINDS, relative: false }),
   Object.freeze({ fieldKey: 'fillAmount', label: '图片填充量', type: 'number', kinds: ['image'], relative: false }),
+  ...[['softEdgeWidthX', '水平羽化宽度'], ['softEdgeWidthY', '垂直羽化宽度'],
+    ['horizontalSoftRange', '水平羽化范围'], ['verticalSoftRange', '垂直羽化范围']]
+    .map(([fieldKey, label]) => Object.freeze({ fieldKey, label, type: 'number', kinds: ['image'], relative: false })),
+  Object.freeze({ fieldKey: 'scrollProgress', label: '滚动进度', type: 'number', kinds: ['grid'], relative: false }),
   Object.freeze({ fieldKey: 'imageColor', label: '图片颜色', type: 'color', kinds: ['image'], relative: false }),
 ])
 

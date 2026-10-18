@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createCanvas, Image, loadImage } from '@napi-rs/canvas'
 import { applyStageImageMask, stageMaskKey } from '../../editor-ui/stage-image-mask.js'
+import { imageMaskFields } from '../../editor-ui/image-mask-fields.js'
 import { createPrimitivePreviewSource } from '../../editor-ui/primitive-preview.js'
 import { createAnimationView } from '../../editor-ui/look2.js'
 import { createStudio } from '../index.js'
@@ -52,6 +53,46 @@ test('fill directions and radial origins follow the upstream editor preview', ()
   assert.deepEqual(radial('Radial360', { fillRadialType: 'Top' }), [0, 255, 0, 255])
   assert.deepEqual(radial('Radial90', { fillRadial90Type: 'BottomLeft' }), [255, 0, 0, 0])
   assert.deepEqual(radial('Radial180', { fillRadialType: 'Bottom' }), [255, 0, 255, 0])
+})
+
+test('radial fill direction reverses coverage and invalidates the coverage cache', () => {
+  const radial = clockwise => alphas(applyStageImageMask(image([255, 255, 255, 255], 2), box({
+    width: 2, height: 2, enableFill: true, fillType: 'Radial360', fillRadialType: 'Top',
+    fillAmount: .25, fillClockwise: clockwise,
+  })))
+  assert.deepEqual(radial(true), [0, 255, 0, 0])
+  assert.deepEqual(radial(false), [255, 0, 0, 0])
+  const source = box({ fillType: 'Radial360', fillRadialType: 'Top', fillAmount: .25, fillClockwise: true })
+  assert.notEqual(stageMaskKey(source), stageMaskKey({ ...source, fillClockwise: false }))
+})
+
+test('image mask properties follow enable, feather mode, and fill shape', () => {
+  const fields = [
+    ['enableMask', true], ['enableSoftEdge', true], ['softEdgeMode', 'percentage'],
+    ['softEdgeWidthX', 8], ['softEdgeWidthY', 8], ['horizontalSoftRange', 75], ['verticalSoftRange', 80],
+    ['enableFill', true], ['fillType', 'Radial360'], ['fillHorizontalType', 'Left'],
+    ['fillVerticalType', 'Top'], ['fillRadial90Type', 'BottomLeft'], ['fillRadialType', 'Bottom'],
+    ['fillClockwise', false], ['fillAmount', .5], ['reverseMaskArea', false],
+  ].map(([key, value]) => ({ key, value, type: key === 'fillType' ? 'enum' : 'bool', options: key === 'fillType'
+    ? [{ value: 'Unused' }, { value: 'Horizontal' }, { value: 'Radial360' }] : undefined }))
+  const keys = (input = fields) => imageMaskFields(input).map(field => field.key)
+  assert.deepEqual(keys(fields.map(field => field.key === 'enableMask' ? { ...field, value: false } : field)), ['enableMask'])
+  assert.deepEqual(keys(), [
+    'enableMask', 'enableSoftEdge', 'softEdgeMode', 'horizontalSoftRange', 'verticalSoftRange',
+    'enableFill', 'fillType', 'fillRadialType', 'fillClockwise', 'fillAmount', 'reverseMaskArea',
+  ])
+  const shape = imageMaskFields(fields).find(field => field.key === 'fillType')
+  assert.deepEqual(shape.options.map(option => option.value), ['Horizontal', 'Radial360'])
+  assert.deepEqual(keys(fields.map(field => field.key === 'fillType' ? { ...field, value: 'Horizontal' } : field))
+    .filter(key => key.startsWith('fill')), ['fillType', 'fillHorizontalType', 'fillAmount'])
+})
+
+test('pixel feather accepts both GIA and site-json enum casing', () => {
+  const feathered = extra => alphas(applyStageImageMask(image([255, 255, 255, 255]), box({
+    enableSoftEdge: true, softEdgeWidthX: 4, softEdgeWidthY: 0, ...extra,
+  })))
+  assert.deepEqual(feathered({ softEdgeMode: 'Pixel' }), [32, 96, 96, 32])
+  assert.deepEqual(feathered({ softEdgeMode: 'pixel' }), [32, 96, 96, 32])
 })
 
 test('mask uses the stretched texture and nested descendant masks multiply', () => {

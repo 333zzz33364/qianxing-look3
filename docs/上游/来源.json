@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "project": "千星look3",
+  "baseline": "82fd5a22d184f7674432dc93793da8ea61810f7e",
+  "sources": [
+    {
+      "id": "look",
+      "repository": "https://github.com/1475505/miliastra-beyond-simulator.git",
+      "branch": "master",
+      "commit": "b173569d73b4b9a07f5cd630ea5f3bcd055eb751",
+      "acceptedCommit": null,
+      "directory": "上游/Look",
+      "paths": [
+        "."
+      ],
+      "status": "paused-integration"
+    },
+    {
+      "id": "ui-editor",
+      "repository": "https://github.com/xiaomoL444/ugc-tool.git",
+      "branch": "main",
+      "commit": "513b2d5a77feeef696417cf36beba59da32077b4",
+      "acceptedCommit": null,
+      "directory": "上游/UI动画编辑器",
+      "paths": [
+        "src/views/ClientUIAnimationEditor",
+        "src/assets/ClientUIAnimationEditor",
+        "src/services/storage",
+        "src/utils/oss.ts",
+        "src/lib/undo-manager",
+        "src/views/DSFGStudio/components/QuestEditor/workspaceSaveQueue.ts",
+        "vendor/genshin-impact-ugc-file-converter-web"
+      ],
+      "status": "paused-integration"
+    }
+  ]
+}

@@ -107,11 +107,14 @@ test('ordered pending mappings survive archive, constructor and full import; ack
   assert.deepEqual(createStudio(archive).archiveData(), archive)
   const loaded = createStudio()
   loaded.importData('json', studio.exportData('save').data)
-  assert.deepEqual(loaded.archiveData(), archive)
+  const restored = loaded.archiveData()
+  assert.equal(restored.assets.server.version, 2, "Look2 import creates one transaction revision")
+  for (const key of ["server", "client"]) restored.assets[key].version = archive.assets[key].version
+  assert.deepEqual(restored, archive)
   const version = loaded.get().version
   for (const changeIds of [undefined, [], ['missing'], [first.id, 'missing']]) {
     assert.throws(() => loaded.patch({ op: 'acknowledgeControlGuidChanges', changeIds, expectedRevision: version }), /changeIds/)
-    assert.deepEqual(loaded.archiveData(), archive)
+    assert.deepEqual(loaded.archiveData(), { ...archive, assets: { ...archive.assets, server: { ...archive.assets.server, version }, client: { ...archive.assets.client, version } } })
   }
   assert.throws(() => loaded.patch({ op: 'acknowledgeControlGuidChanges', changeIds: [first.id], expectedRevision: version - 1 }), /revision conflict/)
   loaded.patch({ op: 'acknowledgeControlGuidChanges', changeIds: [first.id], expectedRevision: version })

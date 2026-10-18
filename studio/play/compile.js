@@ -99,7 +99,7 @@ export function compileControl(node, canvasId, scriptsByNode = null) {
     spec.horizontalSoftRange = node.horizontalSoftRange
     spec.verticalSoftRange = node.verticalSoftRange
     spec.enableFill = node.enableFill === true
-    spec.fillType = node.enableFill ? node.fillType : 'Unused'
+    spec.fillType = node.fillType ?? 'Unused'
     spec.fillHorizontalType = node.fillHorizontalType
     spec.fillVerticalType = node.fillVerticalType
     spec.fillRadial90Type = node.fillRadial90Type
@@ -135,6 +135,7 @@ export function compileControl(node, canvasId, scriptsByNode = null) {
     spec.padding2X = node.padding2X
     spec.padding2Y = node.padding2Y
     spec.previewCount = node.previewCount
+    spec.scrollProgress = node.scrollProgress ?? 0
   }
   if (node.kind === 'keyhint') {
     spec.keyboardKeyCode = node.keyboardKeyCode

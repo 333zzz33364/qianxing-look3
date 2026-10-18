@@ -1,6 +1,6 @@
 export function createScriptSyncPanel(React) {
   const e = React.createElement
-  return function ScriptSyncPanel({ snap, request, patch, prepare, refresh }) {
+  return function ScriptSyncPanel({ snap, request, patch, prepare, refresh, dock = false }) {
     const empty = { version: 1, workspaceDir: '', clientImportRoot: '', clientSubdir: '' }
     const [config, setConfig] = React.useState(snap.scriptSync || empty)
     const [archivePath, setArchivePath] = React.useState(snap.storage?.path || 'qxqy-simulator.save.json')
@@ -39,7 +39,7 @@ export function createScriptSyncPanel(React) {
     const statusLabel = { 新增: '新增文件', 覆盖: '更新已有文件', 未变化: '内容相同，无需更新', 错误: '无法复制' }
     const sourceLabel = { 存档源码: '存档里编辑的代码', 工作区文件: '项目中的 .lua 文件' }
     const button = (text, task, disabled = false) => e('button', { type: 'button', className: 'qxsim-action', disabled: busy || disabled, onClick: () => void run(task) }, text)
-    return e('details', { className: 'qxsim-section', style: { flexShrink: 0, maxHeight: '55%', overflow: 'auto', margin: '5px 10px' } },
+    return e('details', { className: 'qxsim-section', style: { flexShrink: 0, maxHeight: dock ? 'none' : '55%', overflow: dock ? 'visible' : 'auto', margin: '5px 10px' } },
       e('summary', null, `实机脚本同步 · ${snap.scriptSync ? '已设置文件夹' : '先设置文件夹'}`),
       e('div', { className: 'qxsim-section-body' },
         e('p', null, '把当前存档里的 Lua 脚本复制到千星沙箱，用于游戏内测试。操作顺序：填写脚本位置 → 保存设置 → 保存存档并查看更新 → 确认复制。'),

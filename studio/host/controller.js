@@ -313,24 +313,24 @@ export class SimulatorController {
   }
 
   async playScreenshot(signal) {
-    return this.exclusivePlay(async () => {
+    const snapshot = await this.exclusivePlay(async () => {
       if (!this.worker) throw new Error('play session has not started')
-      const snapshot = await this.request('get', { view: true }, signal, SCREENSHOT_TIMEOUT_MS)
-      const assets = await this.imageAssets.prepare(snapshot.scene?.nodes, signal)
-      const image = renderScenePng(snapshot.scene, snapshot.canvasWidth, snapshot.canvasHeight, assets)
-      return {
-        data: image.data,
-        canvasId: String(snapshot.canvasId || ''),
-        frame: Number.isFinite(Number(snapshot.frame)) ? Number(snapshot.frame) : 0,
-        time: Number.isFinite(Number(snapshot.time)) ? Number(snapshot.time) : 0,
-        clockMode: snapshot.clockMode,
-        width: image.width,
-        height: image.height,
-        pixelWidth: image.pixelWidth,
-        pixelHeight: image.pixelHeight,
-        assetWarnings: assets.warnings,
-      }
+      return this.request('get', { view: true }, signal, SCREENSHOT_TIMEOUT_MS)
     })
+    const assets = await this.imageAssets.prepare(snapshot.scene?.nodes, signal)
+    const image = renderScenePng(snapshot.scene, snapshot.canvasWidth, snapshot.canvasHeight, assets)
+    return {
+      data: image.data,
+      canvasId: String(snapshot.canvasId || ''),
+      frame: Number.isFinite(Number(snapshot.frame)) ? Number(snapshot.frame) : 0,
+      time: Number.isFinite(Number(snapshot.time)) ? Number(snapshot.time) : 0,
+      clockMode: snapshot.clockMode,
+      width: image.width,
+      height: image.height,
+      pixelWidth: image.pixelWidth,
+      pixelHeight: image.pixelHeight,
+      assetWarnings: assets.warnings,
+    }
   }
 
   async uiScreenshot(signal) {

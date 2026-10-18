@@ -1,0 +1,5770 @@
+{
+  "sources": [
+    {
+      "id": "look",
+      "repository": "https://github.com/1475505/miliastra-beyond-simulator.git",
+      "commit": "b173569d73b4b9a07f5cd630ea5f3bcd055eb751",
+      "directory": "上游/Look",
+      "paths": [
+        "."
+      ]
+    },
+    {
+      "id": "ui-editor",
+      "repository": "https://github.com/xiaomoL444/ugc-tool.git",
+      "commit": "513b2d5a77feeef696417cf36beba59da32077b4",
+      "directory": "上游/UI动画编辑器",
+      "paths": [
+        "src/views/ClientUIAnimationEditor",
+        "src/assets/ClientUIAnimationEditor",
+        "src/services/storage",
+        "src/utils/oss.ts",
+        "src/lib/undo-manager",
+        "src/views/DSFGStudio/components/QuestEditor/workspaceSaveQueue.ts",
+        "vendor/genshin-impact-ugc-file-converter-web"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "source": "look",
+      "path": ".dockerignore",
+      "sha256": "57682efa12157a33b9e42ea8605622f1462db8f6ec53af5e09b303d3f2be402f",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": ".env.example",
+      "sha256": "64336bdcb90c4b578c5bb46f5afa2b545e6a114c05429464d6c7c240d009f7a7",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": ".gitattributes",
+      "sha256": "d60f352d0db1404c70afb4bb8b2ca3fd1c610572aa40720e8a0b7baa7885418c",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": ".github/workflows/publish-npm.yml",
+      "sha256": "ca076bb2aef4dfab9fb741141ee72358103dc46ef320092e94f9e82471433337",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": ".gitignore",
+      "sha256": "47cb7c48b0fe3fb62a293f332891373056aa9dce6503ea94b8190be1f9a0465e",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "AGENTS.md",
+      "sha256": "7f6c86b939d50060107b11267190920c217597bffdddf421082d35bcefe3e504",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "DISTRIBUTION.md",
+      "sha256": "c41b97f0bc18aeb0e832ed463b7485914dd97f35376c6be7e36d16f679f7dce5",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "Dockerfile",
+      "sha256": "9a5e304ce8301499fd4b1beef9273819bf6629d8f0425063f63ff696fad6746e",
+      "features": [
+        "L25"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "LICENSE",
+      "sha256": "fb981668c18a279e285fc4d83fba1e836cc84dd4daa73c9697d3cfd2d8aca6e0",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "README.md",
+      "sha256": "10f70c459c1b66ab5e039358e8cc43145f9c177726d498785f8708ba794a2e72",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "agent/wonderland-lua-builder/README.md",
+      "sha256": "8c700f45458f0ebba2903c58dcb94bf6668dbcac76ca1c055dd994a35baf19fd",
+      "features": [
+        "L24"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "agent/wonderland-lua-builder/agent.cordis.yml",
+      "sha256": "1a0865894394c47c03a5d27b72d4c8b989528a15464fb122172f5fec93e7637f",
+      "features": [
+        "L24"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "agent/wonderland-lua-builder/evals/agent-behavior.md",
+      "sha256": "a1b81841153c4b8fd37a5c02b95c3ae01fc663cc3b27f178909dcc3ea5d17a34",
+      "features": [
+        "L24"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "agent/wonderland-lua-builder/preset.yml",
+      "sha256": "26cf68ade68e47fd58cbaa92762ee8b14d918c025e3b6d36e07febf063227e98",
+      "features": [
+        "L24"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "agent/wonderland-lua-builder/skills/qxqy-game-studio/SKILL.md",
+      "sha256": "68fafdf2c700582da20c85e3abe7ee17986c1a4beaebdeae7d2159798e9d2d52",
+      "features": [
+        "L24"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "agent/wonderland-lua-builder/skills/qxqy-game-studio/references/01-game-design.md",
+      "sha256": "bed4bf4660eecd526a2b813aab6de0c989abb6b91d6f6bf111799b8d156eb3ee",
+      "features": [
+        "L24"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "agent/wonderland-lua-builder/skills/qxqy-game-studio/references/02-test-cases.md",
+      "sha256": "befbaf497a91f06d79248c6ef5548f56a9daa03f4dc6a14e258e83d12a839c5b",
+      "features": [
+        "L24"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "agent/wonderland-lua-builder/skills/qxqy-game-studio/references/03-html-prototype.md",
+      "sha256": "7bcaf32eeebb0a0cb4e1a3a68ee647a11c045cfb559b39b2db30b5e5f68d9115",
+      "features": [
+        "L24"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "agent/wonderland-lua-builder/skills/qxqy-game-studio/references/04-art-assets.md",
+      "sha256": "6d44f574055646285a325f06c53aea9bd27a5228351cfa3326ef8f39b95479da",
+      "features": [
+        "L24"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "agent/wonderland-lua-builder/skills/qxqy-game-studio/references/05-lua-implementation.md",
+      "sha256": "a5e43e1f2157e407cbba8141eb78e8f21eeda9dc8cf396475e72ac694a42c2a8",
+      "features": [
+        "L24"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "agent/wonderland-lua-builder/skills/qxqy-game-studio/references/06-simulator-testing.md",
+      "sha256": "5252ac5802dd0cc554b6858d539856ca15e7bb1912aba08e8796ed575c723e6c",
+      "features": [
+        "L24"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "agent/wonderland-lua-builder/skills/qxqy-game-studio/references/07-device-validation.md",
+      "sha256": "69a3bdc7295b4ba0958278ca416b7b6c77df6a4e1b7e0bac7323c22dafab3cea",
+      "features": [
+        "L24"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "agent/wonderland-lua-builder/skills/qxqy-game-studio/references/workflow.md",
+      "sha256": "c7166e6593c4fe81fa76dae31e976c48fd0319a36e53aa941e284215cb81557b",
+      "features": [
+        "L24"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "client/lua-runtime/.gitignore",
+      "sha256": "4d56952b0fb13bf8f9b6c13a6d4c34a075bac3af447636a1df4335d7576e2f97",
+      "features": [
+        "L01"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "client/lua-runtime/README.md",
+      "sha256": "607bf620a845a36af6aab7efb9c99174862c3372c2e06bf19f8b5f887df3fa8c",
+      "features": [
+        "L01"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "client/lua-runtime/docs/architecture.md",
+      "sha256": "5efd3b6de3ea5efb6a3c9ca38d7b25246f3dfdfa67f410ff4a25317b9a71e313",
+      "features": [
+        "L01"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "client/lua-runtime/docs/observed-contract.md",
+      "sha256": "722fe066bf0b16961c1753166facc3724d78c65f6c3dc857a86d9b4a3e912a99",
+      "features": [
+        "L01"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "client/lua-runtime/package.json",
+      "sha256": "54169d4257914749a34a660be10e85d88cba9409669596e2e2a49f2facae7148",
+      "features": [
+        "L01"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "client/lua-runtime/src/color.js",
+      "sha256": "e69442c587185a473e0cbf1d2694d3726ede7e074aabf5302e9f2f25d6ec738d",
+      "features": [
+        "L01"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "client/lua-runtime/src/ease.js",
+      "sha256": "747de07f44aae068de936a0f86d8d21e7089b598bd391d51e5f7e5a6ee50252a",
+      "features": [
+        "L01"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "client/lua-runtime/src/enums.js",
+      "sha256": "5798242c5db813854869fe88795b5a2d9c12188f71eb53d58d486f1fed1f6a1a",
+      "features": [
+        "L01"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "client/lua-runtime/src/grid.js",
+      "sha256": "38da9996af1f5d6dd5358dd5415c3939119b173d1358d38c8640893b3c1c6446",
+      "features": [
+        "L01",
+        "L04"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "client/lua-runtime/src/index.js",
+      "sha256": "0389df2da0e8761e9c1a9aaaa60bba9f30242de2f1dec62a41ece74705518ff5",
+      "features": [
+        "L01"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "client/lua-runtime/src/lua-bridge.js",
+      "sha256": "a93a72f48e42fabb8fc228ca65d20785901c69bf5ce57f39257d9f1d25e4d458",
+      "features": [
+        "L01"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "client/lua-runtime/src/runtime.js",
+      "sha256": "4f689dace5bae89234f363f8289b1514200ec99ff3f50148a897623591b64f07",
+      "features": [
+        "L01",
+        "L03",
+        "L06"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "client/lua-runtime/src/scene.js",
+      "sha256": "42835350309d4bec3f8303b3f00348519f22485a43c01149df24f76ab849ee8f",
+      "features": [
+        "L01"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "client/lua-runtime/src/tween.js",
+      "sha256": "a3a7014d6726516d1b458c933fb3513a4d0b2562985c7022e2d3d357ab8d0282",
+      "features": [
+        "L01",
+        "L02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "client/lua-runtime/test/audio.test.mjs",
+      "sha256": "0bc02f4b45b4cf7bc2a3b4d8dc3f774dea9e5aa11284e4a59c4e077f70f971fb",
+      "features": [
+        "L01"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "client/lua-runtime/test/children-reference.test.mjs",
+      "sha256": "14151689a9957d6595b03fdcd69b29d6d49c762314b41cd941c3fd61ebe698be",
+      "features": [
+        "L01"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "client/lua-runtime/test/font-size.test.mjs",
+      "sha256": "c603d8faf8b010c9e7cbf1d8057cb14d8b1dc0904690e040a8c1a68d5f44226d",
+      "features": [
+        "L01"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "client/lua-runtime/test/instantiate-order.test.mjs",
+      "sha256": "811a76a6523fc1efb497b8bfff4b0448e0f2f69363eb8d2c9e49f942dcbfccea",
+      "features": [
+        "L01"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "client/lua-runtime/test/require-native.test.mjs",
+      "sha256": "feed5342291cc8b85a8bd1ad2101033897d78303e5567bfc00cb74295ef8ee04",
+      "features": [
+        "L01"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "client/lua-runtime/test/runtime.test.mjs",
+      "sha256": "b7d96dbb8305887d4e47cd8398bdd804c84db1229f44e6ea78038b1b4983b087",
+      "features": [
+        "L01"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "compose.yaml",
+      "sha256": "b7eac76ccb8bf8a24dcedd18fcacc31dc58597e16c46f83c5000ff9c26a66304",
+      "features": [
+        "L25"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "dsh-plugin/.gitignore",
+      "sha256": "cbab76e9b85065a4af3524609f6e17219759c5c8819f4b620ceb20c62130ead8",
+      "features": [
+        "L22"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "dsh-plugin/CHANGELOG.md",
+      "sha256": "4e311cc316e174532f5f116b5660c0178fb6db1364760740e1e6678e0f787cbb",
+      "features": [
+        "L22"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "dsh-plugin/README.md",
+      "sha256": "e21cf4a24ac68678dd73901467842d9acc3927cad62cfaa5e977663858032324",
+      "features": [
+        "L22"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "dsh-plugin/cordis.patch.yml",
+      "sha256": "8d09211d6f6ae9baf6ed527c00113decdfaa4f34caae44efb9aa19e521c0d7af",
+      "features": [
+        "L22"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "dsh-plugin/lib/client.js",
+      "sha256": "f59b03dfbf87b88ddc81559c9bde8144e2ea77addf96c400486ef15e9946d840",
+      "features": [
+        "L22"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "dsh-plugin/lib/host-png.js",
+      "sha256": "0a7d85ad1bc46a4bc6a4c038e53211bc550b88466f1264df8919a1d8c3e434b6",
+      "features": [
+        "L22"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "dsh-plugin/lib/index.js",
+      "sha256": "d1b70673ddf8220f0e927d73240197e670f46b694c45748c2138fca2bbdeab09",
+      "features": [
+        "L22"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "dsh-plugin/lib/play-renderer.js",
+      "sha256": "c1d77023882aac12c5f31b9e2c2e1e2617a8ed35d3057c962df13e56f1857884",
+      "features": [
+        "L22"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "dsh-plugin/lib/play.html",
+      "sha256": "3a805b6c8ac3779501d1bec6d088fd1d9ec4b799808b00e5bf4f83486dbd48fc",
+      "features": [
+        "L22",
+        "L23"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "dsh-plugin/lib/preset.js",
+      "sha256": "1d224109bcac70f54ccde4d9d29a91e5df770106ded8bdda417534fd25abf615",
+      "features": [
+        "L22"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "dsh-plugin/lib/skill.js",
+      "sha256": "c6d8525fa631747947d86b5855019be686c5e1fbcd3f0de5d2202a452dc95155",
+      "features": [
+        "L22"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "dsh-plugin/lib/worker.js",
+      "sha256": "db75585b3c1e57f505650f2ea16666fbca68de978d752fb965109e0e29deee49",
+      "features": [
+        "L22"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "dsh-plugin/lib/workspace-archives.js",
+      "sha256": "a888aad12f23b535b25f6b1dcd26d0938572d1510b320c40489090b80b503b8c",
+      "features": [
+        "L22"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "dsh-plugin/package.json",
+      "sha256": "8e7ab7e4d24a910b3dfc33a93cedcc08ac8ec55676ac8cac521e2d963ec01653",
+      "features": [
+        "L22"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "dsh-plugin/test/host-png.test.mjs",
+      "sha256": "1a84364867ea8b762ca9d1c880713f5771472b861def072344da3c2efbc69dfb",
+      "features": [
+        "L22"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "dsh-plugin/test/image-assets.test.mjs",
+      "sha256": "9b355ff9f9bbc87c079b87f345932ab5e665fb3fa1995348cd2da5ae5f524a18",
+      "features": [
+        "L22"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "dsh-plugin/test/lifecycle.test.mjs",
+      "sha256": "0397e3f93f388043bf6ca597ecdee7e67c7059f0dd8181a3af937ffd7149ac7b",
+      "features": [
+        "L22"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "dsh-plugin/test/plugin.test.mjs",
+      "sha256": "ea0ce31b43cc4ad0b293103a82973b30dba103a9a5accd121224461ec1b285c4",
+      "features": [
+        "L22"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "dsh-plugin/test/skill.test.mjs",
+      "sha256": "54c04349421fff05c0cd53b700756e431c087051f3390ae6488f2b0e524da9fc",
+      "features": [
+        "L22"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "dsh-plugin/test/workspace-archives.test.mjs",
+      "sha256": "8e9bae96438cdae28fb6916b53b4fd5f305275b42588df6892bbbc0c8eea321c",
+      "features": [
+        "L22"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "editor-ui/README.md",
+      "sha256": "48c0e7273c93c25bafeb310549253240dab4fc43bd934b22749fd971cd7fea84",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "editor-ui/color-field.js",
+      "sha256": "6f8800d5f76da3852a944701d3681fcf677dda94596a41a0ec7721b30cd81f77",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "editor-ui/control-guid-sync.js",
+      "sha256": "fb5968e929e33f1f330eeb838c1b7ab162f2d8d28aaa572dcb605f2405bfdedd",
+      "features": [
+        "L18"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "editor-ui/control-transform.js",
+      "sha256": "f890e6cfadf77aa53bc03e875dee9c4a62ba11731d30fd70f5414339c98f57a3",
+      "features": [
+        "L07"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "editor-ui/image-preview.js",
+      "sha256": "37460a75ea3cb8c729de7ace849bb9c1f90135bb46cef5aab97fde299298b921",
+      "features": [
+        "L08"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "editor-ui/index.js",
+      "sha256": "2f862546e1996218df07a87f6da21961aa532f942bf26e9bd8de14f4d339b917",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "editor-ui/package.json",
+      "sha256": "78711fc4e72ff794f49b67753240692cd901cc3e0ad7acaf57428ae5c0959814",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "editor-ui/play-launcher.js",
+      "sha256": "2e586a0530983309165f6645fe5b2d6b7e0c8a20f4d8d0780bbd29845cc979f6",
+      "features": [
+        "L23"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "editor-ui/script-sync.js",
+      "sha256": "180bf35e3d58685eb51a8e2f0b8208db273b5dde0f730da4a9d95e5f330b49f2",
+      "features": [
+        "L19"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "editor-ui/text-preview.js",
+      "sha256": "1b7126999338a868e150ae1034205d532b02400de9da1bcb04d1d82d0a993b38",
+      "features": [
+        "L10"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "mcp/README.md",
+      "sha256": "7952925da1512bdd15604c0a2fd1bd9a09632165a0a245c7712c3aaf1e41d931",
+      "features": [
+        "L21"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "mcp/index.js",
+      "sha256": "7cd271a27f04b0af8d899cc844e8512ce5076c0fe5f2bb7e535a462f077d1452",
+      "features": [
+        "L21"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "mcp/lib/controller.js",
+      "sha256": "80600bd7f3262103f9c29510bcac8c5eb17a3e4dbec0a43013e569dda10686f5",
+      "features": [
+        "L21"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "mcp/lib/preview.js",
+      "sha256": "c3ec300c223f9cb93dedd6741493835a82fd81b292e2ad9bbd309622879129df",
+      "features": [
+        "L21"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "mcp/lib/workspace.js",
+      "sha256": "16f7521c375ee0decf3ffae0ad9e32d4a425a9c0455563fa491bdb1530b56d7e",
+      "features": [
+        "L21"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "mcp/package.json",
+      "sha256": "8e7439ab88be9dac61b700e917c38483d071bb3cbf7427485376255a3d84d5b6",
+      "features": [
+        "L21"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "mcp/test/preview.test.mjs",
+      "sha256": "a9ec9954c1cd1ad6fdbc9ad1539c1ba1aa318b6c9b8ba19b7eeb430893a94420",
+      "features": [
+        "L21"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "mcp/test/protocol.test.mjs",
+      "sha256": "b279937b7e61f57e12d59d336b934a35e7b041a31c4d35fedaa8a07aca7e7d46",
+      "features": [
+        "L21"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "mcp/test/web-integration.test.mjs",
+      "sha256": "0a395a7ef84613fc3f74eb4888e883d8019f26a6d8f322fdc5deff7c1cd0483e",
+      "features": [
+        "L21"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "package.json",
+      "sha256": "38bff24cb4dde919c7fdd1b794b4dd63fbd1f4ad3b3c8d1761205a4dbc42b986",
+      "features": [
+        "L25"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "pnpm-lock.yaml",
+      "sha256": "395fc3c19edd09906524268be5d79f1b23a0dad0ce54098f31cb4be454481947",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "pnpm-workspace.yaml",
+      "sha256": "792c7424c98918094e020227d7de2329299d14a9e1ab0e6583bb4bd5c6d17c8c",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "scripts/build.mjs",
+      "sha256": "c256bed68bdfbe1885a134e9f7715508c8dc5676f1b75f2752a7a0e28947103a",
+      "features": [
+        "L25"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "scripts/distribution-filter.mjs",
+      "sha256": "9bb09d0e88593575befd6656f31cc7ba141464e470359950d2e1a4332d2aab57",
+      "features": [
+        "L25"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "scripts/npm.mjs",
+      "sha256": "e74939fc77f38647b03fa170caaa270d0f0b8c057f3da45cf83af5b2c0512b9e",
+      "features": [
+        "L25"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "scripts/pack.mjs",
+      "sha256": "06e44b8d77d239ebeffb031176729214ed6ce3dccb9e626f258c81efe09d7bbd",
+      "features": [
+        "L25"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "scripts/paths.mjs",
+      "sha256": "b33409baf11eaa8a7d88d2807351fa2ecfefda17b31b1cd40200b26988df3414",
+      "features": [
+        "L25"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "scripts/publish-npm.mjs",
+      "sha256": "d12d174473df14b73d338e62fade6861c6b3d99e91f7220fce916f649242796c",
+      "features": [
+        "L25"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "scripts/smoke-dsh-tools.mjs",
+      "sha256": "ea25884a7cbfa1d59f23b959ab77f66105bedcd4c7bcfd1b92bbeebb98b0f5e2",
+      "features": [
+        "L25"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "scripts/smoke-git-install.mjs",
+      "sha256": "c952159416cd7d9786718315456b5651b3a846361addfcec4bf07777589bf910",
+      "features": [
+        "L25"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "scripts/smoke-git-installed.mjs",
+      "sha256": "73ad01f0322bc8b39f1dd5714363df9a3d6ffc8a7c550775990242dc2ad48124",
+      "features": [
+        "L25"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "scripts/smoke-harness-probe.mjs",
+      "sha256": "36453ebc5416f13f721345068f18133262e75c32d56353d67aab6715d7bc980f",
+      "features": [
+        "L25"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "scripts/smoke-harness.mjs",
+      "sha256": "626bfd89e1fffe817d1fd2d8b21eff6f6fede9b22580effe9bf4c9746ce648ac",
+      "features": [
+        "L25"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "scripts/smoke-installed.mjs",
+      "sha256": "d349c4344ed87b2dc45e1b93dbc6de4a96293eb7f95fb6977561b3180f33e647",
+      "features": [
+        "L25"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "scripts/smoke-packages.mjs",
+      "sha256": "3b3ee8982a3391ab90b2e74097af8592bfe7eb13af76d36732623cabd98a8284",
+      "features": [
+        "L25"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "scripts/test.mjs",
+      "sha256": "cc04151511cbc1acece7a095b02cdc6e689bbecabf8c0719411666aeb52654fb",
+      "features": [
+        "L25"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "server/README.md",
+      "sha256": "96bec504e1bd7a70f9381f50c5e53a724aa746f794929b71337f19071f16d591",
+      "features": [
+        "L13"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "server/index.js",
+      "sha256": "9e8ddeb83652a96f78aacc657e16809a185c53e3dcb963b1829309497b4ea24a",
+      "features": [
+        "L13"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "server/package.json",
+      "sha256": "6b5a1249e99b655425ac61d4aa63c315223a262c0204dae97221a495495250cf",
+      "features": [
+        "L13"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "server/test/server.test.mjs",
+      "sha256": "c81ec97d602b6529f1adc77ea67b2de36b90eab52ac1b5899c42d7569ecad9fa",
+      "features": [
+        "L13"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "skill/SKILL.md",
+      "sha256": "ec08851106ad083840d8088fc6423d1c08b5277854a018f56643f4d655f725cc",
+      "features": [
+        "L24"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/README.md",
+      "sha256": "261d32d1f736727b3ab19235e1a1a547d6f1cb62edc24f868317d773c9b26270",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/assets/audio-catalog.js",
+      "sha256": "986a3b2f2b59db07e4e3e483f918aeca9354f163f09f997ae382d4418a627d1c",
+      "features": [
+        "L06",
+        "L08"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/assets/browser.js",
+      "sha256": "6c3ccf9eb029a74875f3bcef491ffde04cc041b826660750de19057137c4b2c6",
+      "features": [
+        "L08"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/assets/catalog.js",
+      "sha256": "a5cfeb451c891d09abdb38334a93a5cf094db9aa150abcca5ec882dabe8b7347",
+      "features": [
+        "L08"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/assets/image-stretch.js",
+      "sha256": "fd04feb53846e4f2453e6c90257fd91aa6c2506783f2b5d700866a198a8045da",
+      "features": [
+        "L08",
+        "L09"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/assets/prefab-catalog.js",
+      "sha256": "40297088c52d74b328957e916e0b8552534687a761ccd4d7dbe4a6a055294eea",
+      "features": [
+        "L08"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/assets/raster.js",
+      "sha256": "43cfe1e4e70348b5ab1e66afbfaa93c9c6ffba1e1c739e80e7f98e892e6bf0c0",
+      "features": [
+        "L08"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/autotest/assert.js",
+      "sha256": "bc6c4c314b6524753df19e251a2e8eb41d766379d748782a70025c7d967be274",
+      "features": [
+        "L16"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/autotest/format.js",
+      "sha256": "657c489f78b08a8455c93923da539b4e0f6395b9351db8867d93d034b4e3254c",
+      "features": [
+        "L16"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/autotest/runner.js",
+      "sha256": "607fd5e5702ef27ed88aa87c267c9a7185dbf807659717e18baf24287578c29a",
+      "features": [
+        "L16"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/cli.mjs",
+      "sha256": "f3a62b4b9c9cb35e2dda2de4bccaad1333fb64612d7e3bfa8b6d5ef6f4029917",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/constants.js",
+      "sha256": "578ecbe6e9f913b08f9a33f2ad86a6509353cd0ffd73cf8f3c3b249690335356",
+      "features": [
+        "L14"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/control-guid-lua.js",
+      "sha256": "5e0bb7249b6122d19dd1134d35da10dbf1d702510e996ee9f60cd13cbadf3e5a",
+      "features": [
+        "L18"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/docs/audio-assets.md",
+      "sha256": "05ede9ed08969faff195eda92ee4d71d25b35c37e1e723ee34d83b7c86a3f96d",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/docs/browser-input.md",
+      "sha256": "7402f68879d703d8b505a9a35e689ab84a56f747cf46642e004e38ee6fcac74b",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/docs/client-template-order.md",
+      "sha256": "0c8efda644073d81ae175f36767b53bdeb400ac5ae18c4060483fc868caa82e2",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/docs/control-guid-sync.md",
+      "sha256": "bbf7e65f7d0ac6100f6c022b715f4f3934605a4a9e0229802a285e3c28eba1ea",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/docs/control-support.md",
+      "sha256": "c32b93590c8edb188597fc95b431a5811dfa80091def29ca99bafd9b5f34dcba",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/docs/image-assets.md",
+      "sha256": "2f3fcac68ea862ddb6f5ddde44f586583d970810697354a62ae5eeaf924e5141",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/docs/issue-review-20261006.md",
+      "sha256": "ec6d4a22fad260f8d6fb7d9d18a96c3a0e75c209e19f95f32146d358d89a8708",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/docs/local-fonts.md",
+      "sha256": "a5f9aaea4ae0bee0bc28ce1d7b324c8a0a271e885fc27ae004dc346a556092c7",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/docs/script-sync.md",
+      "sha256": "b1aae3bd5500deac2db500c4279e14c2c127b23847781a979148a4e5204b5f13",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/fonts.js",
+      "sha256": "7aa874e4ef5ce7c4a5bf3fa12f3876f8b0dfc25812b9c54a6c37561bb24f6495",
+      "features": [
+        "L10"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/gia/asset-indices.js",
+      "sha256": "1a8969e929ca1e37f8d2ac8f5c8c02d15171d39be288630c6fcd0af03528c76f",
+      "features": [
+        "L11",
+        "L12"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/gia/client-order.js",
+      "sha256": "40ec09e10c00b097b280f6e52748dff74931c98babe0b2ac7bcf3fd24ec7390a",
+      "features": [
+        "L11",
+        "L12"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/gia/codec.js",
+      "sha256": "bb75402551c97aca8b16e2f78a47f1ce2bbd343550436be1ff80eeb7cd768184",
+      "features": [
+        "L11"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/gia/guid.js",
+      "sha256": "f6c5720b146bb9e6d1cf46f12c780fbdc02e4755b2fb61d90053d457412b7177",
+      "features": [
+        "L11"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/gia/raw-fields.js",
+      "sha256": "636c0739d3951f27f6414f25b25ba62853740549e2a3918429e194a8a0e2f2f6",
+      "features": [
+        "L11"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/host-png.js",
+      "sha256": "3378efa84d77ee4544066481f0012b723bbc8f6c43071fa8b06c1d8f81602e78",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/host/asset-cache.js",
+      "sha256": "06b04e5c72ecb4738e2a3403ba19268dc979a13fcb60ef3471ec5ba177a59863",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/host/audio-assets.js",
+      "sha256": "796b969fbc1c26f5eeae102da4563d27a49f636f1596d73dd8b30f826723178c",
+      "features": [
+        "L06"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/host/client-language.js",
+      "sha256": "cda87779d8c86e94c7719ee0457c6ac48ebdb853008d12ae67ce160c1b0df8bd",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/host/control-guid-sync.js",
+      "sha256": "5acd1fd6ce469a9cbbdc4d08479eaba4a5c094938baa34e5adccee179e0e6179",
+      "features": [
+        "L18"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/host/controller.js",
+      "sha256": "cb8dbc6fad701be89546f00006b7d845130ef72e569bf23e8671d114443d6a7b",
+      "features": [
+        "L15",
+        "L17"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/host/image-assets.js",
+      "sha256": "1154d53b76ae706a292b5eb1d67f8fddb43fc60f217d23d722f91386fc5feb50",
+      "features": [
+        "L08"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/host/image-metadata.js",
+      "sha256": "e27e96893d9c3b344a29c0c75833dbaf9aeb3da38c9c3fe4250c7b62258691b5",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/host/local-font.js",
+      "sha256": "d84595c8b30e566c2c01105308bd2a66d8911bb95e86b6414cf123de1ec29ac7",
+      "features": [
+        "L10"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/host/script-sync.js",
+      "sha256": "2d4d90a4104def935250400c51d77c3e4cb5e8b8f3835c61edd6df5ec3410bc4",
+      "features": [
+        "L19"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/host/worker.js",
+      "sha256": "c7439697dcf3539c575dc37df637653db33ab5f865f02200124a309d542a9243",
+      "features": [
+        "L15"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/host/workspace.js",
+      "sha256": "f897413d4180121d281ffb9ea3e973020d677b0783013efcd2b8804dfe2051d0",
+      "features": [
+        "L17"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/index.js",
+      "sha256": "124fa0c0d9361f65144c3b82122200e3c16637fbbc62d2751de4c5e87984c3c3",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/json.js",
+      "sha256": "d31d74cde35cf0b7621113698905f2ad001886b6480bc24ea846817eb75bf121",
+      "features": [
+        "L11"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/log/collect.js",
+      "sha256": "121cd0932f6f94ddfdc9c8c87e56d215f5375d918a137f65525674ae76d45088",
+      "features": [
+        "L16"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/package.json",
+      "sha256": "c0fb02de2eb5998bd57cefe176dad66c622d93a4ee0ba2a6fe193114e9e44b0f",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/play/audio-player.js",
+      "sha256": "1ad4e7e0187f04a421827834d3b1613d0e0fa95fe6a78e81bad33f5e9b232f99",
+      "features": [
+        "L06"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/play/browser-font.js",
+      "sha256": "f04e84dc259dbf9fee736f8379128e27698758e509d3c2abf4414e66308b1137",
+      "features": [
+        "L10"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/play/browser-session.js",
+      "sha256": "d4c50eb7e6dae18d344cc199fe762f85182300a16fe9233a528edebc298610c3",
+      "features": [
+        "L03"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/play/compile.js",
+      "sha256": "92d92db5b39488b478a7871d29942c09d16db31020553f24c6f291307f31f8ee",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/play/image-fill.js",
+      "sha256": "37dfb5041b78c7796b7a21f503e5c022f701c3bb57097414f00cb44f921fee76",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/play/image-mask.js",
+      "sha256": "c503761eca0abb52d877cd68b5ecb3a04b10e0d852e994f0290e2a16d6d6d079",
+      "features": [
+        "L09"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/play/key-bindings.js",
+      "sha256": "d56183cf0feff0f7610ae55810669764b4dc1d0196f7384c28b41b107d14b2bb",
+      "features": [
+        "L03"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/play/pixi-renderer.js",
+      "sha256": "5f5ec4f39dc4e92e7a5ac67465ece1019d55cf9e94b19b514eed8a09680d4c0d",
+      "features": [
+        "L09"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/play/scroll-geometry.js",
+      "sha256": "f5670db746f7e8c27df8ea1d7ed5579b453cc40d14431553ec3cc3433da938a1",
+      "features": [
+        "L04"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/play/scroll.js",
+      "sha256": "4d168c787757b418949e8c6e16fab383e34639496c45e86bcda0c093c39d303f",
+      "features": [
+        "L04",
+        "L05"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/play/session.js",
+      "sha256": "6c18d673cb9765c275020839694205b6f2cf690c147568353f949e543fd1ce9d",
+      "features": [
+        "L13",
+        "L14",
+        "L15"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/play/text-layout.js",
+      "sha256": "6cdfdccbb9e1cd83ffb32d151ea8bc8ba061cc09438d3bce926b6e858d15da26",
+      "features": [
+        "L05"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/script-sync-config.js",
+      "sha256": "cc42d8152ef33596a7a0e4b4c7eb67f18aab51bbfb1a2f1bc18d774f971f2736",
+      "features": [
+        "L19"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/scripts/bench-play-perf.mjs",
+      "sha256": "d8d71b5b9db03d92c5249fe61780b85d3b4fa3575829e01f5e305e23e9c4bb1c",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/scripts/generate-client-control-probes.mjs",
+      "sha256": "8de5b313a912d4020e87338df0a4a37aa0777df7f3dcebcafa83d4d4c4eca3ba",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/scripts/generate-client-template.mjs",
+      "sha256": "b7864ee0169a898861033ad231d7ca1e8d3de6936cf86ba165516485e1432924",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/scripts/generate-server-container-probes.mjs",
+      "sha256": "d2891e7f1a4060a9bcb3bcefac4f20088921e9efb977ad4ed46e98b374432912",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/audio-assets.test.mjs",
+      "sha256": "6424671236768fb625ec7dff33c9a84a1bafb73077d305db2c0666d5f1d0b196",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/audio-player.test.mjs",
+      "sha256": "f8a4c700a5951bb27f97b34e7ffa5503f56e2c2a2b2e3ad4e39a1718dbb9b51a",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/autotest.test.mjs",
+      "sha256": "50d7e694be696e835bd214da991235e155961a820c052708dd012c3cdb1f0dee",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/browser-session.test.mjs",
+      "sha256": "01ed35adedbc00789b05b81bbb5a26c8f10787674efa82dd1504596275c32015",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/client-language.test.mjs",
+      "sha256": "cdd33f2970c9150fd48d1f7501e4515943c50530f14e7aa992a0a81e931458b8",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/control-guid-autofill.test.mjs",
+      "sha256": "6db3a5ce3c17605079cedaf2e46bbe9fefdcebb636f7260131f4a9d0732f618f",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/control-guid-sync.test.mjs",
+      "sha256": "d117af2736e7277a0be595a7c87e694f6479480c302e55293dd18079e6c495a0",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/control-guid.test.mjs",
+      "sha256": "e8ef6b89710b3370688e03d47494662889a5f13857a60e3acf093bccc8c95f31",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/controller-archive.test.mjs",
+      "sha256": "c6cbb4d48999309c9d51d560f7480663e466fd9673cd732451288cb76d531aec",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/dsh-load.test.mjs",
+      "sha256": "75b029b46c5ebfdc5f49c0ab51cf1e7d15dadd26fb57a6f57c56544190aae33a",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/fixtures/geometry-font.mjs",
+      "sha256": "1ebb80faa4ae08212c75523638e5c2418a0fea996397fe7c3b0408d98b18eab4",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/fixtures/image-mask.mjs",
+      "sha256": "e084cca777d2734981586b59f49f7d4118be2d0a6de42b3e078b99102b6b91bc",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/fixtures/tone.js",
+      "sha256": "f45b5fef61c204391dc5de32de38903751f51d6f64964ffe9abccee9b41e890b",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/gia-asset-indices.test.mjs",
+      "sha256": "4afa6657700a465662237064ea9bdd868b3c82c3a433f82840d8eb686eb2e88c",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/gia-client-order.test.mjs",
+      "sha256": "6a4c7be5980ea7dcef8699e32fa9130a15a1b7eb940d607b6ac704933196512a",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/gia-loss-warnings.test.mjs",
+      "sha256": "65a1be281e61bfce3ffe3a075108a96d822c8b29c0a78d9bea7dec517d0a11f4",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/gia-observed-fields.test.mjs",
+      "sha256": "3a6e28556c555f6a0ca543a918d63b92295fb24a7af39f68603e5cf6e7bafe79",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/host-clock.test.mjs",
+      "sha256": "49df5bde426a411346e947d74ca31c8dfa8a988e00c9784a7d723016aff5aff6",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/image-assets.test.mjs",
+      "sha256": "20f8dcd89a072adb7acaf317ae7aca1669c72f40e1a46c44b7685ad76cc6954e",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/image-fill.test.mjs",
+      "sha256": "7edc3184d30d9fdcc9dae1621d4c15d7f090fc063e5e3e7b47be55461c3b782c",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/image-mask.test.mjs",
+      "sha256": "1daf5738e3e1ac6d90083f5d996bed06599a7b8037b28b68ce037b09cbd59d4b",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/layout.test.mjs",
+      "sha256": "5ab2c43c23d26001ff8f0635388979204795ca22f9a5fa819b6bf7a0b6e30c06",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/local-font.test.mjs",
+      "sha256": "9eabd84df0e0463333ba3a6db52b278643b1d1b942b01d1a31ec0c94c9a4652f",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/pixi-cache.test.mjs",
+      "sha256": "ff722d29c8e9cb4f156bc5706d5cd6580171a6caee813003481af6d61cbf6494",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/pixi-circle.test.mjs",
+      "sha256": "90eacb033f409c086c1d863f924c97b059b97ab192055ea984e94636c41fad71",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/platform-layout.test.mjs",
+      "sha256": "e4571b8637940a0ea5d799697ef2c7a823989b8fafbfc43f88b31043446c07f3",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/primitive-stretch.test.mjs",
+      "sha256": "5abf21a2ed7aff9dafde4ef508227520767346525a255696d308fb95c9277358",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/rotation-xy.test.mjs",
+      "sha256": "794e7317ff3fddadf7bba88cbfefcb938640f2cc33fecfca681aaeab82f844e0",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/script-sync.test.mjs",
+      "sha256": "c358834fcf1ccf295df58149a1a002f74ed6e4273ba6e64cdf410a9cd7affa3f",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/scripts.test.mjs",
+      "sha256": "6121d453bf725ac4006cbcca55ffe57b05fa6d3afa7710e421ae590d6575e015",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/scroll.test.mjs",
+      "sha256": "1adbc8f3e6e45efbbbb971bca79516e8020eda9db37ce9da82de6a561291be10",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/sibling-order.test.mjs",
+      "sha256": "8158af0218a3e8ad00bc572c1e6720af01c4287596b3c84854dbda2197155886",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/text-alignment.test.mjs",
+      "sha256": "df4c1edd421fd165fb91720e7c800fb90e21a16384c3aa81b4e933d24abaf737",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/text-autosize.test.mjs",
+      "sha256": "71dcea0c29317c11e54800a91f8c9525195b9994348c381924a65239e9a6fd5c",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/test/workspace.test.mjs",
+      "sha256": "6da0c92155571f0c292ce78bd9690c46e60906ef4d716dc529bff302fd8cf6b6",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/ui/authoring.js",
+      "sha256": "538a15155eb757e7e8da000105a475158eb501afcd90479b195fded423ff2dde",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/ui/inspector.js",
+      "sha256": "b3a298376cef65a536154436e57f006f3cb4b04af9c9ee51ab7078065cd51402",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/ui/layout.js",
+      "sha256": "ee0af4a64ba35cab29882241e4c2b426a4273ebe4e39119d6042414f8b9d24ad",
+      "features": [
+        "L07",
+        "L14"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/ui/migrate-layout.js",
+      "sha256": "08a739a306c92e19f7ba09eb876b21f5d631cde1bebf90c23011ea38af9e08d1",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/ui/project.js",
+      "sha256": "968b1fb75df7423b6d39277ad502e7cda63ff99e724c08c728ea8c43d4ddf817",
+      "features": [
+        "L11"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/ui/sync.js",
+      "sha256": "1d033aaa80eeff56f1729dfe0e33f77810cb1926db20e0376c2a3886e1f080eb",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "studio/ui/transforms.js",
+      "sha256": "d01866728bde93d99514f46caeddb797a15af50de328f1eeb640d08828b4ced7",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "look",
+      "path": "web/README.md",
+      "sha256": "cd24a1e17c9e72d9852a41f1b3b377490a7dcdfc5cbcfa6c74b41748a3302a00",
+      "features": [
+        "L20"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "web/lib/editor-client.js",
+      "sha256": "cb249d01a05ca83c8ad725fd4c0077008004aa54166d35a46ea36b6037903235",
+      "features": [
+        "L20"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "web/lib/editor-sessions.js",
+      "sha256": "cc8734fde566872b6aa02555c216833e83cdce11c16f5b533f6bac09e6dc2e67",
+      "features": [
+        "L20"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "web/lib/session.js",
+      "sha256": "5568057e5aba6b5b00ea1fecac4d7aac6ae3f638f5bf386370e1f7002694ed76",
+      "features": [
+        "L17",
+        "L20"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "web/package.json",
+      "sha256": "eb83a915b7bef794e04b43e12ff60c9c5ca4a69bfb6e13498d61c8f1af6f313c",
+      "features": [
+        "L20"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "web/public/app.js",
+      "sha256": "b68ed9fa906bec830af88e304d515e17ca4cc4df4b08b1aa5fe6aaf5fe11b029",
+      "features": [
+        "L20"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "web/public/editor.css",
+      "sha256": "0db75ce1da7f721d0f14bd76afedd509d60ee7c5a684850ec6929c3ed4059a08",
+      "features": [
+        "L20"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "web/public/editor.html",
+      "sha256": "173226a7edede5bea4a9bccc0656aaa78f5603e5122761de549d558791c7d253",
+      "features": [
+        "L20"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "web/public/index.html",
+      "sha256": "78fd3a3d38bc2ff84917535ea97838d3dacddbbe5d124593144be9e88e4f94f1",
+      "features": [
+        "L20"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "web/public/styles.css",
+      "sha256": "2e9d1f6e2c07fecf8d7566dd028a64d047ff718876144054e41028dd0681eb5c",
+      "features": [
+        "L20"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "web/server.js",
+      "sha256": "7e9b8ba0326551511fb63505607f3005851805d309a25aedf175093e4bd8fe00",
+      "features": [
+        "L20"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "web/test/access.test.mjs",
+      "sha256": "1dfc277c7dcb1f0ea59dfe05f4bfc8939019f1ada4feb8763b2e45a48c216112",
+      "features": [
+        "L20"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "web/test/audio-assets.test.mjs",
+      "sha256": "b05e4555fcbbab3196f39b5335beda200b7645fb0a1d3da1f91ebc99f72d5830",
+      "features": [
+        "L20"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "web/test/bin-entry.test.mjs",
+      "sha256": "65cc1b66e929a4d0ea65a9136094bf1d08795d50714fad6776437222367c434f",
+      "features": [
+        "L20"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "web/test/browser-helper.mjs",
+      "sha256": "68cd4d3ed8734a0ef30deba7071dc5b567852004540d668915771cce30c4ad4a",
+      "features": [
+        "L20"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "web/test/desktop-play.test.mjs",
+      "sha256": "f58812a7c3c802e10ffc7368aa45a57440471992e1976e6a888c0f8625bcdf81",
+      "features": [
+        "L20"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "web/test/editor.test.mjs",
+      "sha256": "4abed303080cb477bed3d44b5e55b602c59049b9c6f342ca327f0be56646c336",
+      "features": [
+        "L20"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "web/test/embedded-play-browser.test.mjs",
+      "sha256": "fc8aacb8dd5bce5df7e1249739274aa45f0517bcb8a77d7339e0bafd1145b8be",
+      "features": [
+        "L20"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "web/test/fixtures/desktop-play.cjs",
+      "sha256": "5ada0d51a113f4d67d0d5471412d1cb2a03b619c98f9aca52e92c9b2a0ac0f85",
+      "features": [
+        "L20"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "web/test/fixtures/harness-client.js",
+      "sha256": "7675c45767698b9a91815e141e125b919364c651a8d85e09d38eeaea17b18ee4",
+      "features": [
+        "L20"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "web/test/fixtures/play-lifecycle-client.js",
+      "sha256": "133cbdc4affb7840730d22d29aa69e2eff8d0c0f92361edfc93a61adcb15913d",
+      "features": [
+        "L20"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "web/test/gia-input-e2e.test.mjs",
+      "sha256": "63f06aa51dce7ad02f19ef97ad5df670815f10bef6de187797776b62a8491be4",
+      "features": [
+        "L20"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "web/test/image-assets.test.mjs",
+      "sha256": "a14b671f47b32f4f86ad2eb1844825be042d1981d964a4510662d473bc93e4fe",
+      "features": [
+        "L20"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "web/test/image-mask-browser.test.mjs",
+      "sha256": "000654b1ba6a631eddf87316709ac25e7fb87e1ad3c630a870e96abca6da2734",
+      "features": [
+        "L20"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "web/test/key-input-browser.test.mjs",
+      "sha256": "579c4bbc6eb5e5fb5df7232182be4b4fe531caf8067d659d9bc87f6ebd11f3d3",
+      "features": [
+        "L20"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "web/test/local-font.test.mjs",
+      "sha256": "ea3e30940dc792c039f3c82ff73dbf457be79c61781b6cf9cedcbbbeab5df0bb",
+      "features": [
+        "L20"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "web/test/preview-state.test.mjs",
+      "sha256": "c7578cb0049f0ea8e6d28e9f42db59bf89b961542e65c11b1ad8cba94bd0d4e1",
+      "features": [
+        "L20"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "web/test/script-sync-browser.test.mjs",
+      "sha256": "0f79d7ea9e97ddbdb5bfffeac4292dddc4f586dedd85b096140270245b452cba",
+      "features": [
+        "L20"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "web/test/script-sync-e2e.test.mjs",
+      "sha256": "393990cd052920dc80fe66151e4194a6bf1935cc56fa90f5c567bc173fe190de",
+      "features": [
+        "L20"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "web/test/scroll-browser.test.mjs",
+      "sha256": "a2ebbbb85b463811d76b1378d726feff54f4b5f37b0e33d0f5c63d5ada3dfa93",
+      "features": [
+        "L20"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "look",
+      "path": "web/test/web.test.mjs",
+      "sha256": "2cdb62225373661e78f2aee27ffb57df58d070927c4e1b0d63a24268e52c1f76",
+      "features": [
+        "L20"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/assets/ClientUIAnimationEditor/HYWenHei-85J.ttf",
+      "sha256": "2775df00a3e368d6ba8dcc8ea9ea475216a27fb9f0196a3721888b3dcdb84099",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/assets/ClientUIAnimationEditor/UIPage.png",
+      "sha256": "d0f07100e1c46234327fc4a0a058f724fc430366e3550f0a4d0d512e37f98f88",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/lib/undo-manager/undo-manager.d.ts",
+      "sha256": "c2cb840a86fdaf87f6aafbdf169855a778ca7893e263a9290d99a7ceb5c088f8",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/lib/undo-manager/undo-manager.js",
+      "sha256": "3f371650ce27b03d14f126a61bae280d484c9c7a0db39845dfefc270b1fc0680",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/services/storage/browserStorage.ts",
+      "sha256": "5c257f95b9df6dfec3b73ba3679d5b18d1187c123fcf7d9e01977945f4d38868",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/services/storage/desktopStorage.ts",
+      "sha256": "471031bbc5360ed152bb30a69e2005301841c8a88a4eaa210e33fb82946fc919",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/services/storage/storage.ts",
+      "sha256": "81213991bfb1b36d556cc8a0bc61ce3a405457ba1cb8b1d453ee383407b2f1f4",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/services/storage/storageSync.ts",
+      "sha256": "03949e8e1bd89af556c835d948f3b5bd8817ae07a69287423679d6c5503473e8",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/services/storage/types.ts",
+      "sha256": "7a51b4e2869498ceffcb9d6d6b058a08312be3b896dbbe42f238a7fc977c132f",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/utils/oss.ts",
+      "sha256": "27a6f87207e5f4098e19e6120642a67a90353c4abc3ac0cc5a30ab88c7244274",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/AnimationListPanel.vue",
+      "sha256": "da8dcf75697d6b24eac462845b4dbacb871cb5310f5efa8793c47c08b581ac30",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/CanvasMaskLayers.vue",
+      "sha256": "4867e5dcafe80b410a31afaae1dbaf06b6e82f919baa066d5c76e2d187eaa4ae",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/ClientUIAnimationEditor.vue",
+      "sha256": "3e01c31afca43a5c3a707603079511a9d63199529049b36e1c2db5fc574cab5c",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/ClientUIArchiveActionDialog.vue",
+      "sha256": "c16ad6af057bf4ca19be87032f4e316ad386f9dbfc11d4d24e2c48bdf6311c83",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/ClientUIWorkspacePanel.vue",
+      "sha256": "93f277870a26c104f7caa2950560d390e29230c7628698a3330667c05ef7f884",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/ColorRGBAField.vue",
+      "sha256": "1249594dee73322870be00e8673f2e0121ea9da75e6ce120ab1029d67d6ca773",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/ContainerDirectionGuide.vue",
+      "sha256": "2bdc0e012dc756cd94baf8d4db22bee40450c94869e999d1d1115784b9de7d38",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/ControlPropertiesInspector.vue",
+      "sha256": "774dd7d333f69ba245bcd8cfcac3c577f9b4eac676ee43493db2c102fe5ff8a6",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/ControlTemplateLibrary.vue",
+      "sha256": "9ac2cb410cd13ca05364e70b8b66832e68ecbdf318c9680e9ece56d327797852",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/ControlTemplatePreview.vue",
+      "sha256": "4ebf1acba9c7e4e21ef6f155bad128e1d1fd1f0059fc1c074df2457044b8757e",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/DevicePreviewIcon.vue",
+      "sha256": "c3eee30f64d643536e53b2ca9b73c2a483c099a8eccc6b2ed7f626ab3867c813",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/EasePicker.vue",
+      "sha256": "91a524807651354c2d66a5131082cc88c5d850c01676ce3045cf2960e1ea9606",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/EditorHistoryPanel.vue",
+      "sha256": "9fc37aa709acce3db0d0301a6d8567cd0d426f6e63165c6d6b494beca6a97362",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/EditorIcon.vue",
+      "sha256": "c44ea67ed5f2a1b75fda0d3c9c4daf81f24fa4dc290974e99c823c18f237355a",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/EventTimeline.vue",
+      "sha256": "07020c03cb1f975e62eec8eac848233fb8438a7d24cdbf2f5879127a418cfe56",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/GiaExportDialog.vue",
+      "sha256": "22a576ac14b8b6c7fcd51106111fd99b7acae11990959c8cf3719b17a51ae993",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/ImageAssetLibrary.vue",
+      "sha256": "8ee444cc55cd5c36f084d7dc254d67ae39dde7ef7e0f13e3a271f07bc8bb10b8",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/ImageControlSettings.vue",
+      "sha256": "c6b1fa7e185fb07067e4e0a0ab3c7721b4bdca10aef2d0e772770f5b7d8a3bf3",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/ImageMaskCoverageFilter.vue",
+      "sha256": "3f42b20a6488e6ff41d3ae9c4368942da84ddbe391791a1fb2881c1c75997fec",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/KeyframeTimeline.vue",
+      "sha256": "8323da84a29a4c63e01c222b3df1b3419bb88e0f6b4b784a544b6da31ca90b3c",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/PRIMITIVE_RESOURCES.md",
+      "sha256": "5907fa5f1d3a5c8b6011056ddf21abcfd366ee51a54eb443925f239a975f1368",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/PreviewPresetSelect.vue",
+      "sha256": "08a2ef7f3dd3418e71dcaf75ab301a116604c666010e6f4a89fa9d9369fc9b25",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/PrimitiveImage.vue",
+      "sha256": "31c186e78591b9d9d673ff12052e41f9f2add6139d41028f067a1e8d136340f6",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/PrimitiveImageSettings.vue",
+      "sha256": "c1460242dbe08acfa85f8abfbb4e1409f059c67b1ff795ec2ffb670aa3f951d7",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/PrimitiveResourceLibrary.vue",
+      "sha256": "b425be16d8cdfec2364220f684e682e44bf728149b35bb721cefafa5e14ff151",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/PropertyActionsMenu.vue",
+      "sha256": "cad0b0c3b378280676312aee28f087d2986fa165f4899febde9d799a7b25de0a",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/SPINE_IMPORT.md",
+      "sha256": "58e7ee9d0dc6fe453b369e6c91cea2b1d8f62ad1abc82252a72e7f804ba61609",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/ScrubbableNumberInput.vue",
+      "sha256": "8da0104502380ea854f7a3170a97530ddb41446f2f8bf200dbd904bf502d73e6",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/SpriteImage.vue",
+      "sha256": "a80e09d8f174b166c9564ae930b659a07c783b12e64772e9d03e094d60f1b6ec",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/TIMELINE_EVENTS.md",
+      "sha256": "993313bc5dbd0571c309655a56a2f271242e47ad13e6e180353a6dfaa9a37d8a",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/TextControlInspector.vue",
+      "sha256": "3dece7306b2fc6b5eb5c25add00b12c11cf587051855617cf760b125fc87671d",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/TimelineContextMenu.vue",
+      "sha256": "c8222417a686f183a2192766d7ec6c588418cd37213f7d13a871d2ca6e304cfb",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/TimelineDataImportDialog.vue",
+      "sha256": "f734f8071e30f686cef0f70b01c0555459c0167f534fce3a7082d84c3c0a7f0a",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/animationCollection.ts",
+      "sha256": "343869819c88e428589400e3d379a6c174b18fe6802e35d5cc311c391f1b55ae",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/boneCreation.ts",
+      "sha256": "fda149641c2c11fb7f0a4e6069f41d33de1a02b42dee38836418986d9cfaaeb1",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/canvasMasks.ts",
+      "sha256": "c93bfb51e61cb94556ca9767d89fdf2c34f31721dacab9c8dda20fb22c628117",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/containerDirectionGuide.ts",
+      "sha256": "2450834a0122879fb13fccd743728f8ecceb699e5d89947b1cdbad686b345ee3",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/controlRegistry.ts",
+      "sha256": "1302460c3cf884e1b6fae6a996cdf2fbc6c00f2ff189f7e1ea52dc7a705ff1f6",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/controlTemplates.ts",
+      "sha256": "10f87ff30ff3bfc9241b6cfd672c17d0818202141e5d8bc21bb4cf2f200ca41e",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/easeCurve.ts",
+      "sha256": "b46b074c78f8010fe5eb5fb8191321758fed3fa319742fe9c1109c40b2133f7a",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/editorHistory.ts",
+      "sha256": "5526311a7f1cee0b5197ae1a021b34e5b5de97c92d8af5cd5d3e9b0aaf249689",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/eventLuaRuntime.ts",
+      "sha256": "502221f82ca2528ca49ad5853ac72bfcdb021394d11bc004c153fb0077cc7938",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/giaExporter.ts",
+      "sha256": "bba0a9f53f6818bd05908280789293a65ea5a2e5ead1be2584d993348ce94ebb",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/giaImporter.ts",
+      "sha256": "77b809c11e97953284c10fb16688ee6d434fdd4e044c70b364feb3bb5f38aecb",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/historyChangeLabel.ts",
+      "sha256": "6b400a56b0a4b69530ad18643cfb1498904b27de60ae6b822aca924b1310716e",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/imageAssets.ts",
+      "sha256": "308d1cea354d5cf0859732769e05bcb075bd43985b5c1ebc445090954441fb0e",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/imageFeatherPreview.ts",
+      "sha256": "a66133dd08e66dfb060d8da5502105d63edf7b9dfb24530885f2517b2a8fef99",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/imageMaskFields.ts",
+      "sha256": "4d41bc3d0b71470dcd7a600b7fff084da9fc756a67722d68720a416111012855",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/keyframeLua.ts",
+      "sha256": "9efaa0bcd6010f22e554814299cbd0b36fa65172fa428f5cd61578ae2e6ba397",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/keyframeLuaRuntime.ts",
+      "sha256": "2c9f62282a0d78f4b19f029f78c09f80ecec861a042c7d7a2146337f414c7608",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/keyframeTimeline.ts",
+      "sha256": "d6e6208e12b055cc4456ebc76bc64eb1132a1238f93fd8b891ac708d72888397",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/luaDataParser.ts",
+      "sha256": "537ac0f4e1652d330efba75160a3a6740ae3cfbf20a5e0dba89e2a8628eba1ef",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/luaTweenExporter.ts",
+      "sha256": "caeb9e3da25327513b7e597707d0ad19a6ffcdf02587109b433602865ca2401d",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/luaTweenImporter.ts",
+      "sha256": "154370ab5440ac027cbaffc6a06e52d4d5ef72c76c7e7abf51f8c46a79b88947",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/numberScrubbing.ts",
+      "sha256": "1dee1e855c4d06f33e715c915616067daad7e70b1c5d5167d1b7ad85ac050e57",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/primitiveBatch.ts",
+      "sha256": "bdc95cd487ca7404b81b10490822447058320ebb1789c612a68226b0ad2f1302",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/primitiveControl.ts",
+      "sha256": "f4821f1e031c7fda43ab344b28c2be1d554477db07cd9f516f2ffcefbbfc7dba",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/primitiveCss.ts",
+      "sha256": "2fe0bb75bd89038ea36ec74366cfc44a16390c58e3d2bab8848b3c1930298288",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/primitiveData.ts",
+      "sha256": "70508f1dd4e239cd1fd003916a1879646269f81de7961d3108e4f4352e22cc9b",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/primitiveFitter.ts",
+      "sha256": "53be4012717c1c3d0a3e1dedc36fc00ba788468b46c8a89d0426374e1be9c163",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/primitiveLuaExporter.ts",
+      "sha256": "a26ee326a132582d6add052f0cdfd6116006f77624a68e2678149b07314c0f91",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/primitiveLuaRuntime.ts",
+      "sha256": "aa51f796306d8c9cd3003d16a98d1ea42c401d1681476d9b6a8c6f05315b4471",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/primitivePixels.ts",
+      "sha256": "36194976a604c48e18166372884666fb962ed60bdcd481be4c43c16518ec2bdb",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/primitiveResources.ts",
+      "sha256": "29f59ea32af983c5bec1253d380d4ade9997cfcb7a32966502c65fc58aa0cb8d",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/primitiveSvg.ts",
+      "sha256": "4c78fd66d9d62e40949484e48eb791de83806af7f9c367a2adc9a27852eb434e",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/propertyGroupActions.ts",
+      "sha256": "ef8227ebb08d8b5d799173f3e4fe577dc22ef03c47c9d2e2dcec0dc17d540e66",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/psdImport.worker.ts",
+      "sha256": "bcd0e6f2b8b9c0db4af75c344827aab2173cfe9dce0f95f35d135d36f296dded",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/psdImportData.ts",
+      "sha256": "002b10b1f8a38360a0a76f1113d74f95275b2401f805cfb8f384730c441bad86",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/psdImporter.ts",
+      "sha256": "d5a1b085d69a5acd303857057e8a5c9a86c10973b0251dd46e5c66e612010bd2",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/spineImporter.ts",
+      "sha256": "b0eea1857900d6b13d6cc59c97e4b84dd09321724d01b925cfca55cc94405580",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/spriteGeometry.ts",
+      "sha256": "31028410fb38e7acb81355e53d8500aac0040d089304a656175ccff5dddbae62",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/timelineClipLayout.ts",
+      "sha256": "dca18d3d9120cce1e4a7571aa556d8820e84f2427445399f9dd5747ef1127064",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/timelineCompatibility.ts",
+      "sha256": "9b7410d116dc928f8296e17fb6866a4557e4c0ca1cac33b7c637b327694697a0",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/timelineEvents.ts",
+      "sha256": "0f37ba15c4abaf2d51b9a039470eb964d10f1516a66d5141a648334dfdd4b21c",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/timelineSnapping.ts",
+      "sha256": "7220189acf0b57bb5f3004c10d8a62feec3e9fb19a39081ab326b8bdc3b8f08a",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/tweenRegistry.ts",
+      "sha256": "280dff640b85e6d2a076bc172c865ae80707bb8ef19ad192a71c7fb07cfae898",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/types.ts",
+      "sha256": "28aefeddf67aa51da9244c5bbc8f431815739b9ebfbf115ed7236ae8032a8161",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/useClientUIWorkspace.ts",
+      "sha256": "028cac82ae4b2e0d01be9ca2733dc50fb3176fbc0c4a464e7da1365cc0a16324",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/ClientUIAnimationEditor/workspaceStorage.ts",
+      "sha256": "382bba1e3fb8c1165d3b27d026e4c61117709ba10712e401981b0901171d0f8b",
+      "features": [
+        "U-UI01",
+        "U-UI02",
+        "U-UI03",
+        "U-UI04",
+        "U-UI05",
+        "U-UI06",
+        "U-UI07",
+        "U-UI08",
+        "U-RS01",
+        "U-RS02",
+        "U-RS03",
+        "U-RS04",
+        "U-RS05",
+        "U-RS06",
+        "U-RS07",
+        "U-RS08",
+        "U-RS09",
+        "U-AN01",
+        "U-AN02",
+        "U-AN03",
+        "U-AN04",
+        "U-AN05",
+        "U-AN06",
+        "U-AN07",
+        "U-TP01",
+        "U-IM01",
+        "U-IM02",
+        "U-IM03",
+        "U-IM04",
+        "U-LU01",
+        "U-LU02",
+        "U-LU03",
+        "U-ST01",
+        "U-ST02",
+        "U-ST03",
+        "U-HT01",
+        "U-HT02"
+      ],
+      "classification": "feature-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "src/views/DSFGStudio/components/QuestEditor/workspaceSaveQueue.ts",
+      "sha256": "02f466227f5aa7ba8c6418523a2d5a4ac56c89db393292075765dc3422c25b01",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "vendor/genshin-impact-ugc-file-converter-web/LICENSE",
+      "sha256": "0c1bf94e6eae7fa80a2f6e049f3542ea0eb088fd475cfe390854d3eb823e696c",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "vendor/genshin-impact-ugc-file-converter-web/README.md",
+      "sha256": "fe7c39cad471435ff0698c7e4d375ffa9e88a36f4c3f48377e8993b278768c4e",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "vendor/genshin-impact-ugc-file-converter-web/dist-types/lib/index.d.ts",
+      "sha256": "aa5b4f5ebd4acef0004799e675b13ac741730eee7dd94abce1d0248e5a1af974",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "vendor/genshin-impact-ugc-file-converter-web/dist-types/worker/converter.d.ts",
+      "sha256": "cb986ce768ed354311b2b92997d9ed39b34924a2be40faf84f25aa74699ec8d4",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "vendor/genshin-impact-ugc-file-converter-web/dist/index.js",
+      "sha256": "70337f586dacfe7201ea63af87d2516cd856a7f5008c4705f88fa98c73d93dbe",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "vendor/genshin-impact-ugc-file-converter-web/dtype/gia.csv",
+      "sha256": "6d83a57465c7e4929aa613cfd3082669b1cc0d9d1054473027ec97c3ded125e1",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "vendor/genshin-impact-ugc-file-converter-web/dtype/gil.csv",
+      "sha256": "913c9539317c5f9daa757d5ef03467d5ff9dad89e6d6c1405785980f324e06b2",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "vendor/genshin-impact-ugc-file-converter-web/lib/index.ts",
+      "sha256": "e58b7be626ae5b08c44fab8204fddc3259c3c4b6f6823dbaa0dcbf50ea41ec5f",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "vendor/genshin-impact-ugc-file-converter-web/package.json",
+      "sha256": "e554947d35a6a64100a322c5169a7517d40d574afb06cd2babf1a13906f41c00",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "vendor/genshin-impact-ugc-file-converter-web/tests/converter.test.ts",
+      "sha256": "4ee6b4ed33caf1d1f31ac1e4afb583dca7083486815ff6bd4683a52182b2d264",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "vendor/genshin-impact-ugc-file-converter-web/tests/library.test.ts",
+      "sha256": "51d653cbd814590099530bc407b5a1d87b055f773b00776e14299b06ce973d61",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "vendor/genshin-impact-ugc-file-converter-web/tsconfig.json",
+      "sha256": "155114a5dd1c35090719c680060e19edf9ee3db7744fc381fc3eaf9d13de2a07",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "vendor/genshin-impact-ugc-file-converter-web/worker/assets.d.ts",
+      "sha256": "cb16350ff045c5c7b91e6cdd6f3790dd3adc03de3c2010d3a057b9ea82df60dc",
+      "features": [],
+      "classification": "supporting-reference"
+    },
+    {
+      "source": "ui-editor",
+      "path": "vendor/genshin-impact-ugc-file-converter-web/worker/converter.ts",
+      "sha256": "5cd0da026fdb532ec99946c985783492fa0e3783fef1bf2a94826d953041094c",
+      "features": [],
+      "classification": "supporting-reference"
+    }
+  ]
+}

@@ -22,6 +22,8 @@ const ENUM_FIELDS = {
   layer: 'UIAnimationLayer',
   scrollDirection: 'ScrollDirection',
   layoutConstraint: 'ScrollLayoutConstraint',
+  keyboardKeyCode: 'KeyboardKeyCode',
+  controllerKeyCode: 'ControllerKeyCode',
 }
 
 const LUA_REGISTRYINDEX = lua.LUA_REGISTRYINDEX
@@ -1030,7 +1032,13 @@ export class LuaRuntime {
           if (key === 'imageType' && (val?.EnumType !== 'ImageType' || !['Basic', 'Stretch'].includes(val.Name))) {
             throw new Error('imageType requires Enum.ImageType.Basic or Stretch')
           }
-          obj[key] = enumType ? canonicalEnumItem(enumType, val) : val
+          const value = enumType ? canonicalEnumItem(enumType, val) : val
+          obj[key] = value
+          // enableFill is authoring-only state. Once a script changes the
+          // public fillType field, treat that as a runtime request to fill.
+          if (obj.kind === 'image' && key === 'fillType') {
+            obj.enableFill = (value?.Name || value) !== 'Unused'
+          }
           if (typeof obj.markPlayDirty === 'function') {
             obj.markPlayDirty(DEEP_DIRTY_FIELDS.has(key))
           }

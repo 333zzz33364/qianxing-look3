@@ -1,11 +1,15 @@
 import { createNode } from '../studio/ui/authoring.js'
 import { inspectorDto, layoutTree } from '../studio/ui/inspector.js'
+import { buildControlGuidSyncPrompt } from './control-guid-sync.js'
 
 export function createWorkspacePanels(React, {
   BaseInspector,
+  ControlGuidEditor,
   ControlScriptTab,
   ScriptPage,
   ServerLogicPage,
+  ScriptSyncPanel,
+  ControlGuidSyncPanel,
   cloneServerLogic,
   logicDraftIssues,
   sanitizeLogic,
@@ -220,7 +224,21 @@ export function createWorkspacePanels(React, {
         key: 'locked', label: '在编辑器中锁定', type: 'bool', value: !!snap.editorLocks?.[selectedId],
       }],
     }
+    async function changeControlGuid(id, guid, automatic) {
+      await workspace.saveScriptDraft()
+      await patch({ op: 'setControlGuid', id, guid, autoFillClientGuids: automatic })
+      workspace.setNotice('控件索引已修改，请到下方面板的“同步”处理 Lua 引用。')
+      setDockTab?.('sync')
+    }
     return h(React.Fragment, null,
+      ControlGuidEditor && targetAsset === 'client-control-template' && snap.inspector.kind !== 'server-container'
+        ? h('section', { className: 'look2-guid-editor', 'aria-label': '客户端控件索引' },
+          h('strong', null, '客户端控件索引'),
+          h(ControlGuidEditor, {
+            key: `${targetAsset}:${snap.inspector.id}`,
+            variant: 'look2', inspector: snap.inspector, autofill: snap.clientGuidAutofill,
+            onSave: changeControlGuid,
+          })) : null,
       h(BaseInspector, {
         key: `${snap.asset?.type || ''}:${snap.asset?.key || ''}:${selectedId}:${snap.inspector.id}:${snap.inspector.kind}:${targetPlatform}`,
         inspector, commit, createStateChild,
@@ -235,11 +253,11 @@ export function createWorkspacePanels(React, {
       }, snap.asset?.type === 'client-control-template' && snap.tree.find(item => item.id === selectedId)?.depth === 0 ? '⌫ 删除当前模板' : '⌫ 删除当前控件')))
   }
 
-  function WorkspaceDock({ activeTab, sessionId, snap, patch, api, exportFile, onError, onMessage, waitForQueue }) {
+  function WorkspaceDock({ activeTab, sessionId, snap, patch, api, exportFile, onError, onMessage, waitForQueue, getSnapshot, onSaved, onReloadArchive, setDockTab }) {
     const workspace = useWorkspace()
     workspace.environmentRef.current = {
       ...workspace.environmentRef.current, snap, patch, api, onError,
-      waitForQueue,
+      waitForQueue, getSnapshot, onSaved, onReloadArchive,
     }
     React.useEffect(() => { workspace.syncSnapshot(snap, workspace.selectedScriptId) }, [snap, workspace.selectedScriptId])
     const report = reason => onError?.(String(reason?.message || reason))
@@ -278,6 +296,48 @@ export function createWorkspacePanels(React, {
       ? workspace.scriptDraft
       : scriptEntry ? { id: scriptEntry.id, path: scriptEntry.path, source: scriptEntry.source, controlId: scriptEntry.controlId, controlAsset: scriptEntry.controlAsset, dirty: false } : null
 
+    function currentSnapshot() {
+      return workspace.environmentRef.current.getSnapshot?.() || workspace.environmentRef.current.snap || snap
+    }
+    async function prepareSync() {
+      await workspace.flush()
+      return currentSnapshot()
+    }
+    async function refreshSync() {
+      const next = await api(sessionId, 'get')
+      workspace.environmentRef.current.onSaved?.(next)
+      return next
+    }
+    async function copyGuidChanges() {
+      await prepareSync()
+      const current = currentSnapshot()
+      const path = current?.storage?.path
+      if (!path) throw new Error('请先保存完整存档，再复制提示词；AI 需要读取这次实际修改的存档。')
+      await api(sessionId, 'save', { path, expectedRevision: current.version })
+      const prompt = buildControlGuidSyncPrompt(current)
+      try { await navigator.clipboard.writeText(prompt) }
+      catch { onMessage?.('存档已保存。剪贴板不可用，可从下方文本框手动复制提示词。') }
+      return prompt
+    }
+    async function reloadGuidArchive() {
+      const path = currentSnapshot()?.storage?.path
+      if (!path) throw new Error('请先保存完整存档，再重新载入。')
+      if (workspace.environmentRef.current.onReloadArchive) return workspace.environmentRef.current.onReloadArchive(path)
+      const result = await api(sessionId, 'load-archive', { path })
+      workspace.environmentRef.current.onSaved?.(result.snapshot)
+      return result.snapshot
+    }
+
+    if (activeTab === 'sync') return h('div', { className: 'look2-sync-panels', style: { height: '100%', minHeight: 0, overflow: 'auto', padding: '6px 8px' } },
+      ScriptSyncPanel ? h(ScriptSyncPanel, {
+        snap, request: (action, body) => api(sessionId, action, body), patch,
+        prepare: prepareSync, refresh: refreshSync, dock: true,
+      }) : null,
+      ControlGuidSyncPanel ? h(ControlGuidSyncPanel, {
+        snap, patch, prepare: prepareSync, copy: copyGuidChanges,
+        onScripts: () => { setDockTab?.('lua'); onMessage?.('已切换到 Lua 脚本面板。') },
+        onError, reloadArchive: reloadGuidArchive,
+      }) : null)
     if (activeTab === 'lua') return h(ScriptPage, {
       snap, selectedScriptId: workspace.selectedScriptId, selectScript, draft: scriptDraft, updateDraft,
       saveScript, addScript: () => { void addScript() }, removeScript,

@@ -88,7 +88,7 @@ export function groupWorkspaceArchives(archives = []) {
   return { root, other }
 }
 
-export function createAnimationView(React, { api, playUrl, InlinePlay, WorkspaceInspector, WorkspaceDock }) {
+export function createAnimationView(React, { api, playUrl, InlinePlay, usePlayLauncher, WorkspaceInspector, WorkspaceDock }) {
   const h = React.createElement
   const icon = (name, size) => editorIcon(h, name, size)
   function DraftInput({ value, type = 'text', rows, min, max, step, disabled, ariaLabel, title, onCommit, onDiscardError, readCommitted, inputStyle, wrapperStyle }) {
@@ -191,6 +191,11 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
   .look2-dock-tabs button.active{border-bottom-color:var(--blue);color:var(--text);background:#5c95ef14}
   .look2-dock-content{flex:1;min-height:0;display:flex;overflow:hidden}
   .look2-dock-content>.look2-timeline-body{flex:1;min-height:0}
+  .look2-sync-panels{flex:1;min-width:0;color:var(--text)}
+  .look2-guid-editor{margin:6px 0 8px;padding:8px;border:1px solid var(--line);border-radius:5px;background:#1c2027}
+  .look2-guid-editor>strong{font-size:11px;color:#c5ccd7}
+  .look2-guid-note{margin:5px 0;padding:5px;border-radius:4px;background:#242a33;color:var(--muted);font-size:10px;line-height:1.4;overflow-wrap:anywhere}
+  .look2-guid-note.error{color:#ff9a9a}
   .look2-runtime-debug{display:grid;grid-template-columns:minmax(220px,1fr) minmax(220px,1fr);gap:8px;width:100%;min-height:0;overflow:auto;padding:9px;background:var(--workspace)}
   .look2-debug-card{min-width:0;overflow:auto;padding:9px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
   .look2-debug-card h3{margin:0 0 7px;font-size:12px}
@@ -398,6 +403,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
       const now = Date.now()
       setErrorLog(current => updateErrorLog(current, update, now))
     }
+    const playLauncher = usePlayLauncher?.({ sessionId, api, playUrl, onError: reason => setError(String(reason?.message || reason)) })
     const [showErrors, setShowErrors] = React.useState(false)
     React.useEffect(() => { saveErrorLog(sessionId, errorLog) }, [sessionId, errorLog])
     const [playhead, setPlayhead] = React.useState(0)
@@ -1059,6 +1065,13 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
       }
       // Unmounting the not-yet-ready surface runs its serialized start/stop cleanup.
       finishInlinePlay()
+    }
+    function startExternalPlay() {
+      if (!playLauncher || interactionLocked || playStarting) return
+      void playLauncher.open(async () => {
+        await beforeAction({ blur: false })
+        setError('')
+      })
     }
     async function refreshPlayInspection(expectedController = playControllerRef.current) {
       const controller = expectedController
@@ -2356,7 +2369,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
         h('button', { title: '播放或暂停', 'aria-label': playing ? '暂停动画' : '播放动画', 'aria-pressed': playing, onClick: () => { if (!playing) { const from = playhead >= duration ? 0 : playhead; playbackCursorRef.current = from; includeStartEventRef.current = from === 0; setPlayhead(from); if (from === 0) setEventLog([]) }; setPlaying(!playing) } }, icon(playing ? 'pause' : 'play', 14)),
         h('span', { className: 'look2-time-readout' }, `${playhead.toFixed(2)}s · ${Math.round(playhead * state.frameRate)}f`),
         h('input', { className: 'timeline-seek', type: 'range', min: 0, max: duration, step: 1 / state.frameRate, value: Math.min(duration, playhead), onChange: event => setPlayhead(Number(event.target.value)) }),
-        h('span', null, '帧率'), h('input', { type: 'number', min: 1, max: 120, value: state.frameRate, onChange: event => { const value = Number(event.target.value); if (value >= 1 && value <= 120) void editState(next => { next.frameRate = Math.trunc(value) }, '修改帧率') } }),
+        h('span', null, '帧率'), h('input', { type: 'number', min: 1, max: 240, value: state.frameRate, onChange: event => { const value = Number(event.target.value); if (value >= 1 && value <= 240) void editState(next => { next.frameRate = Math.trunc(value) }, '修改帧率') } }),
         h('button', { className: state.timelineSnapEnabled ? 'selected' : '', title: '按帧吸附', onClick: () => void editState(next => { next.timelineSnapEnabled = !next.timelineSnapEnabled }, '切换时间吸附') }, '吸附'),
         h('button', { title: '缩小时间轴', onClick: () => setPixelsPerSecond(value => Math.max(24, value / 1.2)) }, '−'), h('button', { title: '放大时间轴', onClick: () => setPixelsPerSecond(value => Math.min(320, value * 1.2)) }, '+'),
         h('button', { className: showEventLog ? 'selected' : '', title: '播放事件日志', onClick: () => setShowEventLog(!showEventLog) }, '日志'),
@@ -2419,7 +2432,12 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
             } catch (reason) { setError(String(reason.message || reason)) }
           } }, '发送'))))
     const dockContent = dockTab === 'animation' ? timeline : dockTab === 'debug' ? debugPanel
-      : WorkspaceDock ? h(WorkspaceDock, { activeTab: dockTab, sessionId, snap, patch, api, exportFile, onError: reason => setError(String(reason?.message || reason)), onMessage: setMessage, waitForQueue: () => queue.current }) : null
+      : WorkspaceDock ? h(WorkspaceDock, {
+        activeTab: dockTab, sessionId, snap, patch, api, exportFile,
+        onError: reason => setError(String(reason?.message || reason)), onMessage: setMessage,
+        waitForQueue: () => queue.current, getSnapshot: () => snapRef.current, onSaved: accept,
+        onReloadArchive: path => load(path), setDockTab,
+      }) : null
     const dock = h('section', { ref: dockRef, className: 'look2-dock', style: { '--timeline-height': `${timelineHeight}px` }, 'aria-label': '动画、脚本与调试面板',
       onKeyDownCapture: event => {
         if (event.key === 'Escape' && dockRef.current?.ownerDocument.fullscreenElement === dockRef.current) {
@@ -2431,10 +2449,10 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
       h('div', { className: 'look2-timeline-resize', onPointerDown: startTimelineResize }),
       h('div', { className: 'look2-dock-tabs', role: 'tablist', 'aria-label': '工作区面板' },
         h('span', null, icon('scene', 14), '动画时间轴', h('span', { className: 'spacer' })),
-        [['animation', '动画'], ['lua', 'Lua'], ['logic', '逻辑'], ['debug', '调试']].map(([id, label]) => h('button', { key: id, type: 'button', role: 'tab', className: dockTab === id ? 'active' : '', 'aria-selected': dockTab === id, disabled: interactionLocked && id !== 'debug', onClick: () => setDockTab(id) }, label)),
+        [['animation', '动画'], ['lua', 'Lua'], ['logic', '逻辑'], ['sync', (snap.controlGuidChanges?.length || 0) ? `同步 (${snap.controlGuidChanges.length})` : '同步'], ['debug', '调试']].map(([id, label]) => h('button', { key: id, type: 'button', role: 'tab', className: dockTab === id ? 'active' : '', 'aria-selected': dockTab === id, disabled: interactionLocked && id !== 'debug', onClick: () => setDockTab(id) }, label)),
         h('button', { type: 'button', title: dockFullscreen ? '退出面板全屏（Esc）' : '全屏显示当前面板', 'aria-label': dockFullscreen ? '退出面板全屏' : '面板全屏', 'aria-pressed': dockFullscreen, onClick: () => void toggleDockFullscreen() }, icon('fullscreen', 14))),
       h('div', { className: 'look2-dock-content' }, ['lua', 'logic'].includes(dockTab) ? h('fieldset', { className: 'look2-dock-readonly', disabled: interactionLocked }, dockContent) : dockContent),
-      h('div', { className: 'look2-dock-footer' }, dockTab === 'animation' ? 'Ctrl+C / Ctrl+V 复制粘贴关键帧 · Delete 删除所选关键帧' : 'Look 工作区 · Lua 脚本、逻辑与运行调试'))
+      h('div', { className: 'look2-dock-footer' }, dockTab === 'animation' ? 'Ctrl+C / Ctrl+V 复制粘贴关键帧 · Delete 删除所选关键帧' : dockTab === 'sync' ? '控件索引校准 · Lua 索引引用 · 实机脚本更新' : 'Look 工作区 · Lua 脚本、逻辑与运行调试'))
     const importControl = h(React.Fragment, null,
       h('input', { hidden: true, ref: fileRef, type: 'file', accept: '.json,.gia,.lua,.psd', onChange: event => { void importFile(event.target.files?.[0]); event.target.value = '' } }),
       h('input', { hidden: true, ref: element => {
@@ -2461,7 +2479,8 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
               h('span', { className: 'look2-play-help-row' }, h('b', null, PLAY_TARGET_GUIDE.template.label), '：', PLAY_TARGET_GUIDE.template.detail),
               h('span', { className: 'look2-play-help-diff' }, PLAY_TARGET_GUIDE.difference)) : null),
           h('label', null, '人数'), h('select', { value: playerCount, disabled: interactionLocked, 'aria-label': '试玩人数', onChange: event => setPlayerCount(Number(event.target.value)) }, Array.from({ length: 8 }, (_, index) => h('option', { key: index + 1, value: index + 1 }, `${index + 1}人`)))),
-        h('button', { type: 'button', className: inlinePlaying ? 'look2-play-stop' : 'primary', disabled: playStarting, onClick: () => inlinePlaying ? stopInlinePlay() : void startInlinePlay() }, inlinePlaying ? '停止试玩' : playStarting ? '准备试玩…' : '▶ 试玩'))))
+         h('button', { type: 'button', className: inlinePlaying ? 'look2-play-stop' : 'primary', disabled: playStarting, onClick: () => inlinePlaying ? stopInlinePlay() : void startInlinePlay() }, inlinePlaying ? '停止试玩' : playStarting ? '准备试玩…' : '▶ 试玩'),
+         playLauncher ? h('button', { type: 'button', title: '在新窗口打开完整界面试玩', disabled: interactionLocked || playLauncher.opening, onClick: startExternalPlay }, playLauncher.opening ? '打开中…' : '新窗口') : null)))
     const topBar = h('header', { className: 'look2-top' },
       h('div', { className: 'tool-group', inert: interactionLocked },
         h('button', { title: '工作区存档', onClick: () => setShowWorkspace(!showWorkspace) }, icon('folder'), '工作区'),
@@ -2591,7 +2610,8 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
       style: { '--tree-width': `${hiddenPanels.tree ? 28 : panelWidths.tree}px`, '--anim-width': `${hiddenPanels.animator ? 28 : panelWidths.animator}px`, '--inspector-width': `${hiddenPanels.inspector ? 28 : panelWidths.inspector}px` } },
       masthead, topBar, workspaceRow, draftRow,
       h('div', { className: paneClasses }, treePane, stage, animatorPane, inspectorPane), dock,
-      resourcePanel, historyModal, templateModal, timelineImportModal, archiveDeleteModal, contextMenuView, errorHistoryDialog)
+       resourcePanel, historyModal, templateModal, timelineImportModal, archiveDeleteModal, contextMenuView, errorHistoryDialog,
+       playLauncher?.overlay)
   }
   return { AnimationView, ensureStyle }
 }

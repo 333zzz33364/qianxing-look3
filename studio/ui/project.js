@@ -1,4 +1,5 @@
 import { CANVAS_PRESETS, DEFAULT_CANVAS_ID, CANONICAL_CANVAS_BY_PLATFORM, PLATFORMS, LAYOUT_SCHEMA_VERSION } from '../constants.js'
+import { normalizeKeyCode } from './keyhint.js'
 import { toJson } from '../json.js'
 import {
   addChild,
@@ -61,6 +62,7 @@ export function createProject(seed, { warnings = [] } = {}) {
     layoutSchemaVersion: LAYOUT_SCHEMA_VERSION,
     version: Number.isSafeInteger(seed.version) && seed.version > 0 ? seed.version : 1,
     meta: {
+      ...seed.meta,
       name: String(seed.meta?.name || base.meta.name),
       assetType,
       sourceFormat: String(seed.meta?.sourceFormat || base.meta.sourceFormat),
@@ -216,15 +218,15 @@ const DIRECT_FIELDS = new Set([
   'isolateNavigation', 'disableKeyEventPassthrough', 'disableCursorEventPassthrough', 'showCursor',
   'fontSize', 'adaptiveFontSize', 'minimumFontSize', 'fontColor', 'bgColor',
   'enableOutline', 'outlineColor', 'horizontalAlignment', 'verticalAlignment', 'text',
-  'imageId', 'imageType', 'imageColor', 'enableMask', 'enableSoftEdge', 'softEdgeMode',
+  'imageId', 'imageSource', 'imageType', 'imageColor', 'enableMask', 'enableSoftEdge', 'softEdgeMode',
   'softEdgeWidthX', 'softEdgeWidthY', 'horizontalSoftRange', 'verticalSoftRange',
-  'enableFill', 'fillType', 'fillHorizontalType', 'fillVerticalType',
+  'enableFill', 'fillClockwise', 'fillType', 'fillHorizontalType', 'fillVerticalType',
   'fillRadial90Type', 'fillRadialType', 'fillAmount', 'reverseMaskArea',
   'raycastTarget', 'interactable', 'clickAudioId', 'unavailableChildId',
   'hoverChildId', 'pressedChildId', 'selectedChildId',
   'showScrollBar', 'cellSizeX', 'cellSizeY', 'spacingX', 'spacingY',
   'padding1X', 'padding1Y', 'padding2X', 'padding2Y', 'previewCount',
-  'scrollDirection', 'layoutConstraint', 'referencedPrefabId', 'animationId',
+  'scrollProgress', 'scrollDirection', 'layoutConstraint', 'layoutConstraintFixedCount', 'itemPrefabId', 'referencedPrefabId', 'animationId',
   'keyboardKeyCode', 'controllerKeyCode',
 ])
 
@@ -259,19 +261,19 @@ function booleanValue(value) {
 }
 
 const NUMBER_FIELDS = new Set([
-  'fontSize', 'minimumFontSize', 'imageId', 'clickAudioId', 'softEdgeWidthX',
+  'scrollProgress', 'layoutConstraintFixedCount', 'itemPrefabId', 'fontSize', 'minimumFontSize', 'imageId', 'clickAudioId', 'softEdgeWidthX',
   'softEdgeWidthY', 'horizontalSoftRange', 'verticalSoftRange', 'fillAmount',
   'cellSizeX', 'cellSizeY', 'spacingX', 'spacingY', 'padding1X', 'padding1Y',
-  'padding2X', 'padding2Y', 'previewCount', 'keyboardKeyCode', 'controllerKeyCode',
+  'padding2X', 'padding2Y', 'previewCount',
 ])
 const BOOLEAN_FIELDS = new Set([
   'active', 'visible', 'canControllerFocus', 'isolateNavigation',
   'disableKeyEventPassthrough', 'disableCursorEventPassthrough', 'showCursor',
   'adaptiveFontSize', 'enableOutline', 'enableMask', 'enableSoftEdge',
-  'enableFill', 'reverseMaskArea', 'raycastTarget', 'interactable', 'showScrollBar',
+  'enableFill', 'fillClockwise', 'reverseMaskArea', 'raycastTarget', 'interactable', 'showScrollBar',
 ])
 const STRING_FIELDS = new Set([
-  'name', 'horizontalAlignment', 'verticalAlignment', 'text', 'imageType', 'softEdgeMode',
+  'name', 'imageSource', 'horizontalAlignment', 'verticalAlignment', 'text', 'softEdgeMode',
   'fillType', 'fillHorizontalType', 'fillVerticalType', 'fillRadial90Type', 'fillRadialType',
   'scrollDirection', 'layoutConstraint', 'referencedPrefabId', 'animationId',
 ])
@@ -279,7 +281,10 @@ const STATE_NODE_FIELDS = new Set([
   'unavailableChildId', 'hoverChildId', 'pressedChildId', 'selectedChildId',
 ])
 const ENUM_VALUES = {
-  imageType: ['Basic', 'Stretch'],
+  scrollDirection: ['Vertical', 'Horizontal'],
+  layoutConstraint: ['AutoWrap', 'Fixed'],
+  imageType: ['Basic', 'Stretch', null],
+  imageSource: ['StaticReference', 'Prefab'],
   softEdgeMode: ['Percentage', 'Pixel'],
   fillType: ['Horizontal', 'Vertical', 'Radial90', 'Radial180', 'Radial360'],
   fillHorizontalType: ['Left', 'Right'],
@@ -443,6 +448,16 @@ function applyPatchMutating(project, op) {
         if (fillType) node.fillType = fillType
       }
       if (node.kind === 'image' && rawKey === 'imageSlotType' && [0, 1].includes(node.giaRaw[rawKey])) node.imageType = node.giaRaw[rawKey] === 0 ? 'Basic' : 'Stretch'
+      if (node.kind === 'image') {
+        const semantic = {
+          imageField503: ['fillHorizontalType', ['Left', 'Right']],
+          imageField504: ['fillVerticalType', ['Bottom', 'Top']],
+          imageField506: ['fillRadial90Type', ['BottomLeft', 'TopLeft', 'TopRight', 'BottomRight']],
+          imageField507: ['fillRadialType', ['Bottom', 'Left', 'Top', 'Right']],
+        }[rawKey]
+        if (semantic && semantic[1][node.giaRaw[rawKey]] !== undefined) node[semantic[0]] = semantic[1][node.giaRaw[rawKey]]
+        if (rawKey === 'imageField505' && [0, 1].includes(node.giaRaw[rawKey])) node.fillClockwise = node.giaRaw[rawKey] === 1
+      }
       if (node.kind === 'keyhint' && rawKey === 'keyHintField502') node.keyboardKeyCode = node.giaRaw[rawKey]
       if (node.kind === 'keyhint' && rawKey === 'keyHintField501') node.controllerKeyCode = node.giaRaw[rawKey]
       return project
@@ -456,12 +471,13 @@ function applyPatchMutating(project, op) {
       return project
     }
     if (DIRECT_FIELDS.has(key)) {
+      if (key === 'keyboardKeyCode' || key === 'controllerKeyCode') value = normalizeKeyCode(value, key === 'keyboardKeyCode' ? 'KeyboardKeyCode' : 'ControllerKeyCode')
       if (key.endsWith('Color')) value = parseColor(value)
       if (NUMBER_FIELDS.has(key)) {
         value = finiteNumber(value, key)
         if (value < 0) throw new Error(`${key} must not be negative`)
         if (key === 'imageId' || key === 'clickAudioId' || key === 'keyboardKeyCode' || key === 'controllerKeyCode') value = Math.trunc(value)
-        if (key === 'fillAmount' && value > 1) throw new Error('fillAmount must be between 0 and 1')
+        if (['fillAmount', 'scrollProgress'].includes(key) && value > 1) throw new Error(`${key} must be between 0 and 1`)
       }
       if (BOOLEAN_FIELDS.has(key)) value = booleanValue(value)
       if (STRING_FIELDS.has(key)) value = String(value ?? '')
@@ -484,8 +500,8 @@ function applyPatchMutating(project, op) {
           }
         }
       }
-      if (node.kind === 'image' && key === 'imageId' && node[key] !== value) {
-        node.imageType = 'Basic'
+      if (node.kind === 'image' && (key === 'imageId' || key === 'imageSource') && node[key] !== value) {
+        node.imageType = null
         node.giaRaw.imageSlotType = 0
       }
       node[key] = value
@@ -501,11 +517,16 @@ function applyPatchMutating(project, op) {
         const rawFillType = { Horizontal: 1, Vertical: 2, Radial90: 3, Radial180: 4, Radial360: 5 }[value]
         if (rawFillType) node.giaRaw.imageFillType = rawFillType
       }
+      if (node.kind === 'image' && key === 'fillHorizontalType') node.giaRaw.imageField503 = ['Left', 'Right'].indexOf(value)
+      if (node.kind === 'image' && key === 'fillRadial90Type') node.giaRaw.imageField506 = ['BottomLeft', 'TopLeft', 'TopRight', 'BottomRight'].indexOf(value)
+      if (node.kind === 'image' && key === 'fillClockwise') node.giaRaw.imageField505 = value ? 1 : 0
+      if (node.kind === 'image' && key === 'fillVerticalType') node.giaRaw.imageField504 = ['Bottom', 'Top'].indexOf(value)
+      if (node.kind === 'image' && key === 'fillRadialType') node.giaRaw.imageField507 = ['Bottom', 'Left', 'Top', 'Right'].indexOf(value)
       if (node.kind === 'image' && key === 'imageType') node.giaRaw.imageSlotType = value === 'Stretch' ? 1 : 0
       if (node.kind === 'reference' && key === 'referencedPrefabId') node.giaRaw.templateRefSlot = value
       if (node.kind === 'grid' && key === 'previewCount') node.giaRaw.gridField511 = Math.trunc(value)
-      if (node.kind === 'keyhint' && key === 'keyboardKeyCode') node.giaRaw.keyHintField502 = Math.trunc(value)
-      if (node.kind === 'keyhint' && key === 'controllerKeyCode') node.giaRaw.keyHintField501 = Math.trunc(value)
+      if (node.kind === 'keyhint' && key === 'keyboardKeyCode' && typeof value !== 'string') node.giaRaw.keyHintField502 = value ?? 0
+      if (node.kind === 'keyhint' && key === 'controllerKeyCode') node.giaRaw.keyHintField501 = value ?? 0
       if ((node.kind === 'animation' || node.kind === 'fullscreen') && key === 'animationId') {
         node.giaRaw[node.kind === 'animation' ? 'effectSlot' : 'fullscreenEffectSlot'] = value
       }
@@ -521,10 +542,10 @@ function applyPatchMutating(project, op) {
       writeTransform(project, node, next)
       return project
     }
-    if (key === 'rotationZ') {
+    if (['rotationX', 'rotationY', 'rotationZ'].includes(key)) {
       const next = {
         ...current,
-        rotation: { ...current.rotation, z: finiteNumber(value, key) },
+        rotation: { ...current.rotation, [key.slice(-1).toLowerCase()]: finiteNumber(value, key) },
       }
       writeTransform(project, node, next)
       return project

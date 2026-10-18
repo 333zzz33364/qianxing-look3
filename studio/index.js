@@ -35,6 +35,7 @@ import { buildAnimationScripts } from './look2/player.js'
 import { EditHistory } from './look2/history.js'
 import { normalizeScriptSync } from './script-sync-config.js'
 import { collectClientNodes } from './gia/client-order.js'
+import { projectForSiteTemplate } from './look2/site-templates.js'
 import { scriptGuidSignature } from './control-guid-lua.js'
 
 // 脚本与测试从 qxqy-studio 包入口直接消费这些 GIA 工具导出。
@@ -213,6 +214,9 @@ export function createStudio(seed, options = {}) {
     ? options.workspacePath
     : ''
   const isSave = seed?.format === SAVE_FORMAT && seed.assets
+  let controlGuidChanges = readControlGuidChanges(seed?.controlGuidChanges)
+  let scriptSync = normalizeScriptSync(seed?.scriptSync)
+  let saveMetadata = isSave ? toJson(seed.meta || {}) : {}
   const seededProject = isSave ? null : createProject(seed, { warnings: migrationWarnings })
   const projects = {
     server: isSave && seed.assets.server ? createProject(seed.assets.server, { warnings: migrationWarnings }) : defaultProject(SERVER_ASSET),
@@ -251,7 +255,7 @@ export function createStudio(seed, options = {}) {
     const guid = allocateScriptGuid(entry.guid)
     return { ...entry, guid, id: String(guid) }
   }
-  for (const raw of seedScriptList(seed)) scripts.push(adoptScript(raw))
+  absorbScripts(seedScriptList(seed))
   let serverLogic = normalizeServerLogic(seed?.serverLogic)
   let look2 = normalizeLook2(seed?.look2, projects.client)
   let serverLook2 = normalizeLook2(seed?.look2ByAsset?.server, projects.server)
@@ -289,7 +293,7 @@ export function createStudio(seed, options = {}) {
   const editHistory = new EditHistory(captureEdit, restoreEdit)
 
   function captureEdit() {
-    return toJson({ projects, activeAssetType, explicitSaveName, scripts, serverLogic, look2, serverLook2, migrationWarnings })
+    return toJson({ projects, activeAssetType, explicitSaveName, scripts, serverLogic, look2, serverLook2, migrationWarnings, controlGuidChanges, scriptSync, saveMetadata })
   }
 
   function restoreEdit(saved, increment) {
@@ -303,6 +307,9 @@ export function createStudio(seed, options = {}) {
     look2 = toJson(saved.look2)
     serverLook2 = toJson(saved.serverLook2)
     migrationWarnings = [...saved.migrationWarnings]
+    controlGuidChanges = toJson(saved.controlGuidChanges)
+    scriptSync = toJson(saved.scriptSync)
+    saveMetadata = toJson(saved.saveMetadata)
     if (increment) projects.server.version = projects.client.version = revision
     refreshUsedGuids()
   }
@@ -465,10 +472,15 @@ export function createStudio(seed, options = {}) {
       if (node.kind === 'server-container') return
       rows.push(JSON.stringify({
         kind: node.kind,
+        guid: node.guid,
         name: node.name,
         text: node.text ?? null,
         imageId: node.imageId ?? null,
+        imageSource: node.imageSource ?? null,
+        imageType: node.imageType ?? null,
         fontSize: node.fontSize ?? null,
+        adaptiveFontSize: node.adaptiveFontSize ?? null,
+        minimumFontSize: node.minimumFontSize ?? null,
         fontColor: node.fontColor ?? null,
         bgColor: node.bgColor ?? null,
         imageColor: node.imageColor ?? null,
@@ -537,11 +549,13 @@ export function createStudio(seed, options = {}) {
     return toJson({
       format: SAVE_FORMAT,
       version: 4,
-      meta: { name: currentSaveName() },
+      meta: { ...saveMetadata, name: currentSaveName() },
       look2,
       look2ByAsset: { server: serverLook2 },
       activeAssetType,
       serverLogic,
+      controlGuidChanges,
+      scriptSync,
       assets: {
         server: projects.server,
         client: projects.client,
@@ -572,6 +586,16 @@ export function createStudio(seed, options = {}) {
     snap.animationPreviewRoot = compileProject(project).root
     snap.migrationWarnings = [...migrationWarnings]
     snap.look2Warnings = templateReferenceWarnings()
+    snap.controlGuidChanges = toJson(controlGuidChanges)
+    if (activeAssetType === CLIENT_ASSET) {
+      const ordered = collectClientNodes(project, true)
+      snap.clientGuidAutofill = {
+        count: ordered.length,
+        templateCount: ordered.filter(({ parent }) => parent?.kind === 'server-container').length,
+        selectedOffset: ordered.findIndex(({ node }) => node.id === snap.selectedId),
+      }
+    }
+    snap.scriptSync = toJson(scriptSync)
     assertNoUndefined(snap)
     return snap
   }
@@ -583,7 +607,7 @@ export function createStudio(seed, options = {}) {
     const inspect = project => walk(project.root, node => {
       if (node.kind !== 'reference' || node.referencedPrefabId == null || node.referencedPrefabId === '') return
       const index = Number(node.referencedPrefabId)
-      if (!Number.isSafeInteger(index) || index <= 0 || !known.has(index)) {
+      if (!Number.isSafeInteger(index) || index < 0 || !known.has(index)) {
         warnings.push(`${node.name}: 当前工程未导入控件模板索引 ${node.referencedPrefabId}`)
       }
     })
@@ -636,8 +660,105 @@ export function createStudio(seed, options = {}) {
     return get()
   }
 
+  function setControlGuid(op) {
+    const project = checkRevision(op)
+    const node = findNode(project.root, op.id ?? project.selectedId)
+    if (!node || node.kind === 'server-container') throw new Error('仅客户端控件或客户端控件模板允许修改索引')
+    const guid = controlGuid(op.guid)
+    controlGuid(node.guid)
+    if (op.autoFillClientGuids !== undefined && typeof op.autoFillClientGuids !== 'boolean') {
+      throw new Error('autoFillClientGuids 必须是布尔值')
+    }
+    const automatic = op.autoFillClientGuids === true
+    if (automatic && activeAssetType !== CLIENT_ASSET) {
+      throw new Error('自动填充仅支持客户端模板列表；服务端界面的索引需单独填写')
+    }
+    const targets = automatic ? collectClientNodes(project, true).map(({ node }) => node) : [node]
+    const base = guid - targets.indexOf(node)
+    const mappings = targets.map((target, offset) => ({
+      node: target, oldGuid: controlGuid(target.guid), newGuid: controlGuid(base + offset),
+    }))
+    const changes = mappings.filter(({ oldGuid, newGuid }) => oldGuid !== newGuid)
+    if (!changes.length) return get()
+    const remap = new Map(mappings.map(({ oldGuid, newGuid }) => [oldGuid, newGuid]))
+    if (remap.size !== mappings.length) throw new Error('客户端模板存在重复旧索引，无法自动填充；请先消除歧义')
+    const targetSet = new Set(targets)
+    const nodes = []
+    for (const entry of Object.values(projects)) {
+      walk(entry.root, (candidate) => {
+        if (entry === projects.client && candidate.kind === 'server-container') return
+        nodes.push({ node: candidate, project: entry })
+      })
+    }
+    const occupied = new Map([
+      ...nodes.filter((entry) => !targetSet.has(entry.node)).map(({ node }) => [Number(node.guid), node.name]),
+      ...scripts.map((script) => [Number(script.guid), script.path || 'Lua 脚本']),
+    ])
+    for (const { newGuid } of changes) {
+      if (occupied.has(newGuid)) throw new Error(`控件索引 ${newGuid} 已被「${occupied.get(newGuid)}」占用；请先填写它的实际索引。本次未修改任何索引。`)
+    }
+    // These three fields are explicit GUID references. Internal ids, button
+    // state ids, image ids and Lua numbers must never be replaced by value.
+    const references = []
+    const collectReference = (owner, key, entry) => {
+      const value = owner?.[key]
+      if ((typeof value === 'number' || (typeof value === 'string' && /^\d+$/.test(value.trim())))
+        && remap.has(Number(value)) && remap.get(Number(value)) !== Number(value)) {
+        references.push({ owner, key, project: entry.project, oldGuid: Number(value), newGuid: remap.get(Number(value)) })
+      }
+    }
+    for (const entry of nodes) {
+      collectReference(entry.node, 'referencedPrefabId', entry)
+      collectReference(entry.node, 'itemPrefabId', entry)
+      collectReference(entry.node.giaRaw, 'templateRefSlot', entry)
+    }
+    const occurrences = new Map()
+    for (const { node } of nodes) occurrences.set(Number(node.guid), (occurrences.get(Number(node.guid)) || 0) + 1)
+    for (const { oldGuid } of references) {
+      if (occurrences.get(oldGuid) !== 1) throw new Error(`旧索引 ${oldGuid} 在多棵资产树中重复，无法确定模板引用归属；请先消除歧义后修改`)
+    }
+    // All validation is complete before changing either tree or the ledger.
+    // One batch is a simultaneous permutation, never a chain of replacements.
+    const batchId = automatic ? randomUUID() : ''
+    const scriptSignature = scriptGuidSignature(scripts)
+    for (const { node, oldGuid, newGuid } of changes) {
+      node.guid = newGuid
+      controlGuidChanges.push({
+        id: randomUUID(), controlAsset: activeAssetType, controlId: node.id,
+        controlName: node.name, oldGuid, newGuid, scriptSignature, ...(batchId ? { batchId } : {}),
+      })
+    }
+    const changedProjects = new Set([project])
+    for (const { owner, key, project: referencedProject, newGuid } of references) {
+      owner[key] = typeof owner[key] === 'string' ? String(newGuid) : newGuid
+      changedProjects.add(referencedProject)
+    }
+    for (const changed of changedProjects) changed.version += 1
+    return get()
+  }
+
+  function acknowledgeControlGuidChanges(op) {
+    const project = checkRevision(op)
+    if (!Array.isArray(op.changeIds) || !op.changeIds.length
+      || op.changeIds.some((id) => typeof id !== 'string' || !controlGuidChanges.some((change) => change.id === id))) {
+      throw new Error('请明确指定已核对 Lua 引用的有效索引变更记录 changeIds')
+    }
+    const acknowledged = new Set(op.changeIds)
+    controlGuidChanges = controlGuidChanges.filter((change) => !acknowledged.has(change.id))
+    project.version += 1
+    return get()
+  }
+
   function patchCore(op) {
     if (!op || typeof op !== 'object') throw new Error('patch requires op')
+    if (op.op === 'setScriptSync') {
+      const project = checkRevision(op)
+      scriptSync = normalizeScriptSync(op.config)
+      project.version += 1
+      return get()
+    }
+    if (op.op === 'setControlGuid') return setControlGuid(op)
+    if (op.op === 'acknowledgeControlGuidChanges') return acknowledgeControlGuidChanges(op)
     if (op.op === 'newDocument') {
       const name = String(op.name || '未命名工程').trim()
       if (!name) throw new Error('工程名称不能为空')
@@ -653,6 +774,9 @@ export function createStudio(seed, options = {}) {
       scripts = []
       serverLogic = normalizeServerLogic({})
       migrationWarnings = []
+      controlGuidChanges = []
+      scriptSync = null
+      saveMetadata = {}
       explicitSaveName = name
       activeAssetType = CLIENT_ASSET
       return get()
@@ -690,6 +814,7 @@ export function createStudio(seed, options = {}) {
       const next = defaultProject(activeAssetType)
       next.version = project.version + 1
       projects[assetKey(activeAssetType)] = next
+      controlGuidChanges = controlGuidChanges.filter(change => change.controlAsset !== activeAssetType)
       if (nextAssetType === SERVER_ASSET) serverLook2 = freshLook2()
       reconcileScriptMounts()
       return get()
@@ -749,6 +874,7 @@ export function createStudio(seed, options = {}) {
     const { expectedRevision: ignored, ...operation } = op
     const apply = () => {
       patchCore(operation)
+      if (op.op === 'setControlGuid' && Math.max(projects.server.version, projects.client.version) === revision - 1) return
       if (op.op !== 'selectAsset') projects.server.version = projects.client.version = revision
     }
     const tracksImportedCanvasSettings = op.op === 'setCanvas'
@@ -888,7 +1014,12 @@ export function createStudio(seed, options = {}) {
         const entry = look2.controlTemplates.find(row => row.id === id)
         if (!entry) throw new Error('控件模板不存在')
         if (action === 'update') {
-          if (input.index !== undefined) { checkTemplateIndex(Number(input.index), id); entry.index = Number(input.index) }
+          if (input.index !== undefined) {
+            const index = Number(input.index)
+            checkTemplateIndex(index, id)
+            if (index !== entry.index) remapTemplateReferences(entry.index, index)
+            entry.index = index
+          }
           if (input.name !== undefined) {
             if (!String(input.name).trim()) throw new Error('模板名称不能为空')
             entry.name = String(input.name).trim()
@@ -900,7 +1031,8 @@ export function createStudio(seed, options = {}) {
           const parent = findNode(project.root, input.parentId || project.selectedId)
           if (!parent) throw new Error('实例化父控件不存在')
           if (!entry.project?.root) throw new Error('此模板没有可实例化的控件树；请重新导入 GIA')
-          const source = entry.project.root.children?.find(row => row.id === entry.project.selectedId) || entry.project.root.children?.[0]
+          const templateProject = projectForSiteTemplate(entry, project.canvasId)
+          const source = templateProject.root.children?.find(row => row.id === templateProject.selectedId) || templateProject.root.children?.[0]
           if (!source) throw new Error('控件模板为空')
           const usedScripts = new Set((entry.scripts || []).map(row => Number(row.guid)).filter(isValidGuid))
           const { branch, idMap } = copyBranch(source, project, usedScripts)
@@ -934,8 +1066,35 @@ export function createStudio(seed, options = {}) {
     return get()
   }
 
+  function remapTemplateReferences(previous, next) {
+    const remap = (owner, key) => {
+      const value = owner?.[key]
+      if (value !== null && value !== undefined && value !== '' && Number(value) === previous) {
+        owner[key] = typeof value === 'string' ? String(next) : next
+      }
+    }
+    for (const project of [projects.server, projects.client, ...look2.controlTemplates.map(entry => entry.project).filter(Boolean)]) {
+      walk(project.root, node => {
+        if (node.kind === 'reference') { remap(node, 'referencedPrefabId'); remap(node.giaRaw, 'templateRefSlot') }
+        if (node.kind === 'grid') remap(node, 'itemPrefabId')
+      })
+    }
+    for (const entry of look2.controlTemplates) {
+      for (const device of entry.devices || []) for (const row of device) {
+        if (row.type === 'reference') remap(row.properties, 'referencedPrefabIndex')
+        if (row.type === 'gridScroller') remap(row.properties, 'itemPrefabIndex')
+      }
+    }
+    for (const state of [look2, serverLook2]) {
+      for (const node of Object.values(state.siteNodes || {})) {
+        if (node.type === 'reference') remap(node.properties, 'referencedPrefabIndex')
+        if (['grid', 'gridScroller'].includes(node.type)) remap(node.properties, 'itemPrefabIndex')
+      }
+    }
+  }
+
   function checkTemplateIndex(index, excludingId = '') {
-    if (!Number.isSafeInteger(index) || index < 1 || index > 0x7fffffff) throw new Error('模板索引必须为正整数')
+    if (!Number.isSafeInteger(index) || index < 0 || index > 0x7fffffff) throw new Error('模板索引必须为 0–2147483647 范围内的整数')
     if (look2.controlTemplates.some(row => row.id !== excludingId && Number(row.index) === index)) throw new Error('模板索引已存在')
   }
 
@@ -962,6 +1121,15 @@ export function createStudio(seed, options = {}) {
   }
 
   function exportData(format = 'json', requestedAssetType = '') {
+    const result = exportDataRaw(format, requestedAssetType)
+    if (controlGuidChanges.length && !['save', 'archive'].includes(String(format).toLowerCase())) {
+      const warnings = controlGuidChanges.map((change) => `控件索引待核对 Lua 引用：${ASSET_LABELS[change.controlAsset]} / ${change.controlName} (${change.controlId})：${change.oldGuid} → ${change.newGuid}。请按语义更新脚本中的控件索引引用，核对后确认变更记录 ${change.id}；不要全局替换同值数字。`)
+      result.warnings = [...new Set([...(result.warnings || []), ...warnings])]
+    }
+    return result
+  }
+
+  function exportDataRaw(format = 'json', requestedAssetType = '') {
     const normalized = String(format).toLowerCase()
     if (['timeline-lib', 'primitive-lib', 'primitive-data', 'primitive-svg', 'primitive-css'].includes(normalized)) {
       let source, filename, mimeType = 'text/x-lua'
@@ -1125,7 +1293,7 @@ export function createStudio(seed, options = {}) {
       : currentProject()
     const baseName = assetExportStem(project)
     if (normalized === 'json') {
-      const payload = toJson({ ...project, scripts: scriptsInProject(project.meta.assetType) })
+      const payload = toJson({ ...project, scripts: scriptsInProject(project.meta.assetType), controlGuidChanges: controlGuidChanges.filter(change => change.controlAsset === project.meta.assetType) })
       const data = Buffer.from(JSON.stringify(payload, null, 2), 'utf8')
       return toJson({
         filename: `${baseName}.json`,
@@ -1193,6 +1361,7 @@ export function createStudio(seed, options = {}) {
       if (Number(next?.version) === 12 && Array.isArray(next?.nodes)) {
         const imported = importSiteJson(next)
         projects.client = createProject(imported.project)
+        controlGuidChanges = controlGuidChanges.filter(change => change.controlAsset !== CLIENT_ASSET)
         activeAssetType = CLIENT_ASSET
         explicitSaveName = String(next.name || basename(filename).replace(/\.json$/i, '') || explicitSaveName)
         look2 = imported.look2
@@ -1206,12 +1375,17 @@ export function createStudio(seed, options = {}) {
         const nextServer = createProject(next.assets.server || createDefaultProject(), { warnings })
         const nextClient = createProject(next.assets.client || createDefaultClientTemplateProject(), { warnings })
         const nextServerLogic = normalizeServerLogic(next.serverLogic)
+        const nextChanges = readControlGuidChanges(next.controlGuidChanges)
+        const nextScriptSync = normalizeScriptSync(next.scriptSync)
         projects.server = nextServer
         projects.client = nextClient
         migrationWarnings = [...warnings]
         activeAssetType = next.activeAssetType === CLIENT_ASSET ? CLIENT_ASSET : SERVER_ASSET
         explicitSaveName = String(next.meta?.name || basename(filename).replace(/\.json$/i, '') || explicitSaveName)
         serverLogic = nextServerLogic
+        controlGuidChanges = nextChanges
+        scriptSync = nextScriptSync
+        saveMetadata = toJson(next.meta || {})
         look2 = normalizeLook2(next.look2, projects.client)
         serverLook2 = normalizeLook2(next.look2ByAsset?.server, projects.server)
         syncClientEditorLocks(!Object.hasOwn(next.assets.client?.meta || {}, 'editorLocks'))
@@ -1248,6 +1422,7 @@ export function createStudio(seed, options = {}) {
       metadata = imported.metadata
       if (imported.clientProject) {
         projects.client = createProject(imported.clientProject)
+        controlGuidChanges = controlGuidChanges.filter(change => change.controlAsset !== CLIENT_ASSET)
         warnings.push('整合包已拆回「UI控件-服务端」与「UI控件-客户端」；客户端模板边界已保留。')
       }
       const mountByGuid = new Map()
@@ -1275,9 +1450,18 @@ export function createStudio(seed, options = {}) {
       throw new Error(`unsupported import format: ${format}`)
     }
     const importedProject = createProject(next, { warnings })
+    const importedChanges = readControlGuidChanges(next?.controlGuidChanges)
+    if (importedChanges.some((change) => change.controlAsset !== importedProject.meta.assetType)) {
+      throw new Error('单资产 JSON 的索引变更记录必须属于当前导入资产')
+    }
+    const nextChanges = readControlGuidChanges([
+      ...controlGuidChanges.filter((change) => change.controlAsset !== importedProject.meta.assetType),
+      ...importedChanges,
+    ])
     migrationWarnings = [...warnings]
     const key = assetKey(importedProject.meta.assetType)
     projects[key] = importedProject
+    controlGuidChanges = nextChanges
     if (key === 'client' || metadata.combined) look2 = freshLook2()
     if (key === 'server') serverLook2 = freshLook2()
     activeAssetType = importedProject.meta.assetType
@@ -1376,8 +1560,8 @@ export function createStudio(seed, options = {}) {
     const extraTemplates = []
     const extraTemplateScripts = []
     for (const entry of look2.controlTemplates) {
-      if (!entry.project?.root || !Number.isSafeInteger(entry.index) || entry.index <= 0) continue
-      const compiled = compileProject(createProject(entry.project), entry.scripts || [], nextCanvasId)
+      if (!entry.project?.root || !Number.isSafeInteger(entry.index) || entry.index < 0) continue
+      const compiled = compileProject(createProject(projectForSiteTemplate(entry, nextCanvasId || currentProject().canvasId)), entry.scripts || [], nextCanvasId)
       const root = compiled.templates[0]
       if (root) { root.prefabIndex = entry.index; extraTemplates.push(root) }
       extraTemplateScripts.push(...(entry.scripts || []))

@@ -7,6 +7,7 @@ import { createControlGuidSyncPanel } from './control-guid-sync.js'
 import { createPlayLauncher } from './play-launcher.js'
 import { createImagePreview, createImageTypeField } from './image-preview.js'
 import { createColorField } from './color-field.js'
+import { imageMaskFields } from './image-mask-fields.js'
 import { controlTransformStyle } from './control-transform.js'
 import { textPreviewStyle } from './text-preview.js'
 import { isRemoteImage, imageAssetKey } from '../studio/assets/catalog.js'
@@ -67,7 +68,7 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false }) {
       cursor: [],
       reference: ['referencedPrefabId'],
       grid: ['cellSizeX', 'cellSizeY', 'spacingX', 'spacingY', 'padding1X', 'padding1Y', 'padding2X', 'padding2Y', 'previewCount'],
-      image: ['imageSource', 'imageId', 'imageColor', 'enableMask', 'enableSoftEdge', 'softEdgeMode', 'softEdgeWidthX', 'softEdgeWidthY', 'horizontalSoftRange', 'verticalSoftRange', 'enableFill', 'fillType', 'fillHorizontalType', 'fillVerticalType', 'fillRadial90Type', 'fillRadialType', 'fillAmount', 'reverseMaskArea'],
+      image: ['imageSource', 'imageId', 'imageColor', 'enableMask', 'enableSoftEdge', 'softEdgeMode', 'softEdgeWidthX', 'softEdgeWidthY', 'horizontalSoftRange', 'verticalSoftRange', 'enableFill', 'fillType', 'fillHorizontalType', 'fillVerticalType', 'fillRadial90Type', 'fillRadialType', 'fillClockwise', 'fillAmount', 'reverseMaskArea'],
       button: ['raycastTarget', 'interactable', 'unavailableChildId', 'hoverChildId', 'pressedChildId', 'selectedChildId', 'clickAudioId'],
       textwindow: ['fontSize', 'adaptiveFontSize', 'minimumFontSize', 'fontColor', 'bgColor', 'enableOutline', 'outlineColor', 'horizontalAlignment', 'verticalAlignment', 'text'],
       keyhint: ['keyboardKeyCode', 'controllerKeyCode'],
@@ -312,20 +313,36 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false }) {
       let typeFields = (TYPE_KEYS[inspector.kind] || []).map((key) => f[key]).filter(Boolean).map(renderField)
       let typeSections = null
       if (inspector.kind === 'image') {
-        const fillDirection = f.fillType?.value === 'Horizontal' ? f.fillHorizontalType
-          : f.fillType?.value === 'Vertical' ? f.fillVerticalType
-            : f.fillType?.value === 'Radial90' ? f.fillRadial90Type : f.fillRadialType
-        const maskFields = [
+        const visibleMaskFields = imageMaskFields(inspector.fields)
+        const visibleMaskKeys = new Set(visibleMaskFields.map(field => field.key))
+        const maskField = key => visibleMaskFields.find(field => field.key === key) || null
+        const softMode = String(f.softEdgeMode?.value ?? '').toLowerCase()
+        const fillType = String(f.fillType?.value ?? '').toLowerCase()
+        const fillEnabled = f.enableFill?.value ?? Boolean(fillType && fillType !== 'unused')
+        const fillDirection = fillType === 'horizontal' ? f.fillHorizontalType
+          : fillType === 'vertical' ? f.fillVerticalType
+            : fillType === 'radial90' ? f.fillRadial90Type
+              : ['radial180', 'radial360'].includes(fillType) ? f.fillRadialType : null
+        const maskControls = [
           renderField(f.enableMask),
-          renderField(f.enableSoftEdge),
-          f.enableSoftEdge?.value ? e('div', { className: 'qxsim-subfields', key: 'soft-fields' }, renderField(f.softEdgeMode), e(Pair, { label: '羽化宽度', x: f.softEdgeWidthX, y: f.softEdgeWidthY, commit }), e(Pair, { label: '羽化范围', x: f.horizontalSoftRange, y: f.verticalSoftRange, commit })) : null,
-          renderField(f.enableFill),
-          f.enableFill?.value ? e('div', { className: 'qxsim-subfields', key: 'fill-fields' }, renderField(f.fillType), renderField(fillDirection), renderField(f.fillAmount)) : null,
-          renderField(f.reverseMaskArea),
+          f.enableMask?.value === true ? e(React.Fragment, null,
+            renderField(f.enableSoftEdge),
+            f.enableSoftEdge?.value === true ? e('div', { className: 'qxsim-subfields', key: 'soft-fields' },
+              renderField(f.softEdgeMode),
+              softMode === 'percentage'
+                ? e(Pair, { label: '羽化范围', x: f.horizontalSoftRange, y: f.verticalSoftRange, commit })
+                : e(Pair, { label: '羽化宽度', x: f.softEdgeWidthX, y: f.softEdgeWidthY, commit })) : null,
+            renderField(f.enableFill),
+            fillEnabled ? e('div', { className: 'qxsim-subfields', key: 'fill-fields' },
+              renderField(maskField('fillType')),
+              renderField(maskField(fillDirection?.key)),
+              renderField(maskField('fillClockwise')),
+              renderField(maskField('fillAmount'))) : null,
+            renderField(f.reverseMaskArea)) : null,
         ]
         typeSections = e(React.Fragment, null,
           groupSection('image', '图片设置', [renderField(f.imageSource), renderField(f.imageId), renderField(f.imageType), renderField(f.imageColor)], ['imageSource', 'imageId', 'imageType', 'imageColor']),
-          groupSection('mask', '遮罩设置', maskFields, ['enableMask', 'enableSoftEdge', 'softEdgeMode', 'softEdgeWidthX', 'softEdgeWidthY', 'horizontalSoftRange', 'verticalSoftRange', 'enableFill', 'fillType', 'fillHorizontalType', 'fillVerticalType', 'fillRadial90Type', 'fillRadialType', 'fillAmount', 'reverseMaskArea']))
+          groupSection('mask', '遮罩设置', maskControls, [...visibleMaskKeys]))
       }
       const typeTitle = inspector.kind === 'textbox' ? '文本框设置' : inspector.kind === 'button' ? '按钮设置' : `${inspector.label}设置`
       return e(React.Fragment, null,
@@ -336,7 +353,8 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false }) {
         f.canControllerFocus || f.locked ? groupSection('editor', '编辑器设置', [f.locked ? e(DraftField, { key: 'locked', field: f.locked, commit }) : null, f.canControllerFocus ? e(DraftField, { key: 'canControllerFocus', field: f.canControllerFocus, commit }) : null], ['locked', 'canControllerFocus'], false) : null,
         f.incomplete ? e(Section, { title: '实现状态' }, e(DraftField, { field: f.incomplete, commit })) : null)
     }
-    function ControlGuidEditor({ inspector, autofill, onSave }) {
+    function ControlGuidEditor({ inspector, autofill, onSave, variant = 'legacy' }) {
+      const look2 = variant === 'look2'
       const [draft, setDraft] = React.useState(String(inspector.guid ?? ''))
       const [automatic, setAutomatic] = React.useState(false)
       const [busy, setBusy] = React.useState(false)
@@ -358,20 +376,22 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false }) {
         catch (reason) { setError(reason?.message || String(reason)) }
         finally { setBusy(false) }
       }
-      return e('form', { onSubmit: submit, style: { marginTop: 8 } },
-        e('label', { className: 'qxsim-field' },
+      return e('form', { className: look2 ? 'look2-guid-form' : '', onSubmit: submit, style: { marginTop: 8 } },
+        e('label', { className: look2 ? '' : 'qxsim-field', style: look2 ? { display: 'grid', gap: 4, marginBottom: 6 } : undefined },
           e('span', { className: 'qxsim-field-label' }, '客户端控件索引'),
-          e('div', { style: { display: 'flex', gap: 6 } },
-            e('input', { type: 'text', inputMode: 'numeric', 'aria-label': '客户端控件索引', value: draft, disabled: busy, onChange: (event) => { setDraft(event.target.value); setError('') }, onKeyDown: (event) => { if (event.key === 'Escape') { setDraft(String(inspector.guid ?? '')); setError('') } } }),
+          e('div', { style: { display: 'flex', gap: 6, minWidth: 0 } },
+            e('input', { type: 'text', inputMode: 'numeric', 'aria-label': '客户端控件索引', value: draft, disabled: busy, style: look2 ? { minWidth: 0, flex: 1 } : undefined, onChange: (event) => { setDraft(event.target.value); setError('') }, onKeyDown: (event) => { if (event.key === 'Escape') { setDraft(String(inspector.guid ?? '')); setError('') } } }),
             e('button', { type: 'submit', className: 'qxsim-action', disabled: busy || (!automatic && draft.trim() === String(inspector.guid ?? '')) || (automatic && !validRange) }, busy ? '保存中' : '修改'))),
         canAutofill ? e('label', { style: { display: 'flex', gap: 6, alignItems: 'center', margin: '6px 0' } },
           e('input', { type: 'checkbox', checked: automatic, disabled: busy, onChange: (event) => setAutomatic(event.target.checked) }), '自动修改其他客户端索引值') : null,
-        automatic && canAutofill ? e('div', { className: 'qxsim-note', 'aria-label': '自动填充索引预览' },
+        automatic && canAutofill ? e('div', { className: look2 ? 'look2-guid-note' : 'qxsim-note', 'aria-label': '自动填充索引预览' },
           `以当前控件为基准，按 GIA 导入顺序填充 ${autofill.count} 个控件（${autofill.templateCount} 个模板及其子控件）。`,
           e('div', null, validRange ? `索引范围：${firstGuid}–${lastGuid}` : '索引范围超出有效范围，请检查输入。'),
           e('div', null, '适用于整批导入后未增删、重排的模板。服务端界面和脚本索引需单独填写。')) : null,
-        error ? e('div', { role: 'alert', className: 'qxsim-note' }, error) : null,
-        e('div', { className: 'qxsim-muted', style: { lineHeight: 1.5 } }, '填写 GIA 导入后实际显示的索引；修改后从页面上方继续同步 Lua。'))
+        error ? e('div', { role: 'alert', className: look2 ? 'look2-guid-note error' : 'qxsim-note' }, error) : null,
+        e('div', { className: 'qxsim-muted', style: { lineHeight: 1.5, marginTop: 6 } }, look2
+          ? '填写 GIA 导入后实际显示的索引；修改后会打开下方面板的“同步”。'
+          : '填写 GIA 导入后实际显示的索引；修改后从页面上方继续同步 Lua。'))
     }
     function ScriptPage({ snap, selectedScriptId, selectScript, draft, updateDraft, saveScript, addScript, removeScript, exportLua, exportScripts, exportScriptsGia, notice }) {
       const scripts = snap.scripts || []
@@ -1081,11 +1101,12 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false }) {
 
 
   const panels = createWorkspacePanels(React, {
-    BaseInspector, ControlScriptTab, ScriptPage, ServerLogicPage,
+    BaseInspector, ControlGuidEditor, ControlScriptTab, ScriptPage, ServerLogicPage,
+    ScriptSyncPanel, ControlGuidSyncPanel,
     cloneServerLogic, logicDraftIssues, sanitizeLogic,
   })
   const InlinePlay = createInlinePlay(React, { api })
-  const animation = createAnimationView(React, { api, playUrl, InlinePlay, WorkspaceInspector: panels.Inspector, WorkspaceDock: panels.Dock })
+  const animation = createAnimationView(React, { api, playUrl, InlinePlay, usePlayLauncher, WorkspaceInspector: panels.Inspector, WorkspaceDock: panels.Dock })
   function Look2View({ sessionId, onWorkspaceReady }) {
     const beforeActionRef = React.useRef(null)
     return e(panels.Provider, { beforeActionRef },

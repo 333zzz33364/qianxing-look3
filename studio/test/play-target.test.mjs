@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os'
 import { createStudio } from '../index.js'
 import { SimulatorController } from '../host/controller.js'
 import { compileProject } from '../play/compile.js'
+import { startPlay } from '../play/session.js'
 import { WebSession } from '../../web/lib/session.js'
 
 const encode = value => Buffer.from(JSON.stringify(value), 'utf8').toString('base64')
@@ -54,6 +55,33 @@ test('compileProject resolves an explicit client template root and rejects unkno
   const compiled = compileProject(project, [], '', { templateRootId: 'template-b' })
   assert.equal(compiled.root.authoringId, 'template-b')
   assert.throws(() => compileProject(project, [], '', { templateRootId: 'missing' }), /client template root not found/)
+})
+
+test('play runtime registers valid template library index zero', () => {
+  const archive = createStudio().archiveData()
+  const client = archive.assets.client
+  const template = { ...compileProject(client).templates[0], prefabIndex: 0 }
+  const session = startPlay(archive.assets.server, { templatesProject: client, extraTemplates: [template] })
+  try {
+    const root = session.runtime.roots[0]
+    session.runtime.mountScript({
+      path: 'template-zero.lua',
+      control: root,
+      source: `
+function OnStart()
+  local created = game.InstantiateClientUIControl(0, script.object)
+  print("template-zero", created and created.prefabIndex or "missing")
+end
+`,
+    })
+    const output = session.runtime.logs.map(row => row.text).join('\n')
+    assert.match(output, /template-zero\t0/)
+    const created = [...session.runtime.controlsById.values()].find(control => control.prefabIndex === 0)
+    assert.ok(created)
+    assert.equal(created.parent.Id, root.Id)
+  } finally {
+    for (const runtime of session.runtimes) runtime.destroy()
+  }
 })
 
 test('play start selects the requested client template and animation, while old implicit routing remains intact', () => {

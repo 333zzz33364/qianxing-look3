@@ -490,7 +490,9 @@ local function supportsField(object, field)
     if field == "groupAlpha" or field == "visible" or transformFields[field] then return true end
     local ok, value = pcall(typeof, object)
     local kind = ok and tostring(value) or tostring(object.typeofName or "")
-    if field == "imageColor" or field == "fillAmount" then return kind == "ClientUIImageControl" end
+    if field == "imageColor" or field == "fillAmount" or field == "softEdgeWidthX" or field == "softEdgeWidthY"
+        or field == "horizontalSoftRange" or field == "verticalSoftRange" then return kind == "ClientUIImageControl" end
+    if field == "scrollProgress" then return kind == "ClientUIGridScrollerControl" end
     if field == "fontSize" or textColors[field] then
         return kind == "ClientUITextBox" or kind == "ClientUITextBoxControl"
             or kind == "ClientUIWindowControl" or kind == "ClientUITextWindowControl"

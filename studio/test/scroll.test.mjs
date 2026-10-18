@@ -7,6 +7,8 @@ import { injectPlayPointer, paintList, playSnapshot, hitPlayControl, playAdapter
 import { renderScenePng, renderPaintPng } from '../host-png.js'
 import { PixiPlayRenderer } from '../play/pixi-renderer.js'
 import { replayCase } from '../autotest/runner.js'
+import { createStudio } from '../index.js'
+import { compileProject } from '../play/compile.js'
 
 function fixture(t, spec = {}) {
   const runtime = createRuntime({ canvasWidth: 240, canvasHeight: 160 })
@@ -146,6 +148,14 @@ end` })
   assert.equal(control._gridItems[0], firstItem)
   assert.equal(scrollNode(session).scroll.max, 0)
   assert.throws(() => control.RefreshItems(2001, () => {}), /2000/)
+})
+
+test('compiled grid keeps its authored initial scroll progress', () => {
+  const studio = createStudio()
+  studio.patch({ op: 'set', id: 'n5', key: 'scrollProgress', value: 0.75 })
+  const compiled = compileProject(studio._project)
+  const findGrid = control => control.kind === 'grid' ? control : (control.children || []).map(findGrid).find(Boolean)
+  assert.equal(findGrid(compiled.root)?.scrollProgress, 0.75)
 })
 
 test('grid wheel/drag route through items, suppress item click, horizontal layout and static children stay fixed', t => {

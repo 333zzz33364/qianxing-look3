@@ -1,6 +1,7 @@
 import {
   COLOR,
   DEFAULT_CLICK_AUDIO_ID,
+  DEFAULT_GIA_GAME_VERSION,
   DEFAULT_SIZE,
   KIND_LABELS,
   LAYOUT_SCHEMA_VERSION,
@@ -10,7 +11,8 @@ import { createRectTransform, emptyPlatformMap } from './layout.js'
 import { assertPlatformNode, assertPlatformTransforms, getPlatformTransform } from './transforms.js'
 import { createGiaRaw } from '../gia/raw-fields.js'
 import { stampMissingGuids } from '../gia/guid.js'
-import { ensureClientAssetIndices } from '../gia/asset-indices.js'
+import { normalizeKeyCode } from './keyhint.js'
+import { ensureClientAssetIndices, isValidAssetIndex } from '../gia/asset-indices.js'
 
 let _seq = 1
 export function nextId(prefix = 'n') {
@@ -54,6 +56,7 @@ export function createNode(kind, extras = {}) {
     ? clonePlatformMap(extras.transformByPlatform)
     : fourPlatforms(kind, { isRootContainer })
   const node = {
+    ...(extras.meta && typeof extras.meta === "object" ? { meta: structuredClone(extras.meta) } : {}),
     id,
     kind,
     name: extras.name || KIND_LABELS[kind],
@@ -61,8 +64,8 @@ export function createNode(kind, extras = {}) {
     giaRelatedGuids: Array.isArray(extras.giaRelatedGuids)
       ? extras.giaRelatedGuids.filter((guid) => Number.isSafeInteger(Number(guid)) && Number(guid) > 0).map(Number)
       : [],
-    ...(Number.isSafeInteger(Number(extras.giaInfoIndex)) && Number(extras.giaInfoIndex) > 0
-      ? { giaInfoIndex: Number(extras.giaInfoIndex) }
+    ...(isValidAssetIndex(Number(extras.giaInfoIndex))
+      ? { giaInfoIndex: Number(extras.giaInfoIndex), giaInfoIndexSource: extras.giaInfoIndexSource === 'authoring' ? 'authoring' : 'imported' }
       : {}),
     ...(extras.giaInfoIndexSource === 'authoring' ? { giaInfoIndexSource: 'authoring' } : {}),
     active: extras.active !== false,
@@ -108,7 +111,7 @@ export function createNode(kind, extras = {}) {
   }
   if (kind === 'image') {
     node.imageSource = extras.imageSource || 'StaticReference'
-    node.imageType = extras.imageType || (node.giaRaw.imageSlotType === 1 ? 'Stretch' : 'Basic')
+    node.imageType = ['Basic', 'Stretch'].includes(extras.imageType) ? extras.imageType : null
     if (['Basic', 'Stretch'].includes(extras.imageType) && !Object.hasOwn(extras.giaRaw || {}, 'imageSlotType')) node.giaRaw.imageSlotType = extras.imageType === 'Stretch' ? 1 : 0
     node.imageId = extras.imageId ?? 100001
     node.imageColor = extras.imageColor ?? COLOR.image
@@ -121,6 +124,7 @@ export function createNode(kind, extras = {}) {
     node.verticalSoftRange = extras.verticalSoftRange ?? 85
     node.enableFill = extras.enableFill === true
     node.fillType = extras.fillType || 'Horizontal'
+    node.fillClockwise = extras.fillClockwise ?? (extras.giaRaw?.imageField505 !== 0)
     node.fillHorizontalType = extras.fillHorizontalType || 'Left'
     node.fillVerticalType = extras.fillVerticalType || 'Bottom'
     node.fillRadial90Type = extras.fillRadial90Type || 'BottomLeft'
@@ -152,6 +156,7 @@ export function createNode(kind, extras = {}) {
     node.raycastTarget = extras.raycastTarget !== false
     node.interactable = extras.interactable !== false
     node.showScrollBar = extras.showScrollBar !== false
+    node.scrollProgress = Number.isFinite(extras.scrollProgress) ? Math.max(0, Math.min(1, extras.scrollProgress)) : 0
     node.scrollDirection = extras.scrollDirection || 'Vertical'
     node.layoutConstraint = extras.layoutConstraint || 'AutoWrap'
     node.layoutConstraintFixedCount = extras.layoutConstraintFixedCount ?? null
@@ -167,9 +172,9 @@ export function createNode(kind, extras = {}) {
     if (!Object.hasOwn(extras.giaRaw || {}, 'gridField511')) node.giaRaw.gridField511 = Math.trunc(node.previewCount)
   }
   if (kind === 'keyhint') {
-    node.keyboardKeyCode = extras.keyboardKeyCode ?? extras.giaRaw?.keyHintField502 ?? null
-    node.controllerKeyCode = extras.controllerKeyCode ?? extras.giaRaw?.keyHintField501 ?? null
-    if (!Object.hasOwn(extras.giaRaw || {}, 'keyHintField502')) {
+    node.keyboardKeyCode = normalizeKeyCode(extras.keyboardKeyCode ?? extras.giaRaw?.keyHintField502 ?? null, 'KeyboardKeyCode')
+    node.controllerKeyCode = normalizeKeyCode(extras.controllerKeyCode ?? extras.giaRaw?.keyHintField501 ?? null, 'ControllerKeyCode')
+    if (!Object.hasOwn(extras.giaRaw || {}, 'keyHintField502') && typeof node.keyboardKeyCode !== 'string') {
       node.giaRaw.keyHintField502 = Math.trunc(node.keyboardKeyCode ?? 1)
     }
     if (!Object.hasOwn(extras.giaRaw || {}, 'keyHintField501')) {
@@ -300,7 +305,7 @@ export function createDefaultClientTemplateProject() {
       assetType: 'client-control-template',
       sourceFormat: 'authoring',
       sourceFile: '',
-      gameVersion: '7.0.50',
+      gameVersion: DEFAULT_GIA_GAME_VERSION,
       giaOwnerUid: 114514,
       giaFileId: 1073741829,
       giaFileName: '客户端控件模板列表.gia',
@@ -370,6 +375,7 @@ export function sanitizeNode(node) {
     giaRelatedGuids: node.giaRelatedGuids,
     giaInfoIndex: node.giaInfoIndex,
     giaInfoIndexSource: node.giaInfoIndexSource,
+    ...(node.meta && typeof node.meta === "object" ? { meta: structuredClone(node.meta) } : {}),
     scriptMappingIds: node.scriptMappingIds,
     giaRaw: node.giaRaw,
     active: node.active,
@@ -402,6 +408,7 @@ export function sanitizeNode(node) {
   }
   if (node.kind === 'image') {
     extras.imageSource = node.imageSource
+    extras.imageType = node.imageType
     extras.imageId = node.imageId
     extras.imageColor = node.imageColor
     extras.enableMask = node.enableMask
@@ -412,6 +419,7 @@ export function sanitizeNode(node) {
     extras.horizontalSoftRange = node.horizontalSoftRange
     extras.verticalSoftRange = node.verticalSoftRange
     extras.enableFill = node.enableFill
+    extras.fillClockwise = node.fillClockwise
     extras.fillType = node.fillType
     extras.fillHorizontalType = node.fillHorizontalType
     extras.fillVerticalType = node.fillVerticalType
@@ -436,6 +444,7 @@ export function sanitizeNode(node) {
     extras.raycastTarget = node.raycastTarget
     extras.interactable = node.interactable
     extras.showScrollBar = node.showScrollBar
+    extras.scrollProgress = node.scrollProgress
     extras.scrollDirection = node.scrollDirection
     extras.layoutConstraint = node.layoutConstraint
     extras.layoutConstraintFixedCount = node.layoutConstraintFixedCount ?? null

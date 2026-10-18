@@ -10,43 +10,50 @@ export function stageMaskKey(box = {}) {
     box.enableMask, box.width, box.height, box.enableSoftEdge, box.softEdgeMode,
     box.softEdgeWidthX, box.softEdgeWidthY, box.horizontalSoftRange, box.verticalSoftRange,
     box.enableFill, box.fillType, box.fillHorizontalType, box.fillVerticalType,
-    box.fillRadial90Type, box.fillRadialType, box.fillAmount, box.reverseMaskArea,
+    box.fillRadial90Type, box.fillRadialType, box.fillClockwise, box.fillAmount, box.reverseMaskArea,
   ])
 }
 
 function feather(distance, size, pixels, range, mode) {
-  const edge = mode === 'Pixel' ? Math.max(0, finite(pixels, 8)) / Math.max(1, size)
+  const edge = normalizedFillValue(mode) === 'pixel' ? Math.max(0, finite(pixels, 8)) / Math.max(1, size)
     : (100 - clamp(finite(range, 100), 0, 100)) / 200
   return edge > 0 ? clamp(Math.min(distance, 1 - distance) / edge) : 1
 }
 
 function fillCoverage(x, y, box) {
-  if (!box.enableFill) return 1
+  if (box.enableFill === false) return 1
+  const fillType = normalizedFillValue(box.fillType)
+  if (!fillType || fillType === 'unused') return 1
   const amount = clamp(finite(box.fillAmount, 1))
   if (amount === 0) return 0
   if (amount === 1) return 1
-  if (box.fillType === 'Horizontal') return (box.fillHorizontalType === 'Right' ? 1 - x : x) < amount ? 1 : 0
-  if (box.fillType === 'Vertical') return (box.fillVerticalType === 'Top' ? y : 1 - y) < amount ? 1 : 0
-  const sweep = { Radial90: 90, Radial180: 180, Radial360: 360 }[box.fillType]
+  if (fillType === 'horizontal') return (normalizedFillValue(box.fillHorizontalType) === 'right' ? 1 - x : x) < amount ? 1 : 0
+  if (fillType === 'vertical') return (normalizedFillValue(box.fillVerticalType) === 'top' ? y : 1 - y) < amount ? 1 : 0
+  const sweep = { radial90: 90, radial180: 180, radial360: 360 }[fillType]
   if (!sweep) return 1
   let originX = .5, originY = .5
-  let start = { Bottom: 180, Left: 270, Top: 0, Right: 90 }[box.fillRadialType] ?? 180
-  if (box.fillType === 'Radial90') {
+  let start = { bottom: 180, left: 270, top: 0, right: 90 }[normalizedFillValue(box.fillRadialType)] ?? 180
+  if (fillType === 'radial90') {
     ;[originX, originY, start] = {
-      BottomLeft: [0, 1, 0], TopLeft: [0, 0, 90],
-      TopRight: [1, 0, 180], BottomRight: [1, 1, 270],
-    }[box.fillRadial90Type] || [0, 1, 0]
-  } else if (box.fillType === 'Radial180') {
+      bottomleft: [0, 1, 0], topleft: [0, 0, 90],
+      topright: [1, 0, 180], bottomright: [1, 1, 270],
+    }[normalizedFillValue(box.fillRadial90Type)] || [0, 1, 0]
+  } else if (fillType === 'radial180') {
     ;[originX, originY, start] = {
-      Bottom: [.5, 1, 270], Left: [0, .5, 0],
-      Top: [.5, 0, 90], Right: [1, .5, 180],
-    }[box.fillRadialType] || [.5, 1, 270]
+      bottom: [.5, 1, 270], left: [0, .5, 0],
+      top: [.5, 0, 90], right: [1, .5, 180],
+    }[normalizedFillValue(box.fillRadialType)] || [.5, 1, 270]
   }
   // Conic gradients use physical lengths, so a non-square control needs its
   // aspect ratio included when measuring angles from the upward ray.
   const angle = Math.atan2((x - originX) * Math.max(1, box.width), -(y - originY) * Math.max(1, box.height)) * 180 / Math.PI
-  return ((angle - start) % 360 + 360) % 360 < sweep * amount ? 1 : 0
+  const clockwise = box.fillClockwise !== false
+  const fillStart = clockwise ? start : start + sweep
+  const delta = clockwise ? angle - start : fillStart - angle
+  return ((delta % 360 + 360) % 360) < sweep * amount ? 1 : 0
 }
+
+function normalizedFillValue(value) { return String(value ?? '').toLowerCase() }
 
 // Mutate the visual once, and return independent descendant coverage. The
 // texture's alpha must not be multiplied into its own visual a second time.

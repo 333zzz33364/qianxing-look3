@@ -4,20 +4,15 @@ import { createRectTransform } from '../ui/layout.js'
 import { layoutTree } from '../ui/inspector.js'
 import { toJson } from '../json.js'
 import { projectCanvas, adoptSiteCanvas } from '../ui/canvas.js'
+import { SITE_TYPE_TO_KIND, KIND_TO_SITE_TYPE, readSiteProperties, writeSiteProperties, readSiteAnimations, writeSiteAnimations } from './site-fields.js'
+import { normalizeSiteTemplates, exportSiteTemplates } from './site-templates.js'
+import { restoreLegacySiteMasks } from './site-gia.js'
+import { migrateSiteTweenClips } from './site-legacy.js'
 
 export const SITE_JSON_VERSION = 12
 const SITE_CANVAS_FIELDS = ['deviceMode', 'previewPresetId', 'canvasWidth', 'canvasHeight']
 
-const TYPE_TO_KIND = {
-  container: 'container', image: 'image', primitive: 'image', textbox: 'textbox', text: 'textbox',
-  textwindow: 'textwindow', button: 'button', cursor: 'cursor', grid: 'grid',
-  keyhint: 'keyhint', animation: 'animation', fullscreen: 'fullscreen', reference: 'reference',
-}
-const KIND_TO_TYPE = Object.fromEntries(Object.entries(TYPE_TO_KIND).map(([type, kind]) => [kind, type]))
-// Both image and primitive map to the authoring kind `image`. Use image as the
-// default export type, then preserve a resource-backed primitive explicitly.
-KIND_TO_TYPE.image = 'image'
-KIND_TO_TYPE.textbox = 'textbox'
+const TYPE_TO_KIND = SITE_TYPE_TO_KIND
 
 export function freshLook2() {
   return {
@@ -140,9 +135,12 @@ export function normalizeLook2(raw, project = null) {
     if (!Array.isArray(animation.events)) animation.events = []
   }
   if (!Array.isArray(out.controlTemplates)) out.controlTemplates = []
+  out.controlTemplates = normalizeSiteTemplates(out.controlTemplates)
+  out.animations = readSiteAnimations(out.animations)
   if (!Array.isArray(out.primitiveResources)) out.primitiveResources = []
   if (!out.siteNodes || typeof out.siteNodes !== 'object' || Array.isArray(out.siteNodes)) out.siteNodes = {}
   if (!out.siteExtras || typeof out.siteExtras !== 'object' || Array.isArray(out.siteExtras)) out.siteExtras = {}
+  restoreLegacySiteMasks(Object.values(out.siteNodes), out.siteExtras.giaSource, project)
   if (out.siteCanvasSettings && typeof out.siteCanvasSettings === 'object' && !Array.isArray(out.siteCanvasSettings)) {
     const retained = Object.fromEntries(SITE_CANVAS_FIELDS
       .filter((key) => Object.hasOwn(out.siteCanvasSettings, key))
@@ -151,7 +149,7 @@ export function normalizeLook2(raw, project = null) {
     else delete out.siteCanvasSettings
   } else delete out.siteCanvasSettings
   if (!out.animations.some((animation) => animation.id === out.activeAnimationId)) out.activeAnimationId = out.animations[0].id
-  out.frameRate = Math.max(1, Math.min(120, Math.trunc(Number(out.frameRate) || 30)))
+  out.frameRate = Math.max(1, Math.min(240, Math.trunc(Number(out.frameRate) || 30)))
   const semanticVersion = Number(raw.semanticVersion)
   if (!Number.isFinite(semanticVersion) || semanticVersion < 2) migrateLegacySemantics(out, project)
   out.semanticVersion = 2
@@ -173,16 +171,7 @@ function siteTransform(row) {
 function siteNode(row) {
   const kind = TYPE_TO_KIND[row.type]
   if (!kind) throw new Error(`参考网站的控件类型暂不支持：${row.type}`)
-  const properties = { ...(row.properties || {}) }
-  if (kind === 'image') {
-    const enumFields = ['imageSource', 'imageType', 'softEdgeMode', 'fillType', 'fillHorizontalType', 'fillVerticalType', 'fillRadial90Type', 'fillRadialType']
-    for (const field of enumFields) if (typeof properties[field] === 'string') {
-      properties[field] = properties[field].replace(/^./, (letter) => letter.toUpperCase())
-    }
-    const usedFill = properties.fillType != null && properties.fillType !== 'Unused'
-    if (properties.fillType === 'Unused') properties.fillType = 'Horizontal'
-    properties.enableFill = properties.enableFill ?? (usedFill && properties.fillAmount != null)
-  }
+  const properties = readSiteProperties(kind, row.properties)
   const packedColors = Object.fromEntries(COLOR_PROPERTY_FIELDS
     .filter(field => properties[field] != null)
     .map(field => [field, packSiteColor(properties[field])]))
@@ -198,6 +187,8 @@ export function importSiteJson(input) {
   if (Number(input?.version) !== SITE_JSON_VERSION || !Array.isArray(input.nodes)) {
     throw new Error(`仅支持参考网站 version ${SITE_JSON_VERSION} 的 JSON 工程`)
   }
+  input = toJson(input)
+  restoreLegacySiteMasks(input.nodes, input.giaSource)
   const project = createDefaultClientTemplateProject()
   project.meta.name = String(input.name || '导入动画')
   project.meta.sourceFormat = 'site-json'
@@ -237,10 +228,12 @@ export function importSiteJson(input) {
   const siteCanvasSettings = Object.fromEntries(SITE_CANVAS_FIELDS
     .filter((key) => Object.hasOwn(input, key))
     .map((key) => [key, input[key]]))
+  adoptSiteCanvas(project, { siteCanvasSettings })
   const look2 = normalizeLook2({
     semanticVersion: 2,
     frameRate: input.frameRate, timelineSnapEnabled: input.timelineSnapEnabled,
-    activeAnimationId: input.activeAnimationId, animations: input.animations?.length ? input.animations : [{ id: 'animation-default', name: '默认动画', duration: input.duration || 5, keyframeTracks: input.keyframeTracks || [] }],
+    activeAnimationId: input.activeAnimationId, animations: input.animations?.length ? input.animations : [{ id: 'animation-default', name: '默认动画', duration: input.duration || 5,
+      keyframeTracks: input.keyframeTracks || migrateSiteTweenClips(input, project) }],
     controlTemplates: input.controlTemplates, primitiveResources: input.primitiveResources,
     siteNodes, siteExtras,
     siteCanvasSettings,
@@ -264,7 +257,7 @@ export function exportSiteJson(project, rawLook2) {
     nodes.push({
       ...original, id: node.id, parentId, name: node.name,
       type: node.kind === 'image' && (original.type === 'primitive' || resourceImage)
-        ? 'primitive' : KIND_TO_TYPE[node.kind] || node.kind,
+        ? 'primitive' : TYPE_TO_KIND[original.type] === node.kind ? original.type : KIND_TO_SITE_TYPE[node.kind] || node.kind,
       active: node.active !== false, visible: node.visible !== false,
       x: box?.centerX ?? original.x ?? 0, y: box?.centerY ?? original.y ?? 0,
       width: box?.width ?? original.width ?? 0, height: box?.height ?? original.height ?? 0,
@@ -275,7 +268,7 @@ export function exportSiteJson(project, rawLook2) {
       pivotX: rt.pivot.x, pivotY: rt.pivot.y,
       anchorOffsetX: rt.offset.x, anchorOffsetY: rt.offset.y,
       sizeDeltaX: rt.size.x, sizeDeltaY: rt.size.y,
-      properties: { ...(original.properties || {}), ...(node.kind === 'textbox' || node.kind === 'textwindow' ? {
+      properties: { ...(original.properties || {}), ...writeSiteProperties(node), ...(node.kind === 'textbox' || node.kind === 'textwindow' ? {
         text: node.text, fontSize: node.fontSize,
         fontColor: unpackSiteColor(node.fontColor), bgColor: unpackSiteColor(node.bgColor), outlineColor: unpackSiteColor(node.outlineColor),
       } : {}), ...(node.kind === 'image' ? {
@@ -290,7 +283,7 @@ export function exportSiteJson(project, rawLook2) {
         softEdgeMode: String(node.softEdgeMode || 'Pixel').replace(/^./, (letter) => letter.toLowerCase()),
         softEdgeWidthX: node.softEdgeWidthX, softEdgeWidthY: node.softEdgeWidthY,
         horizontalSoftRange: node.horizontalSoftRange, verticalSoftRange: node.verticalSoftRange,
-        reverseMaskArea: node.reverseMaskArea,
+        reverseMaskArea: node.reverseMaskArea, enableFill: node.enableFill, fillClockwise: node.fillClockwise,
         fillType: node.enableFill ? String(node.fillType || 'Horizontal').replace(/^./, (letter) => letter.toLowerCase()) : 'unused',
         fillHorizontalType: String(node.fillHorizontalType || 'Left').replace(/^./, (letter) => letter.toLowerCase()),
         fillVerticalType: String(node.fillVerticalType || 'Top').replace(/^./, (letter) => letter.toLowerCase()),
@@ -306,6 +299,7 @@ export function exportSiteJson(project, rawLook2) {
   }
   for (const root of project.root.children || []) visit(root)
   const canvas = projectCanvas(project)
+  const animations = writeSiteAnimations(look2.animations)
   return toJson({
     ...look2.siteExtras,
     version: SITE_JSON_VERSION, hierarchyLayoutVersion: look2.siteExtras.hierarchyLayoutVersion || 2,
@@ -316,10 +310,10 @@ export function exportSiteJson(project, rawLook2) {
     previewPresetId: canvasValue('previewPresetId', project.canvasId),
     canvasWidth: canvasValue('canvasWidth', canvas.width), canvasHeight: canvasValue('canvasHeight', canvas.height),
     duration: look2.animations.find((a) => a.id === look2.activeAnimationId)?.duration || 5,
-    frameRate: look2.frameRate, nodes, controlTemplates: look2.controlTemplates,
+    frameRate: look2.frameRate, nodes, controlTemplates: exportSiteTemplates(look2.controlTemplates),
     primitiveResources: look2.primitiveResources, giaSource: look2.siteExtras.giaSource || null,
-    tweenTracks: look2.siteExtras.tweenTracks || [], keyframeTracks: look2.animations.find((a) => a.id === look2.activeAnimationId)?.keyframeTracks || [], animationModelVersion: look2.siteExtras.animationModelVersion || 1,
-    animations: look2.animations, activeAnimationId: look2.activeAnimationId,
+    tweenTracks: look2.siteExtras.tweenTracks || [], keyframeTracks: animations.find((a) => a.id === look2.activeAnimationId)?.keyframeTracks || [], animationModelVersion: look2.siteExtras.animationModelVersion || 1,
+    animations, activeAnimationId: look2.activeAnimationId,
     timelineSnapEnabled: look2.timelineSnapEnabled, showContainerBones: look2.siteExtras.showContainerBones !== false,
     giaImportStatus: look2.siteExtras.giaImportStatus || '',
   })

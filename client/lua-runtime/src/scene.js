@@ -549,11 +549,13 @@ export class Control {
 
   SetFillUnused() {
     this.fillType = 'Unused'
+    this.enableFill = false
     this.markPlayDirty()
   }
 
   SetFillHorizontal(t, a) {
     this.fillType = 'Horizontal'
+    this.enableFill = true
     this.fillHorizontalType = t
     this.fillAmount = a
     this.markPlayDirty()
@@ -561,6 +563,7 @@ export class Control {
 
   SetFillVertical(t, a) {
     this.fillType = 'Vertical'
+    this.enableFill = true
     this.fillVerticalType = t
     this.fillAmount = a
     this.markPlayDirty()
@@ -568,6 +571,7 @@ export class Control {
 
   SetFillRadial90(t, a) {
     this.fillType = 'Radial90'
+    this.enableFill = true
     this.fillRadial90Type = t
     this.fillAmount = a
     this.markPlayDirty()
@@ -575,6 +579,7 @@ export class Control {
 
   SetFillRadial180(t, a) {
     this.fillType = 'Radial180'
+    this.enableFill = true
     this.fillRadialType = t
     this.fillAmount = a
     this.markPlayDirty()
@@ -582,6 +587,7 @@ export class Control {
 
   SetFillRadial360(t, a) {
     this.fillType = 'Radial360'
+    this.enableFill = true
     this.fillRadialType = t
     this.fillAmount = a
     this.markPlayDirty()

@@ -184,7 +184,7 @@ function createPlayerRuntime(compiled, templateBundle, scripts, language) {
     ...(language ? { language } : {}),
   })
   for (const template of [...(compiled.templates || []), ...(templateBundle?.templates || [])]) {
-    if (Number.isSafeInteger(template.prefabIndex) && template.prefabIndex > 0) {
+    if (Number.isSafeInteger(template.prefabIndex) && template.prefabIndex >= 0) {
       rt.registerTemplate(template.prefabIndex, template)
     }
   }
@@ -309,6 +309,7 @@ function enumName(value) {
 
 function imageFillFields(control) {
   return {
+    enableFill: control.enableFill === true,
     fillType: enumName(control.fillType),
     fillHorizontalType: enumName(control.fillHorizontalType),
     fillVerticalType: enumName(control.fillVerticalType),
@@ -448,7 +449,7 @@ function sceneFingerprint(node) {
     m.a, m.b, m.c, m.d, m.tx, m.ty,
     node.kind, node.name, node.sourceWidth, node.sourceHeight, node.pressed,
     node.primitive, node.imageColor, node.imageId, node.imageSource, node.imageType,
-    node.fillType, node.fillHorizontalType, node.fillVerticalType, node.fillAmount,
+    node.enableFill, node.fillType, node.fillHorizontalType, node.fillVerticalType, node.fillAmount,
     node.enableMask, node.enableSoftEdge, node.softEdgeMode, node.softEdgeWidthX, node.softEdgeWidthY,
     node.text, node.fontSize, node.fontColor, node.bgColor,
     node.adaptiveFontSize, node.minimumFontSize, JSON.stringify(node.textLayout),

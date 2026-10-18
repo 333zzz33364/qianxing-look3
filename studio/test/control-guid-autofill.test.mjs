@@ -28,7 +28,8 @@ test('any nested anchor fills native preorder across templates, preserves artwor
   assert.ok(result.controlGuidChanges[0].batchId)
   assert.deepEqual(result.controlGuidChanges.map(c => c.controlId), ids)
   const after = studio.archiveData()
-  assert.deepEqual(after.assets.server, before.assets.server)
+  assert.equal(after.assets.server.version, before.assets.server.version + 1, "Look2 shares one revision across both assets")
+  assert.deepEqual({ ...after.assets.server, version: before.assets.server.version }, before.assets.server)
   assert.deepEqual(after.assets.scripts, before.assets.scripts)
   for (const id of ids) findNode(after.assets.client.root, id).guid = findNode(before.assets.client.root, id).guid
   assert.deepEqual(after.assets.client.root, before.assets.client.root)

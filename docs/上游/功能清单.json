@@ -1,0 +1,1189 @@
+{
+  "schemaVersion": 1,
+  "features": [
+    {
+      "id": "L01",
+      "name": "Lua生命周期、脚本挂载与require",
+      "source": "look",
+      "upstreamPaths": [
+        "client/lua-runtime"
+      ],
+      "targetPaths": [
+        "client/lua-runtime"
+      ],
+      "tests": [
+        "client/lua-runtime/test/runtime.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "L02",
+      "name": "Tween、Sequence与动画回调",
+      "source": "look",
+      "upstreamPaths": [
+        "client/lua-runtime/src/tween.js"
+      ],
+      "targetPaths": [
+        "client/lua-runtime/src/tween.js",
+        "studio/look2"
+      ],
+      "tests": [
+        "client/lua-runtime/test/runtime.test.mjs",
+        "studio/test/look2-player.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "L03",
+      "name": "鼠标、触摸、按键与命中",
+      "source": "look",
+      "upstreamPaths": [
+        "client/lua-runtime/src/runtime.js",
+        "studio/play/browser-session.js",
+        "studio/play/key-bindings.js"
+      ],
+      "targetPaths": [
+        "client/lua-runtime/src/runtime.js",
+        "studio/play/browser-session.js"
+      ],
+      "tests": [
+        "studio/test/browser-session.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "L04",
+      "name": "网格条目实例化、布局与滚动",
+      "source": "look",
+      "upstreamPaths": [
+        "client/lua-runtime/src/grid.js",
+        "studio/play/scroll-geometry.js",
+        "studio/play/scroll.js"
+      ],
+      "targetPaths": [
+        "client/lua-runtime/src/grid.js",
+        "studio/play/scroll.js"
+      ],
+      "tests": [
+        "studio/test/scroll.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "L05",
+      "name": "文本视窗、换行与滚动条",
+      "source": "look",
+      "upstreamPaths": [
+        "studio/play/text-layout.js",
+        "studio/play/scroll.js"
+      ],
+      "targetPaths": [
+        "studio/play/text-layout.js",
+        "studio/play/pixi-renderer.js"
+      ],
+      "tests": [
+        "studio/test/scroll.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "L06",
+      "name": "2D音频、停止与存活状态",
+      "source": "look",
+      "upstreamPaths": [
+        "client/lua-runtime/src/runtime.js",
+        "studio/play/audio-player.js",
+        "studio/host/audio-assets.js",
+        "studio/assets/audio-catalog.js"
+      ],
+      "targetPaths": [
+        "studio/play/audio-player.js",
+        "studio/host/audio-assets.js"
+      ],
+      "tests": [
+        "client/lua-runtime/test/audio.test.mjs",
+        "studio/test/audio-player.test.mjs",
+        "web/test/audio-assets.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "L07",
+      "name": "三轴旋转投影与反向命中",
+      "source": "look",
+      "upstreamPaths": [
+        "studio/ui/layout.js",
+        "editor-ui/control-transform.js"
+      ],
+      "targetPaths": [
+        "studio/ui/layout.js",
+        "editor-ui/look2.js"
+      ],
+      "tests": [
+        "studio/test/rotation-xy.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "L08",
+      "name": "图片、元件图标与来源隔离缓存",
+      "source": "look",
+      "upstreamPaths": [
+        "studio/assets",
+        "studio/host/image-assets.js",
+        "editor-ui/image-preview.js"
+      ],
+      "targetPaths": [
+        "studio/assets",
+        "studio/host/image-assets.js",
+        "editor-ui/image-preview.js"
+      ],
+      "tests": [
+        "studio/test/image-assets.test.mjs",
+        "web/test/image-assets.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "L09",
+      "name": "九宫格、图片填充、软遮罩与资源释放",
+      "source": "look",
+      "upstreamPaths": [
+        "studio/assets/image-stretch.js",
+        "studio/play/image-mask.js",
+        "studio/play/pixi-renderer.js"
+      ],
+      "targetPaths": [
+        "studio/assets/image-stretch.js",
+        "studio/play/image-mask.js",
+        "studio/play/pixi-renderer.js"
+      ],
+      "tests": [
+        "studio/test/image-mask.test.mjs",
+        "studio/test/look2-image-mask.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "L10",
+      "name": "本地字体、PNG与浏览器文字测量",
+      "source": "look",
+      "upstreamPaths": [
+        "studio/fonts.js",
+        "studio/host/local-font.js",
+        "studio/play/browser-font.js",
+        "editor-ui/text-preview.js"
+      ],
+      "targetPaths": [
+        "studio/fonts.js",
+        "studio/host/local-font.js",
+        "studio/play/browser-font.js"
+      ],
+      "tests": [
+        "studio/test/local-font.test.mjs",
+        "web/test/local-font.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "L11",
+      "name": "GIA与JSON资产交换、布局迁移",
+      "source": "look",
+      "upstreamPaths": [
+        "studio/gia",
+        "studio/ui/project.js",
+        "studio/json.js"
+      ],
+      "targetPaths": [
+        "studio/gia",
+        "studio/ui/project.js",
+        "studio/json.js"
+      ],
+      "tests": [
+        "studio/test/platform-layout.test.mjs",
+        "studio/test/gia-observed-fields.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "L12",
+      "name": "持久客户端索引与同级wire顺序",
+      "source": "look",
+      "upstreamPaths": [
+        "studio/gia/asset-indices.js",
+        "studio/gia/client-order.js"
+      ],
+      "targetPaths": [
+        "studio/gia/asset-indices.js",
+        "studio/gia/client-order.js"
+      ],
+      "tests": [
+        "studio/test/gia-asset-indices.test.mjs",
+        "studio/test/gia-client-order.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "L13",
+      "name": "变量、信号与多人隔离",
+      "source": "look",
+      "upstreamPaths": [
+        "server",
+        "studio/play/session.js"
+      ],
+      "targetPaths": [
+        "server",
+        "studio/play/session.js"
+      ],
+      "tests": [
+        "server/test",
+        "studio/test/multiplayer.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "L14",
+      "name": "多设备画布与多人视角",
+      "source": "look",
+      "upstreamPaths": [
+        "studio/constants.js",
+        "studio/ui/layout.js",
+        "studio/play/session.js"
+      ],
+      "targetPaths": [
+        "studio/constants.js",
+        "studio/ui/layout.js",
+        "studio/play/session.js"
+      ],
+      "tests": [
+        "studio/test/play-target.test.mjs",
+        "studio/test/platform-layout.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "L15",
+      "name": "启动、暂停、步进与两种时钟",
+      "source": "look",
+      "upstreamPaths": [
+        "studio/host/controller.js",
+        "studio/host/worker.js",
+        "studio/play/session.js"
+      ],
+      "targetPaths": [
+        "studio/host/controller.js",
+        "studio/host/worker.js"
+      ],
+      "tests": [
+        "studio/test/host-clock.test.mjs",
+        "studio/test/play-target.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "L16",
+      "name": "日志、录制、回放与断言",
+      "source": "look",
+      "upstreamPaths": [
+        "studio/log",
+        "studio/autotest"
+      ],
+      "targetPaths": [
+        "studio/log",
+        "studio/autotest"
+      ],
+      "tests": [
+        "studio/test/autotest.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "L17",
+      "name": "存档发现、扫描预算与显式保存",
+      "source": "look",
+      "upstreamPaths": [
+        "studio/host/workspace.js",
+        "studio/host/controller.js",
+        "web/lib/session.js"
+      ],
+      "targetPaths": [
+        "studio/host/workspace.js",
+        "studio/host/controller.js",
+        "web/lib/session.js"
+      ],
+      "tests": [
+        "studio/test/workspace.test.mjs",
+        "studio/test/workspace.upstream.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "L18",
+      "name": "索引批量校准与Lua引用同步",
+      "source": "look",
+      "upstreamPaths": [
+        "studio/control-guid-lua.js",
+        "studio/host/control-guid-sync.js",
+        "editor-ui/control-guid-sync.js"
+      ],
+      "targetPaths": [
+        "studio/control-guid-lua.js",
+        "studio/host/control-guid-sync.js",
+        "editor-ui/control-guid-sync.js"
+      ],
+      "tests": [
+        "studio/test/control-guid-sync.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "L19",
+      "name": "实机脚本目录绑定、差异与确认复制",
+      "source": "look",
+      "upstreamPaths": [
+        "studio/script-sync-config.js",
+        "studio/host/script-sync.js",
+        "editor-ui/script-sync.js"
+      ],
+      "targetPaths": [
+        "studio/script-sync-config.js",
+        "studio/host/script-sync.js",
+        "editor-ui/script-sync.js"
+      ],
+      "tests": [
+        "studio/test/script-sync.test.mjs",
+        "web/test/script-sync-e2e.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "L20",
+      "name": "Web编辑、磁盘预览与独立会话",
+      "source": "look",
+      "upstreamPaths": [
+        "web"
+      ],
+      "targetPaths": [
+        "web"
+      ],
+      "tests": [
+        "web/test/editor.test.mjs",
+        "web/test/web.test.mjs",
+        "web/test/preview-state.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "L21",
+      "name": "MCP工具、预览桥接与手动时钟",
+      "source": "look",
+      "upstreamPaths": [
+        "mcp"
+      ],
+      "targetPaths": [
+        "mcp"
+      ],
+      "tests": [
+        "mcp/test/protocol.test.mjs",
+        "mcp/test/web-integration.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "L22",
+      "name": "DSH工具、资源路由与生命周期",
+      "source": "look",
+      "upstreamPaths": [
+        "dsh-plugin"
+      ],
+      "targetPaths": [
+        "dsh-plugin"
+      ],
+      "tests": [
+        "dsh-plugin/test/plugin.test.mjs",
+        "dsh-plugin/test/lifecycle.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "L23",
+      "name": "独立窗口与受限宿主内嵌试玩",
+      "source": "look",
+      "upstreamPaths": [
+        "editor-ui/play-launcher.js",
+        "dsh-plugin/lib/play.html"
+      ],
+      "targetPaths": [
+        "editor-ui/play-launcher.js",
+        "dsh-plugin/lib/play.html"
+      ],
+      "tests": [
+        "web/test/desktop-play.test.mjs",
+        "web/test/embedded-play-browser.test.mjs",
+        "web/test/play-return.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "L24",
+      "name": "七步制作工作流与预设",
+      "source": "look",
+      "upstreamPaths": [
+        "agent",
+        "skill"
+      ],
+      "targetPaths": [
+        "agent",
+        "skill"
+      ],
+      "tests": [
+        "scripts/smoke-installed.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "L25",
+      "name": "三产品构建、独立安装与许可文件",
+      "source": "look",
+      "upstreamPaths": [
+        "scripts",
+        "package.json",
+        "Dockerfile",
+        "compose.yaml"
+      ],
+      "targetPaths": [
+        "scripts",
+        "package.json",
+        "Dockerfile",
+        "compose.yaml"
+      ],
+      "tests": [
+        "scripts/test.mjs",
+        "scripts/smoke-packages.mjs",
+        "scripts/smoke-git-install.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-UI01",
+      "name": "同工程1280×720/1920×1080下比对工具栏、四区域与时间轴布局、颜色、字体、间距和选中状态",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-UI02",
+      "name": "工具栏工作区、新建、保存、撤销/重做/记录、导入/导出、模板、图片、Lua、设备、缩放入口可操作",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-UI03",
+      "name": "树搜索、父子折叠、隐藏、锁定、删除、复制、拖放改父级及层序，选中与属性/画布联动",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-UI04",
+      "name": "画布滚轮缩放、中键平移、缩放百分比/增减/适应、坐标与设备尺寸显示",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-UI05",
+      "name": "三合一/移动/旋转/大小手柄；父级有旋转/缩放时仍使用正确坐标；锁定对象不能拖动",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-UI06",
+      "name": "骨骼模式、动画面板收起/展开、时间轴高度拖动，窄屏不丢失功能入口",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-UI07",
+      "name": "属性基础/运行时页、分组展开/复制/重置，四平台变换与锚点预设、3D数值、创建/编辑设置",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-UI08",
+      "name": "各控件类型属性显示与提交，颜色、文本、字体、图片、填充、遮罩、软边、按钮状态/模板引用等",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-RS01",
+      "name": "本地/网址图片导入，图片随正式工程保存；网址失效后仍可重开",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-RS02",
+      "name": "资源搜索、重命名、共享引用/引用数、清除与删除，绑定多个控件并保存重开",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-RS03",
+      "name": "椭圆/矩形/三角形拟合：数量、精度、线程、透明选项，恢复默认参数",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-RS04",
+      "name": "计算不阻塞编辑器，进度与取消；关闭面板取消剩余计算，已完成结果保留；过期结果不覆盖新资源",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-RS05",
+      "name": "一键生成全部缺失图元不受搜索限制，逐图参数生效，失败与取消结果准确",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-RS06",
+      "name": "原图/拟合显示切换与全局切换；同资源在不同尺寸控件中等比适配",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-RS07",
+      "name": "导出/导入纯填充SVG、shaper CSS，支持三种形状与平移/旋转/缩放；透明/白底语义一致",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-RS08",
+      "name": "不支持曲线/描边/渐变/蒙版时明确报错，旧拟合与原图/ID不变；成功覆盖可撤销",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-RS09",
+      "name": "参考源在线素材目录/分类/搜索/真实缩略图/边框；已加载项自动缓存，断网仍可读取",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-AN01",
+      "name": "动画新增/复制/改名/删除/切换，共享基础控件但关键帧、事件、时长相互独立",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-AN02",
+      "name": "分组轨道/控件折叠、当前值/插帧、秒/帧刻度、播放头、回起点、播放/暂停、帧率/时长/吸附",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-AN03",
+      "name": "双击/右键插帧、拖动、关键帧参数、多选、Ctrl+C/V、Delete、轨道删除，撤销恢复",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-AN04",
+      "name": "31种缓动以及阶跃/补间、最后保持、精确边界、颜色/布尔字段的正确编辑与播放",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-AN05",
+      "name": "位置/大小/缩放的前帧增量；首帧基于初始值，后续基于前一右侧值；跳变入侧值",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-AN06",
+      "name": "旋转多圈角度、组透明度0–255、颜色RGBA与首帧前显隐，JS/Lua结果对照",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-AN07",
+      "name": "事件时间/名称/目标/参数、编辑/删除/排序与最近50条日志；播放触发、seek不触发、同刻顺序稳定",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-TP01",
+      "name": "模板GIA导入、名称/索引管理、保存重开、引用/实例化及缺失模板提示",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-IM01",
+      "name": "站点JSONv12往返保留编辑字段、模板、资源、动画、事件与未编辑元数据",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-IM02",
+      "name": "GIA导入/导出/回导保留层序、图元形状/颜色/变换、脚本源码/映射/挂载；源编辑树不被烘焙污染",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-IM03",
+      "name": "PSD图层分组/位置/透明度及网页支持的像素结果，失败时保留原工程",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-IM04",
+      "name": "Spine3.8层级变换、贴图、动画/曲线/插槽和网页支持边界；失效资源/不支持特性明确报告",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-LU01",
+      "name": "TimelineData @8及网页支持旧schema导入，追加/替换、指定根/路径、颜色、跳变、事件完整往返",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-LU02",
+      "name": "TweenTimelineLib.Create(root,data,options)返回可控制序列，数据版本检查、重播、显隐、事件/回调",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-LU03",
+      "name": "PrimitiveData和PrimitiveImageLib.create(root,data,imagePrefabIndex)，销毁/重复生成只影响自身创建图元",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-ST01",
+      "name": "控件/素材/模板/动画统一事务、版本冲突无副作用、撤销/重做/历史恢复与失败回滚",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-ST02",
+      "name": "工作区存档、新建/改名/保存/重开、IndexedDB大图片草稿与恢复，正式文件仅显式保存",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-ST03",
+      "name": "2.0.3及原Look旧存档迁移保持效果，原文件不覆盖；原Look目录保持不变",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-HT01",
+      "name": "Web/DSH/MCP接口同步、三产品构建、全量回归、资源Worker与在线图片宿主接入",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    },
+    {
+      "id": "U-HT02",
+      "name": "子代理按完整清单独立验收；千星实机状态与自动化结果分别报告",
+      "source": "ui-editor",
+      "upstreamPaths": [
+        "src/views/ClientUIAnimationEditor"
+      ],
+      "targetPaths": [
+        "editor-ui",
+        "studio/look2"
+      ],
+      "tests": [
+        "studio/test/look2.test.mjs"
+      ],
+      "status": "pending",
+      "evidence": [],
+      "externalAcceptance": "pending"
+    }
+  ],
+  "projectStatus": "paused-by-user",
+  "projectComplete": false,
+  "checkpoint": "look3-workspace/整合/20261018-恢复/暂停检查点.json",
+  "note": "2026-10-18恢复后再次暂停：新增核心/活动界面/格式适配及局部日志已保存；62项仍待完整审计，所有pending保持未接受；首轮宿主失败及最终全回归/构建/页面缺口见progressReport。",
+  "progressReport": "look3-workspace/整合/20261018-恢复/暂停验证汇总.json"
+}

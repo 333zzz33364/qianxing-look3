@@ -4,6 +4,7 @@
  * Radial fill is not implemented by either renderer.
  */
 export function imageFillRect(item, width, height) {
+  if (item.enableFill === false) return null
   if (item.fillType !== 'Horizontal' && item.fillType !== 'Vertical') return null
   const raw = Number(item.fillAmount ?? 1)
   // Invalid/missing amounts retain the complete proxy; finite progress clamps
