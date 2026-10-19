@@ -4,6 +4,7 @@ import { SimulatorController } from './lib/controller.js'
 import { listWorkspaceArchives, resolveWorkspaceRoot } from './lib/workspace.js'
 import { createPreviewClient } from './lib/preview.js'
 import manifest from './package.json' with { type: 'json' }
+import { listArchiveWorkspaces } from '../studio/host/archive-management.js'
 
 const SERVER_NAME = 'look3-mcp'
 const SERVER_VERSION = manifest.version
@@ -157,10 +158,13 @@ const tools = [
   },
   {
     name: 'look3_studio_load',
-    description: '列出工作区内的 qxqy-simulator-save JSON，或把指定相对路径载入本 MCP 进程的已有工程句柄。不会刷新 Web 预览；显示已有存档请调用 look3_preview_open，无需再次保存。',
+    description: '列出工作区存档与子工作区，或载入相对路径。operation 可显式创建/改名子工作区或改名存档文件，需 handle 与 expectedRevision；改名不保存未保存草稿且拒绝覆盖。不会刷新 Web 预览。',
     inputSchema: objectSchema({
       ...handleProperty,
       path: { type: 'string', description: '省略时列出存档；传入工作区内相对路径时载入该存档。' },
+      operation: { type: 'string', enum: ['create-workspace', 'rename-workspace', 'rename-archive'] },
+      name: { type: 'string', description: '新工作区名或存档文件名。' },
+      expectedRevision: { type: 'integer' },
     }),
   },
   {
@@ -223,14 +227,14 @@ async function callTool(name, args = {}, signal) {
     }
   }
 
-  if (name === 'look3_studio_load' && !args.handle && !args.path) {
-    return listWorkspaceArchives(workspaceRoot)
+  if (name === 'look3_studio_load' && !args.handle && !args.path && !args.operation) {
+    return { ...listWorkspaceArchives(workspaceRoot), workspaces: listArchiveWorkspaces(workspaceRoot) }
   }
 
   const controller = controllerFor(args.handle)
   return controller.exclusive(async () => {
     if (name === 'look3_project_save') return {
-      ...controller.saveArchive(args.path),
+      ...controller.saveForScriptSync(args.path || controller.archivePath || 'look3-simulator.save.json', controller.get().version),
       preview: { status: 'not-requested', message: 'Saved to disk. Call look3_preview_open with the returned path to switch or confirm the Web preview.' },
     }
     if (name === 'look3_studio_get') return controller.get()
@@ -245,6 +249,11 @@ async function callTool(name, args = {}, signal) {
     if (name === 'look3_studio_ui_screenshot') return controller.uiScreenshot(signal)
     if (name === 'look3_studio_play_screenshot') return controller.playScreenshot(signal)
     if (name === 'look3_studio_load') {
+      if (args.operation) {
+        const result = controller.manageArchive(args)
+        for (const sibling of projects.values()) sibling.remapStorage(result)
+        return result
+      }
       return args.path ? controller.loadArchive(args.path) : controller.listArchives()
     }
     throw new Error(`unknown tool: ${name}`)

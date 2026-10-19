@@ -73,7 +73,7 @@ test('restoring a parent preserves a child hidden independently, including its s
 
 test('hidden subtrees do not leave bone guides on the canvas', () => {
   const studio = createStudio(createDefaultProject()), view = makeView(studio)
-  view.find(node => node.props.title === '骨骼视图')[0].props.onClick(); view.render()
+  view.find(node => node.type === 'button' && node.children.includes('骨骼视图'))[0].props.onClick(); view.render()
   assert.ok(view.find(node => node.props.className === 'look2-bone').length > 0)
   view.eye(studio.get().root.id).props.onClick(); view.render()
   assert.equal(view.find(node => node.props.className === 'look2-bone').length, 0)

@@ -1,5 +1,6 @@
 import { importPsd, importSpine } from './look2-assets.js'
 import { sampleTrack, EASE_TYPES, TWEENABLE_FIELDS } from '../studio/look2/sampling.js'
+import { copiedAnimationName, newAnimationName, validateAnimationName } from '../studio/look2/animation-names.js'
 import { previewAnimation, projectPreviewTreeForPlatform } from '../studio/look2/preview.js'
 import { createPrimitivePreviewSource } from './primitive-preview.js'
 import { applyStageImageMask, stageMaskKey } from './stage-image-mask.js'
@@ -18,6 +19,8 @@ import { normalizeImageMeta, rasterizeSlices, supportsImageStretch } from '../st
 import { loadBrowserFont } from '../studio/play/browser-font.js'
 import { textLayout } from '../studio/play/text-layout.js'
 import { DEFAULT_FONT } from '../studio/fonts.js'
+import { imageAssetKey, imageAssetUrl, imageSourceName, isRemoteImage } from '../studio/assets/catalog.js'
+import { loadBrowserImageAsset, loadBrowserImageMetadata, refreshBrowserImage, subscribeImageRefresh } from '../studio/assets/browser.js'
 
 const PLAY_TARGET_GUIDE = playTargetGuide()
 const playHelpTitle = `${PLAY_TARGET_GUIDE.full.label}：${PLAY_TARGET_GUIDE.full.detail}\n${PLAY_TARGET_GUIDE.template.label}：${PLAY_TARGET_GUIDE.template.detail}\n${PLAY_TARGET_GUIDE.difference}`
@@ -89,6 +92,24 @@ export function groupWorkspaceArchives(archives = []) {
   const other = []
   for (const entry of archives) (String(entry?.path || '').includes('/') ? other : root).push(entry)
   return { root, other }
+}
+
+const DEFAULT_WORKSPACE = { name: '默认工作区', path: '' }
+const archivePath = value => String(value || '').replaceAll('\\', '/').replace(/^\/+|\/+$/g, '')
+function replaceArchivePrefix(value, previousPath, nextPath) {
+  const path = archivePath(value), previous = archivePath(previousPath), next = archivePath(nextPath)
+  if (!path || !previous || (path !== previous && !path.startsWith(`${previous}/`))) return value
+  return `${next}${path.slice(previous.length)}`
+}
+function archivesForWorkspace(archives, workspacePath, includeNested) {
+  const folder = archivePath(workspacePath)
+  return archives.filter(entry => {
+    const path = archivePath(entry?.path)
+    const prefix = folder ? `${folder}/` : ''
+    if (!path.startsWith(prefix)) return false
+    const relative = path.slice(prefix.length)
+    return !!relative && (includeNested || !relative.includes('/'))
+  })
 }
 
 import {
@@ -217,6 +238,8 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
   .look2-top .play-group{padding-left:5px;border-left:1px solid var(--line)}
   .look2-workspace{display:flex;flex-direction:column;gap:6px;padding:7px 9px;border-bottom:1px solid var(--line);background:#1c2027}
   .look2-workspace-row{display:flex;align-items:center;gap:6px;min-width:0}
+  .look2-workspace-row.look2-archive-row{flex-wrap:wrap}
+  .look2-workspace-row.look2-workspace-actions button{flex:0 0 auto}
   .look2-workspace-row>span{flex:0 0 auto;color:var(--muted);font-size:11px}
   .look2-workspace-row .file-name{flex:1 1 200px;min-width:120px}
   .look2-workspace-row .look2-archive-select{flex:0 1 560px;min-width:180px}
@@ -224,6 +247,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
   .look2-workspace-row .look2-danger:hover{border-color:#a25a5a;background:#4a3034}
   .look2-archive-filter{display:inline-flex;align-items:center;gap:4px;color:var(--muted);font-size:11px;white-space:nowrap;cursor:pointer}
   .look2-archive-filter input{width:14px;height:14px}
+  .look2-manage-error{padding:7px 12px;color:#ffa5a5;font-size:11px}
   .look2-usage{border:1px solid var(--line);border-radius:6px;background:#20242c;padding:0 10px}
   .look2-usage>summary{cursor:pointer;padding:6px 0;color:var(--text);font-size:12px;font-weight:600}
   .look2-usage-list{margin:0 0 9px;padding-left:20px;color:var(--muted);font-size:11px;line-height:1.75}
@@ -293,13 +317,22 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
     const style = document.createElement('style'); style.id = STYLE_ID; style.textContent = CSS; document.head.append(style)
   }
   const primitivePreviewSource = createPrimitivePreviewSource()
-  function StageImage({ src, tint, imageType = 'Basic', borderUrl = '', fitContain = false, maskBox = {}, contentOpacity = 1, label = '', children }) {
+  function StageImage({ src, tint, imageType = 'Basic', borderUrl = '', sharedImage = null, fitContain = false, maskBox = {}, contentOpacity = 1, label = '', children }) {
     const canvasRef = React.useRef(null)
     const [failed, setFailed] = React.useState(false)
     const [border, setBorder] = React.useState(null)
     const [mask, setMask] = React.useState(null)
-    const maskKey = `${src}|${imageType}|${borderUrl}|${fitContain}|${stageMaskKey(maskBox)}|${JSON.stringify(border)}`
+    const [revision, setRevision] = React.useState(0)
+    const sharedKey = sharedImage ? imageAssetKey(sharedImage.id, sharedImage.source) : ''
+    React.useEffect(() => sharedKey ? subscribeImageRefresh(key => { if (key === sharedKey) setRevision(value => value + 1) }) : undefined, [sharedKey])
+    const maskKey = `${src}|${sharedKey}|${revision}|${imageType}|${borderUrl}|${fitContain}|${stageMaskKey(maskBox)}|${JSON.stringify(border)}`
     React.useEffect(() => {
+      if (sharedImage) {
+        let alive = true
+        setBorder(null)
+        loadBrowserImageMetadata(sharedImage.id, sharedImage.source).then(value => { if (alive) setBorder(value) }, () => { if (alive) setBorder(null) })
+        return () => { alive = false }
+      }
       if (!borderUrl) { setBorder(null); return undefined }
       let alive = true
       const url = new URL(borderUrl, location.origin)
@@ -309,14 +342,14 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
         .then(value => { if (alive && value && typeof value === 'object' && value.m_Border && typeof value.m_Border === 'object') setBorder(value) })
         .catch(() => { if (alive) setBorder(null) })
       return () => { alive = false }
-    }, [borderUrl])
+    }, [borderUrl, sharedKey, revision])
     React.useEffect(() => {
       const canvas = canvasRef.current
       const context = canvas?.getContext('2d')
       if (!canvas || !context || !src) return undefined
       setFailed(false)
       let alive = true
-      const image = new Image()
+      let image = new Image()
       let observer = null
       let resizeFrame = 0
       image.decoding = 'async'
@@ -327,8 +360,9 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
         const rect = { width: canvas.clientWidth, height: canvas.clientHeight }
         const pixelRatio = Math.min(2, Math.max(1, Number(window.devicePixelRatio || 1)))
         const scale = Math.min(pixelRatio, 1024 / Math.max(1, rect.width, rect.height))
-        const width = Math.max(1, Math.round(rect.width * scale))
-        const height = Math.max(1, Math.round(rect.height * scale))
+        const basicShared = sharedImage && String(imageType).toLowerCase() !== 'stretch'
+        const width = basicShared ? image.width : Math.max(1, Math.round(rect.width * scale))
+        const height = basicShared ? image.height : Math.max(1, Math.round(rect.height * scale))
         if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height }
         context.clearRect(0, 0, width, height)
         const sourceWidth = Math.max(1, image.naturalWidth || image.width || 1)
@@ -341,7 +375,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
           context.drawImage(image, 0, 0, sourceWidth, sourceHeight, (width - drawWidth) / 2, (height - drawHeight) / 2, drawWidth, drawHeight)
         } else if (String(imageType).toLowerCase() === 'stretch') {
           let meta = null
-          try { meta = normalizeImageMeta(border) } catch { /* invalid border metadata uses Basic preview */ }
+          try { meta = border?.border ? border : normalizeImageMeta(border) } catch { /* invalid border metadata uses Basic preview */ }
           if (supportsImageStretch(meta)) {
             const createCanvas = (w, h) => { const out = document.createElement('canvas'); out.width = w; out.height = h; return out }
             const sliced = rasterizeSlices(image, meta, rect.width, rect.height, createCanvas)
@@ -368,10 +402,11 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
         }
       }
       const queueDraw = () => { cancelAnimationFrame(resizeFrame); resizeFrame = requestAnimationFrame(draw) }
-      image.onload = () => { if (alive) { queueDraw(); if (typeof ResizeObserver !== 'undefined') { observer = new ResizeObserver(queueDraw); observer.observe(canvas) } } }
-      image.onerror = () => { if (alive) { canvas.width = 1; canvas.height = 1; context.clearRect(0, 0, 1, 1); setFailed(true) } }
-      image.src = src
-      return () => { alive = false; observer?.disconnect(); cancelAnimationFrame(resizeFrame); image.onload = null; image.onerror = null }
+      const loaded = () => { if (alive) { queueDraw(); if (typeof ResizeObserver !== 'undefined') { observer = new ResizeObserver(queueDraw); observer.observe(canvas) } } }
+      const failed = () => { if (alive) { canvas.width = 1; canvas.height = 1; context.clearRect(0, 0, 1, 1); setFailed(true) } }
+      if (sharedImage) loadBrowserImageAsset(sharedImage.id, sharedImage.source).then(asset => { if (alive) { image = asset.image; loaded() } }, failed)
+      else { image.onload = loaded; image.onerror = failed; image.src = src }
+      return () => { alive = false; observer?.disconnect(); cancelAnimationFrame(resizeFrame); if (!sharedImage) { image.onload = null; image.onerror = null } }
     }, [maskKey, tint?.r, tint?.g, tint?.b])
     const masked = maskBox.enableMask === true
     const maskImage = masked ? mask?.key === maskKey && !failed ? `url("${mask.url}")` : 'linear-gradient(transparent,transparent)' : undefined
@@ -380,7 +415,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
       maskRepeat: 'no-repeat', WebkitMaskRepeat: 'no-repeat' } : { overflow: 'visible' }
     return h(React.Fragment, null,
       h('div', { className: 'look2-box-content', style: { opacity: contentOpacity } },
-        h('canvas', { ref: canvasRef, className: 'look2-stage-image', style: { opacity: Math.max(0, Math.min(1, Number(tint?.a ?? 1))), objectFit: 'fill' }, 'aria-hidden': true }),
+        h('canvas', { ref: canvasRef, className: 'look2-stage-image', 'data-image-id': sharedImage?.id, 'data-image-source': sharedImage ? imageSourceName(sharedImage.source) : undefined, style: { opacity: Math.max(0, Math.min(1, Number(tint?.a ?? 1))), objectFit: 'fill' }, 'aria-hidden': true }),
         failed || !src ? h('span', { className: 'look2-image-placeholder' }, failed ? '图片无法显示' : label) : null),
       h('div', { className: 'look2-stage-subtree', style: childrenStyle }, children))
   }
@@ -433,6 +468,12 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
     const [pendingLuaFile, setPendingLuaFile] = React.useState(null)
     const [timelineImportMode, setTimelineImportMode] = React.useState('append')
     const [archives, setArchives] = React.useState([])
+    const [workspaces, setWorkspaces] = React.useState([DEFAULT_WORKSPACE])
+    const [workspacePath, setWorkspacePath] = React.useState('')
+    const [archiveManageDialog, setArchiveManageDialog] = React.useState(null)
+    const [archiveManageName, setArchiveManageName] = React.useState('')
+    const [archiveManageError, setArchiveManageError] = React.useState('')
+    const [archiveManageBusy, setArchiveManageBusy] = React.useState(false)
     const [draft, setDraft] = React.useState(null)
     const [showWorkspace, setShowWorkspace] = React.useState(false)
     const [showResources, setShowResources] = React.useState(false)
@@ -612,7 +653,21 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
         () => queue.current,
       )
     }
-    const refreshArchives = async () => { try { const result = await api(sessionId, 'archives'); setArchives(result.archives || []) } catch {} }
+    const refreshArchives = async (snapshot = snapRef.current) => {
+      try {
+        const result = await api(sessionId, 'archives')
+        const nextArchives = result.archives || []
+        const nextWorkspaces = [DEFAULT_WORKSPACE, ...(result.workspaces || []).filter(item => archivePath(item?.path))]
+          .filter((item, index, rows) => rows.findIndex(row => archivePath(row.path) === archivePath(item.path)) === index)
+        const boundFolder = archivePath(snapshot?.storage?.path).split('/').slice(0, -1).join('/')
+        setArchives(nextArchives)
+        setWorkspaces(nextWorkspaces)
+        setWorkspacePath(current => nextWorkspaces.some(item => archivePath(item.path) === archivePath(current))
+          ? current
+          : (nextWorkspaces.some(item => archivePath(item.path) === boundFolder) ? boundFolder : ''))
+        setSelectedArchive(current => nextArchives.some(item => item.path === current) ? current : '')
+      } catch {}
+    }
     React.useEffect(() => {
       let alive = true
       const draftCache = createDraftCache({
@@ -622,7 +677,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
       })
       draftCacheRef.current = draftCache
       api(sessionId, 'get').then(current => {
-        if (alive) { accept(current); setFilePath(current.storage?.path || 'look2.0.1.save.json'); refreshArchives() }
+        if (alive) { accept(current); setFilePath(current.storage?.path || 'look2.0.1.save.json'); refreshArchives(current) }
       }).catch(reason => alive && setError(String(reason.message || reason)))
       draftDbRequest('get', sessionId).then(value => {
         if (alive && value) setDraft(value)
@@ -1136,18 +1191,75 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
       try {
         await beforeAction()
         await patch({ op: 'newDocument' }, '新建工程')
-        const used = new Set(archives.map(entry => entry.path))
+        const folder = archivePath(workspacePath)
+        const prefix = folder ? `${folder}/` : ''
+        const used = new Set(archives.map(entry => archivePath(entry.path)))
         let index = 1
-        while (used.has(`look2.0.${index}.save.json`)) index++
-        setFilePath(`look2.0.${index}.save.json`)
+        while (used.has(`${prefix}look2.0.${index}.save.json`)) index++
+        setFilePath(`${prefix}look2.0.${index}.save.json`)
         resetTimelineUi()
-        setMessage('已新建工程；保存后写入工作区，可撤销恢复原工程')
+        setMessage(`已新建工程；保存后写入「${workspaces.find(item => archivePath(item.path) === folder)?.name || DEFAULT_WORKSPACE.name}」，可撤销恢复原工程`)
       } catch (reason) { setError(String(reason.message || reason)) }
+    }
+    function openArchiveManage(operation) {
+      const path = operation === 'rename-workspace' ? archivePath(workspacePath) : archivePath(selectedArchive)
+      const selectedWorkspace = workspaces.find(item => archivePath(item.path) === path)
+      const initialName = operation === 'create-workspace' ? '新工作区'
+        : operation === 'rename-workspace' ? selectedWorkspace?.name || ''
+          : path.split('/').at(-1) || ''
+      setArchiveManageError('')
+      setArchiveManageName(initialName)
+      setArchiveManageDialog({ operation, path })
+    }
+    async function submitArchiveManage() {
+      if (!archiveManageDialog || archiveManageBusy || stopIfLocked()) return
+      setArchiveManageBusy(true)
+      setArchiveManageError('')
+      try {
+        const current = await beforeAction()
+        const { operation, path: previousPath } = archiveManageDialog
+        const result = await api(sessionId, 'archive-manage', {
+          operation,
+          ...(operation === 'rename-workspace' || operation === 'rename-archive' ? { path: previousPath } : {}),
+          name: archiveManageName,
+          expectedRevision: current.version,
+        })
+        const previous = archivePath(result.previousPath || previousPath)
+        const next = archivePath(result.path || '')
+        const nextSnapshot = result.snapshot ? accept(result.snapshot) : current
+        const nextArchives = result.archives || []
+        const nextWorkspaces = [DEFAULT_WORKSPACE, ...(result.workspaces || []).filter(item => archivePath(item?.path))]
+          .filter((item, index, rows) => rows.findIndex(row => archivePath(row.path) === archivePath(item.path)) === index)
+        setArchives(nextArchives)
+        setWorkspaces(nextWorkspaces)
+        if (operation === 'create-workspace') { setWorkspacePath(next); setSelectedArchive('') }
+        else if (operation === 'rename-workspace') setWorkspacePath(value => replaceArchivePrefix(value, previous, next))
+        setSelectedArchive(value => {
+          const mapped = operation === 'rename-workspace'
+            ? replaceArchivePrefix(value, previous, next)
+            : operation === 'rename-archive' && archivePath(value) === previous ? next : value
+          return nextArchives.some(entry => archivePath(entry.path) === archivePath(mapped)) ? mapped : ''
+        })
+        setFilePath(value => {
+          const mapped = operation === 'rename-workspace'
+            ? replaceArchivePrefix(value, previous, next)
+            : operation === 'rename-archive' && archivePath(value) === previous ? next : value
+          const priorBoundPath = archivePath(current.storage?.path)
+          const nextBoundPath = archivePath(nextSnapshot.storage?.path)
+          return priorBoundPath && archivePath(value) === priorBoundPath && nextBoundPath ? nextSnapshot.storage.path : mapped
+        })
+        setArchiveManageDialog(null)
+        setMessage(operation === 'create-workspace' ? `已创建工作区 ${next}` : `已重命名为 ${next}`)
+      } catch (reason) {
+        const message = String(reason?.message || reason)
+        setArchiveManageError(message)
+        setError(message)
+      } finally { setArchiveManageBusy(false) }
     }
     async function load(path) {
       if (stopIfLocked()) return
       abortPsdImport()
-      try { await beforeAction(); const result = await run(() => api(sessionId, 'load-archive', { path }), 'load'); await draftCacheRef.current?.clear().catch(() => {}); localStorage.removeItem(`look2-draft:${sessionId}`); setDraft(null); accept(result.snapshot); setFilePath(path); resetTimelineUi(); setMessage(`已加载 ${path}`); setShowWorkspace(false) }
+      try { await beforeAction(); const result = await run(() => api(sessionId, 'load-archive', { path }), 'load'); await draftCacheRef.current?.clear().catch(() => {}); localStorage.removeItem(`look2-draft:${sessionId}`); setDraft(null); accept(result.snapshot); setFilePath(path); setSelectedArchive(path); const folder = archivePath(path).split('/').slice(0, -1).join('/'); if (workspaces.some(item => archivePath(item.path) === folder)) setWorkspacePath(folder); resetTimelineUi(); setMessage(`已加载 ${path}`); setShowWorkspace(false) }
       catch (reason) { setError(String(reason.message || reason)) }
     }
     async function revealArchive(path) {
@@ -1484,7 +1596,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
     function addAnimation() {
       let createdId = ''
       void editState(next => {
-        const animation = { id: uid('animation'), name: `动画 ${next.animations.length + 1}`, duration: 5, keyframeTracks: [], events: [] }
+        const animation = { id: uid('animation'), name: newAnimationName(next.animations), duration: 5, keyframeTracks: [], events: [] }
         next.animations.push(animation)
         next.activeAnimationId = animation.id
         createdId = animation.id
@@ -1498,7 +1610,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
       void editState(next => {
         const source = next.animations.find(animation => animation.id === id)
         if (!source) throw new Error('动画已删除，请重新选择')
-        const copy = clone(source); copy.id = uid('animation'); copy.name = `${source.name} 副本`
+        const copy = clone(source); copy.id = uid('animation'); copy.name = copiedAnimationName(next.animations, source.name)
         for (const track of copy.keyframeTracks || []) { track.id = uid('track'); for (const keyframe of track.keyframes || []) keyframe.id = uid('key') }
         for (const event of copy.events || []) event.id = uid('event')
         next.animations.push(copy); next.activeAnimationId = copy.id
@@ -1507,6 +1619,12 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
         if (!copyId || result?.look2?.activeAnimationId !== copyId) return
         setPlayhead(0); setSelectedKey(null); setSelectedKeys([]); setSelectedEventId(null)
       }).catch(() => {})
+    }
+    function renameAnimation(value) {
+      const animationId = active.id
+      return updateAnimation(animation => {
+        animation.name = validateAnimationName(snapRef.current?.look2?.animations || [], animationId, value)
+      }, '重命名动画')
     }
     function removeAnimation(id) {
       if (state.animations.length <= 1) { setError('至少保留一个动画'); return }
@@ -2048,11 +2166,12 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
       const fitted = !!resource && resource.previewMode === 'fit' && resource.fitData
       const officialId = original?.properties?.imageId ?? box.base?.imageId ?? box.imageId
       const source = original?.properties?.imageSource ?? box.base?.imageSource
-      const officialUrl = source === 'StaticReference' && Number.isSafeInteger(Number(officialId)) && Number(officialId) >= 0 ? `/look2-assets/sprite/${Number(officialId)}.png` : ''
+      const sharedImage = !resource && isRemoteImage(Number(officialId), source) ? { id: Number(officialId), source } : null
+      const officialUrl = sharedImage ? imageAssetUrl(sharedImage.id, 0, source) : source === 'StaticReference' && Number.isSafeInteger(Number(officialId)) && Number(officialId) >= 0 ? `/look2-assets/sprite/${Number(officialId)}.png` : ''
       const src = fitted ? primitivePreviewSource(resource.fitData) : resource?.imageUrl || resource?.dataUrl || officialUrl
       const imageType = String(original?.properties?.imageType ?? box.imageType ?? box.base?.imageType ?? '').toLowerCase()
-      const borderUrl = officialUrl && imageType === 'stretch' ? `/look2-assets/border/${Number(officialId)}.json` : ''
-      return { src, resource, original, borderUrl, fitContain: !!fitted }
+      const borderUrl = !sharedImage && officialUrl && imageType === 'stretch' ? `/look2-assets/border/${Number(officialId)}.json` : ''
+      return { src, resource, original, borderUrl, sharedImage, fitContain: !!fitted }
     }
     function stageBoxStyle(box) {
       const matrix = box.matrix || identityMatrix()
@@ -2093,10 +2212,10 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
           h('span', { style: { flex: '0 0 auto', width: `${layout.textWidth * stageScale}px`, whiteSpace: 'pre', textAlign: box.horizontalAlignment === 'Right' ? 'right' : box.horizontalAlignment === 'Middle' ? 'center' : 'left' } }, layout.lines.join('\n')))
       }
       if (box.kind === 'image') {
-        const { src, borderUrl, original, fitContain } = stageImageSource(box)
+        const { src, borderUrl, original, sharedImage, fitContain } = stageImageSource(box)
         const tint = colorParts(box.imageColor)
         const imageType = String(original?.properties?.imageType ?? box.imageType ?? box.base?.imageType ?? 'Basic').toLowerCase() === 'stretch' ? 'Stretch' : 'Basic'
-        return h(StageImage, { src, tint, imageType, borderUrl, fitContain, maskBox: box, contentOpacity: stageBoxAlpha(box),
+        return h(StageImage, { src, tint, imageType, borderUrl, sharedImage, fitContain, maskBox: box, contentOpacity: stageBoxAlpha(box),
           label: `${box.name}${box.imageId != null ? ` · ${box.imageId}` : ''}` }, children)
       }
       if (box.kind === 'button') {
@@ -2325,6 +2444,14 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
       h('h3', null, '\u56fe\u7247\u7d20\u6750'),
       h('div', { className: 'look2-field' }, h('label', null, '\u56fe\u7247\u7d20\u6750'), h('button', { onClick: () => setShowResources(true) }, '\u9009\u62e9\u7d20\u6750')),
     ) : null
+    const selectedSharedImage = row?.kind === 'image' && !selectedIsPrimitive ? stageImageSource(previewBoxes.find(box => box.id === row.id) || {})?.sharedImage : null
+    const imageRefreshButton = inspectorTab !== 'script' && selectedSharedImage ? h('button', { onClick: async () => {
+      try {
+        await api(sessionId, 'image-refresh', { imageId: selectedSharedImage.id, imageSource: selectedSharedImage.source })
+        refreshBrowserImage(selectedSharedImage.id, selectedSharedImage.source)
+        setMessage(`图片 ${selectedSharedImage.id} 已重新下载；同源预览会同步刷新`)
+      } catch (reason) { setError(String(reason.message || reason)) }
+    } }, '↻ 重新下载此素材') : null
     function commitPlatformTransform(section, axis, value) {
       if (!snap.selectedId) return Promise.reject(new Error('当前平台变换不可用'))
       const id = snap.selectedId
@@ -2439,7 +2566,12 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
             h('span', null, `${animation.name}`), h('small', null, `${animation.duration} s · ${(animation.keyframeTracks || []).length} 条轨道`)),
           h('button', { className: 'mini', title: '更多操作', onClick: event => contextFor(event, 'animation', animation.id) }, '⋯')))),
         h('div', { className: 'look2-inspector' },
-          h('div', { className: 'look2-field wide' }, h('label', null, '动画名称'), h('input', { key: `${active.id}:name`, type: 'text', defaultValue: active.name, onBlur: event => { const name = event.target.value.trim(); if (name && name !== active.name) void updateAnimation(animation => { animation.name = name }, '重命名动画') } })),
+          h('div', { className: 'look2-field wide' }, h('label', null, '动画名称'), h(DraftInput, {
+            key: `${active.id}:name`, value: active.name, ariaLabel: '动画名称', title: '最多 80 个字符，名称不可重复',
+            onDiscardError: discardInputError,
+            onCommit: renameAnimation,
+            readCommitted: (result, fallback) => result?.look2?.animations?.find(item => item.id === active.id)?.name ?? fallback,
+          })),
           h('div', { className: 'look2-field' }, h('label', null, '时长 (s)'), h(DraftInput, {
             onDiscardError: discardInputError,
             key: `${snap.asset?.type || ''}:${active.id}:duration`, value: active.duration, type: 'number', min: .1, step: .1, ariaLabel: '时长 (s)',
@@ -2486,7 +2618,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
         h('div', { className: 'look2-inspector-title' }, h('strong', null, row?.name || '控件属性'), h('small', null, `${controlLabels[row?.kind] || row?.kind || '节点'} · 控件详情`)), h('button', { title: '收起属性面板', onClick: () => setHiddenPanels(current => ({ ...current, inspector: true })) }, icon('sliders')))),
       !hiddenPanels.inspector ? h(React.Fragment, null,
         inspectorTabs,
-        h('div', { className: 'look2-scroll look2-inspector' }, inspectorTab === 'script' ? inspectorContent : h(React.Fragment, null, !WorkspaceInspector || inspectorTab === 'runtime' ? platformPicker : null, imageInspectorTools, inspectorContent, controllerPlatform ? platformTransformEditor : null))) : null,
+        h('div', { className: 'look2-scroll look2-inspector' }, inspectorTab === 'script' ? inspectorContent : h(React.Fragment, null, !WorkspaceInspector || inspectorTab === 'runtime' ? platformPicker : null, imageInspectorTools, imageRefreshButton, inspectorContent, controllerPlatform ? platformTransformEditor : null))) : null,
       !hiddenPanels.inspector ? h('div', { className: 'look2-resize-x', style: { position: 'absolute', left: 0, top: 0, bottom: 0 }, onPointerDown: event => startPanelResize(event, 'inspector') }) : null)
     const renderTrack = track => h('div', { key: track.id, className: 'look2-track', style: { gridTemplateColumns: timelineCols, width: `${totalTimelineWidth}px` } },
       h('div', { className: 'look2-track-name', title: labelOf(track.fieldKey), onContextMenu: event => contextFor(event, 'track', track.id) },
@@ -2787,8 +2919,11 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
         : contextMenu?.type === 'event' ? [['删除事件', () => removeEvent(contextData)]]
           : contextMenu?.type === 'stage' ? [...(clientTemplates ? [[state.siteExtras?.backgroundChoice === 'blank' ? '显示参考背景图' : '隐藏参考背景图', () => void editState(next => { next.siteExtras.backgroundChoice = next.siteExtras.backgroundChoice === 'blank' ? 'reference' : 'blank' }, '切换画布背景')]] : []), ['重置画布视图', () => { setZoom(1); setPan({ x: 0, y: 0 }) }]] : []
     const contextMenuView = contextMenu && !interactionLocked ? h('div', { className: 'look2-context-menu', style: { left: contextMenu.x, top: contextMenu.y }, onPointerDown: event => event.stopPropagation() }, contextItems.map(([label, action, disabled], index) => h('button', { key: `${label}-${index}`, disabled: !!disabled, onClick: () => { setContextMenu(null); void Promise.resolve().then(action).catch(reason => setError(String(reason?.message || reason))) } }, label))) : null
-    const { root: rootArchives, other: otherArchives } = groupWorkspaceArchives(archives)
-    const visibleArchiveCount = showTestArchives ? archives.length : rootArchives.length
+    const filteredArchives = archivesForWorkspace(archives, workspacePath, showTestArchives)
+    const workspaceFolder = archivePath(workspacePath)
+    const rootArchives = filteredArchives.filter(entry => !archivePath(entry.path).slice(workspaceFolder ? workspaceFolder.length + 1 : 0).includes('/'))
+    const otherArchives = filteredArchives.filter(entry => !rootArchives.includes(entry))
+    const visibleArchiveCount = filteredArchives.length
     const archiveOption = entry => h('option', { key: entry.path, value: entry.path }, String(entry.path || '').includes('/') ? `${entry.name || entry.path} · ${entry.path}` : (entry.name || entry.path))
     const workspaceRow = showWorkspace ? h('div', { className: 'look2-workspace', inert: interactionLocked },
       h('div', { className: 'look2-workspace-row' },
@@ -2800,22 +2935,42 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
         h('span', null, '存档路径'), h('input', { className: 'file-name', type: 'text', 'aria-label': '项目存档路径', value: filePath, onChange: event => setFilePath(event.target.value), title: filePath }), h('button', { onClick: () => void save() }, '保存')),
       h('details', { className: 'look2-usage' }, h('summary', null, '使用说明'),
         h('ol', { className: 'look2-usage-list' }, LOOK2_USAGE_STEPS.map((step, index) => h('li', { key: index }, step)))),
-      h('div', { className: 'look2-workspace-row' },
+      h('div', { className: 'look2-workspace-row look2-workspace-actions' },
+        h('span', null, '工作区'),
+        h('select', { className: 'look2-archive-select', 'aria-label': '当前工作区', value: workspacePath, onChange: event => {
+          const next = event.target.value
+          setWorkspacePath(next)
+          if (!archivesForWorkspace(archives, next, showTestArchives).some(entry => entry.path === selectedArchive)) setSelectedArchive('')
+        } }, workspaces.map(item => h('option', { key: item.path, value: item.path }, item.name))),
+        h('button', { onClick: () => openArchiveManage('create-workspace') }, '新建工作区'),
+        h('button', { disabled: !workspacePath, onClick: () => openArchiveManage('rename-workspace') }, '工作区改名')),
+      h('div', { className: 'look2-workspace-row look2-archive-row' },
         h('span', null, '存档'),
         h('select', { className: 'look2-archive-select', 'aria-label': '工作区存档列表', value: selectedArchive, onChange: event => setSelectedArchive(event.target.value) },
           h('option', { value: '' }, visibleArchiveCount ? `选择存档（共 ${visibleArchiveCount} 个）` : '工作区暂无存档'),
-          rootArchives.length ? h('optgroup', { label: '工作区存档' }, rootArchives.map(archiveOption)) : null,
+          rootArchives.length ? h('optgroup', { label: `${workspaces.find(item => archivePath(item.path) === workspaceFolder)?.name || DEFAULT_WORKSPACE.name}存档` }, rootArchives.map(archiveOption)) : null,
           showTestArchives && otherArchives.length ? h('optgroup', { label: '测试文件' }, otherArchives.map(archiveOption)) : null),
         h('button', { disabled: !selectedArchive, onClick: () => selectedArchive && void load(selectedArchive) }, '打开'),
+        h('button', { disabled: !selectedArchive || !archives.some(entry => entry.path === selectedArchive), onClick: () => openArchiveManage('rename-archive') }, '存档改名'),
         h('button', { disabled: !selectedArchive, title: '在文件管理器中打开所在文件夹', onClick: () => void revealArchive(selectedArchive) }, '打开文件夹'),
         h('button', { className: 'look2-danger', disabled: !selectedArchive, title: '永久删除所选存档', onClick: () => setPendingArchiveDelete(selectedArchive) }, '删除'),
         h('label', { className: 'look2-archive-filter', title: '关闭时只显示工作区存档，打开后一并显示子目录里的测试文件' },
           h('input', { type: 'checkbox', checked: showTestArchives, onChange: event => {
             const next = event.target.checked
             setShowTestArchives(next)
-            if (!next && String(selectedArchive).includes('/')) setSelectedArchive('')
+            if (!next && !archivesForWorkspace(archives, workspacePath, false).some(entry => entry.path === selectedArchive)) setSelectedArchive('')
           } }),
           '显示测试文件'))) : null
+    const archiveManageModal = archiveManageDialog ? h('div', { className: 'look2-modal-backdrop', onClick: () => { if (!archiveManageBusy) setArchiveManageDialog(null) } },
+      h('div', { className: 'look2-modal lua-import', role: 'dialog', 'aria-modal': true, 'aria-label': '管理工作区文件', onClick: event => event.stopPropagation(), onKeyDown: event => { if (event.key === 'Enter' && event.target?.tagName === 'INPUT') { event.preventDefault(); void submitArchiveManage() } } },
+        h('header', null, h('strong', null, ({ 'create-workspace': '新建工作区', 'rename-workspace': '工作区改名', 'rename-archive': '存档文件改名' })[archiveManageDialog.operation]), h('span', { className: 'spacer' }), h('button', { disabled: archiveManageBusy, onClick: () => setArchiveManageDialog(null) }, '关闭')),
+        h('div', { className: 'look2-field wide', style: { padding: '12px 14px 4px' } },
+          h('label', null, archiveManageDialog.operation === 'rename-archive' ? '存档文件名' : '名称'),
+          h('input', { type: 'text', autoFocus: true, 'aria-label': archiveManageDialog.operation === 'rename-archive' ? '存档文件名' : '名称', value: archiveManageName, disabled: archiveManageBusy, onChange: event => { setArchiveManageName(event.target.value); setArchiveManageError('') } }),
+          archiveManageError ? h('div', { className: 'look2-manage-error', role: 'alert' }, archiveManageError) : null),
+        h('div', { style: { display: 'flex', justifyContent: 'flex-end', gap: 6, padding: '8px 14px 14px' } },
+          h('button', { disabled: archiveManageBusy, onClick: () => setArchiveManageDialog(null) }, '取消'),
+          h('button', { className: 'primary', disabled: archiveManageBusy, onClick: () => void submitArchiveManage() }, archiveManageBusy ? '处理中…' : '确认')))) : null
     const archiveDeleteModal = pendingArchiveDelete ? h('div', { className: 'look2-modal-backdrop', onClick: () => setPendingArchiveDelete('') },
       h('div', { className: 'look2-modal lua-import', role: 'dialog', 'aria-label': '删除存档', onClick: event => event.stopPropagation() },
         h('header', null, h('strong', null, '删除存档'), h('span', { className: 'spacer' }), h('button', { onClick: () => setPendingArchiveDelete('') }, '关闭')),
@@ -2831,7 +2986,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
       style: { '--tree-width': `${hiddenPanels.tree ? 28 : panelWidths.tree}px`, '--anim-width': `${hiddenPanels.animator ? 28 : panelWidths.animator}px`, '--inspector-width': `${hiddenPanels.inspector ? 28 : panelWidths.inspector}px` } },
       masthead, topBar, workspaceRow, draftRow,
       h('div', { className: paneClasses }, treePane, stage, animatorPane, inspectorPane), dock,
-       resourcePanel, historyModal, templateModal, timelineImportModal, archiveDeleteModal, contextMenuView, errorHistoryDialog,
+       resourcePanel, historyModal, templateModal, timelineImportModal, archiveDeleteModal, archiveManageModal, contextMenuView, errorHistoryDialog,
        playLauncher?.overlay)
   }
   return { AnimationView, ensureStyle }

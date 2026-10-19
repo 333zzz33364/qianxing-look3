@@ -10,6 +10,7 @@ import { ScriptSync, contentHash, discoverScriptDirectories } from './script-syn
 import { sharedImageAssets } from './image-assets.js'
 import { ControlGuidSync } from './control-guid-sync.js'
 import { localFont } from './local-font.js'
+import { createArchiveWorkspace, listArchiveWorkspaces, remapArchivePath, renameArchiveWorkspace, renameWorkspaceArchive } from './archive-management.js'
 
 // Keep the interactive default short, but allow project replay runners to raise
 // it for control-heavy pixel-art scenes and long deterministic golden cases.
@@ -43,6 +44,7 @@ export class SimulatorController {
     this.archivePath = ''
     this.archiveStamp = ''
     this.savedArchive = ''
+    this.archiveRelocations = new Set()
     this.scriptSync = new ScriptSync(this)
     this.controlGuidSync = new ControlGuidSync(this)
     this.imageAssets = imageAssets
@@ -99,6 +101,7 @@ export class SimulatorController {
 
   saveForScriptSync(path, expectedRevision) {
     if (expectedRevision !== this.get().version) throw new Error('revision conflict: reload before saving')
+    if (this.archiveRelocations.has(String(path || '').replaceAll('\\', '/'))) throw new Error('存档已改名，请刷新存档路径后保存')
     const absolute = resolveWorkspaceOutput(this.activeWorkspacePath(), path)
     if (existsSync(absolute)) {
       const original = this.archivePath ? resolveWorkspaceOutput(this.activeWorkspacePath(), this.archivePath) : ''
@@ -114,7 +117,30 @@ export class SimulatorController {
   }
 
   listArchives() {
-    return listWorkspaceArchives(this.workspacePath)
+    const workspace = this.activeWorkspacePath()
+    if (!workspace) return { bound: false, archives: [], workspaces: [] }
+    return { ...listWorkspaceArchives(workspace), workspaces: listArchiveWorkspaces(workspace) }
+  }
+
+  manageArchive({ operation, path, name, expectedRevision } = {}) {
+    if (expectedRevision !== this.get().version) throw new Error('revision conflict: reload before managing archives')
+    const workspace = this.activeWorkspacePath()
+    if (!workspace) throw new Error('workspace is not bound')
+    const functions = { 'create-workspace': createArchiveWorkspace, 'rename-workspace': renameArchiveWorkspace, 'rename-archive': renameWorkspaceArchive }
+    const mutate = functions[operation]
+    if (!Object.hasOwn(functions, operation)) throw new Error('unknown archive operation')
+    const preview = { operation, previousPath: String(path || '').replaceAll('\\', '/'), path: '__renamed__' }
+    const changesActive = remapArchivePath(this.archivePath, preview) !== this.archivePath
+    if (changesActive && this.archivePath && contentHash(readFileSync(resolveWorkspaceFile(workspace, this.archivePath))) !== this.archiveStamp) throw new Error('存档文件已变化，请重新加载后改名')
+    const result = operation === 'create-workspace' ? mutate(workspace, name) : mutate(workspace, path, name)
+    this.remapStorage(result)
+    return { ...result, ...this.listArchives(), snapshot: this.get() }
+  }
+
+  remapStorage(result) {
+    const previous = this.archivePath
+    this.archivePath = remapArchivePath(previous, result)
+    if (previous !== this.archivePath) this.archiveRelocations.add(previous)
   }
 
   loadArchive(path) {
@@ -126,6 +152,7 @@ export class SimulatorController {
     this.archivePath = String(path).trim().replaceAll('\\', '/')
     this.archiveStamp = contentHash(bytes)
     this.savedArchive = JSON.stringify(this.studio.archiveData())
+    this.archiveRelocations.clear()
     return result
   }
 

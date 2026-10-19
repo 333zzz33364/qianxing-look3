@@ -201,6 +201,8 @@ function platformTransform(view, platform) {
 
 test('keyboard and touchscreen expose five extra transform fields with independent platform edits', async () => {
   const view = editor({ fields: [] })
+  const originalCanvas = structuredClone(view.studio.get().canvas)
+  const originalCanvasId = view.studio.get().canvasId
   const original = structuredClone(findNode(view.studio.get().root, view.studio.get().selectedId).transformByPlatform)
   const labels = inputs => inputs.map(node => node.props.ariaLabel).sort()
   const expectedExtraLabels = [
@@ -224,7 +226,8 @@ test('keyboard and touchscreen expose five extra transform fields with independe
   assert.ok(touchscreen)
   touchscreen.props.onClick()
   await view.flush()
-  assert.equal(view.studio.get().canvas.platform, 'TOUCHSCREEN')
+  assert.deepEqual(view.studio.get().canvas, originalCanvas, 'author platform selection keeps the runtime viewport unchanged')
+  assert.equal(view.studio.get().canvasId, originalCanvasId)
   assert.equal(workspaceInspector(view).props.transformPlatform, 'TOUCHSCREEN')
   assert.deepEqual(labels(extraTransformInputs(view)), expectedExtraLabels)
   await commit('scale', 'y', .75)

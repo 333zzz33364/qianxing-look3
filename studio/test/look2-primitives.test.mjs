@@ -217,8 +217,16 @@ function OnStart()
   if image.imageId ~= 100002 then error("SetImage did not apply the primitive image ID") end
   if image.name ~= "图元_001" then error("primitive name missing") end
   if image.anchoredPositionX ~= 12 or image.anchoredPositionY ~= -7 then error("primitive position mismatch") end
+  if type(second.destroy) ~= "function" then error("collection destroy handle missing") end
+  legacyControls:destroy()
+  if not image.alive or not nested.alive then error("stale collection handle destroyed current or external controls") end
+  if not second:destroy() or image.alive or not nested.alive then error("collection destroy did not remove only its generated images") end
+  if #script.object:GetChildren() ~= 1 or #nested:GetChildren() ~= 0 then error("collection destroy removed or retained unexpected children") end
+  local third = PrimitiveImageLib.create(script.object, data, 17)
+  if not third or #third ~= 2 then error("create after collection destroy failed") end
   PrimitiveImageLib.destroy(script.object)
   if #script.object:GetChildren() ~= 1 or #nested:GetChildren() ~= 0 then error("destroy left generated children") end
+  if third[1].alive then error("root destroy did not remove the active collection") end
   if nested.imageColor ~= originalNestedColor then error("destroy changed the original image color") end
   if script.object.visible ~= originalRootVisible or script.object.canControllerFocus ~= originalRootFocus or nested.visible ~= true then error("destroy did not restore target flags") end
 end`

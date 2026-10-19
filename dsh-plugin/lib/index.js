@@ -60,7 +60,7 @@ export class SimulatorController extends SharedSimulatorController {
 
   listArchives() {
     this.touch()
-    return listWorkspaceArchives(this.studio.get().workspace?.path || '')
+    return this.activeWorkspacePath() ? super.listArchives() : listWorkspaceArchives('')
   }
 
   loadArchive(path) {
@@ -179,6 +179,12 @@ function createRegistry() {
       const controllers = [...sessions.values()]
       sessions.clear()
       await Promise.all(controllers.map((controller) => controller.dispose()))
+    },
+    remapArchives(origin, result) {
+      for (const controller of sessions.values()) {
+        if (controller.activeWorkspacePath() !== origin.activeWorkspacePath()) continue
+        controller.remapStorage(result)
+      }
     },
   }
 }
@@ -502,9 +508,12 @@ function registerTools(ctx, registry) {
 
   ctx.tools.register(defineTool({
     name: 'look3_studio_load',
-    description: '从当前会话工作区拉取千星模拟器存档。不传 path 时列出工作区内的 qxqy-simulator-save；传入相对路径则加载该存档。',
+    description: '列出工作区存档与子工作区或加载相对路径。operation 可显式创建/改名子工作区、改名存档文件，需 expectedRevision；改名保留未保存草稿且拒绝覆盖。',
     parameters: {
       path: { type: 'string', description: '工作区内相对路径，例如 workspace/flappy-fish/flappy-fish.save.json。省略则只列出可拉取存档。' },
+      operation: { type: 'string', enum: ['create-workspace', 'rename-workspace', 'rename-archive'] },
+      name: { type: 'string' },
+      expectedRevision: { type: 'number' },
     },
     output: {
       schema: { type: 'json' },
@@ -514,6 +523,11 @@ function registerTools(ctx, registry) {
     isConcurrencySafe: () => false,
     async execute(args, exec) {
       const controller = registry.get(toolSessionId(exec), sessionWorkspace(exec))
+      if (args.operation) return controller.exclusive(() => {
+        const result = controller.manageArchive(args)
+        registry.remapArchives(controller, result)
+        return result
+      })
       if (!args.path) return controller.listArchives()
       return controller.loadArchive(args.path)
     },
@@ -556,6 +570,9 @@ function registerApi(ctx, registry) {
         else if (action === 'export') value = controller.exportData(body.format, body.assetType)
         else if (action === 'import') value = controller.importData(body.format, body.data, body.filename, { mode: body.mode })
         else if (action === 'archives') value = controller.listArchives()
+        else if (action === 'archive-manage') { value = controller.manageArchive(body); registry.remapArchives(controller, value) }
+        else if (action === 'delete-archive') value = controller.deleteArchive(body.path)
+        else if (action === 'reveal-archive') value = controller.revealArchive(body.path)
         else if (action === 'load-archive') value = controller.loadArchive(body.path)
         else if (action === 'save') value = controller.saveForScriptSync(body.path, body.expectedRevision)
         else if (action === 'script-sync') value = controller.scriptSyncAction(body.action, body.args || {})

@@ -1,7 +1,21 @@
 import { toJson } from '../json.js'
 
 const SITE_SCHEMA = 'ClientUIAnimationEditor.TweenTimeline@8'
+const TIMELINE_LIBRARY_VERSION = '8.3'
 const number = value => Number.isFinite(Number(value)) ? Number(value) : 0
+
+function versionParts(value) {
+  if (typeof value !== 'string' || !/^\d+(?:\.\d+)*$/.test(value)) return null
+  return value.split('.').map(Number)
+}
+
+function isNewerVersion(required, installed) {
+  for (let index = 0; index < Math.max(required.length, installed.length); index += 1) {
+    const left = required[index] || 0, right = installed[index] || 0
+    if (left !== right) return left > right
+  }
+  return false
+}
 
 export function luaString(value) {
   const bytes = Buffer.from(String(value ?? ''), 'utf8')
@@ -108,7 +122,7 @@ export function exportTimelineData(project, rawLook2, rootId = '') {
     'local TweenTimelineData = {',
     `    schema = ${luaString(SITE_SCHEMA)},`,
     '    version = 8,',
-    '    libVersion = "8.3",',
+    `    libVersion = ${luaString(TIMELINE_LIBRARY_VERSION)},`,
     `    duration = ${number(animation.duration)},`,
     '    tracks = {',
   ]
@@ -346,6 +360,13 @@ function extractTimelineData(source) {
     throw new Error('Timeline Data 源码与字面表 schema 版本不一致')
   }
   const schemaVersion = tableSchemaVersion ?? sourceSchemaVersion
+  const dataLibraryVersion = data.libVersion == null ? null : versionParts(data.libVersion)
+  if (data.libVersion != null && !dataLibraryVersion) {
+    throw new Error(`Timeline Data libVersion 格式无效：${String(data.libVersion)}`)
+  }
+  if (dataLibraryVersion && isNewerVersion(dataLibraryVersion, versionParts(TIMELINE_LIBRARY_VERSION))) {
+    throw new Error(`Timeline Data 需要 TweenTimelineLib v${data.libVersion}，当前为 v${TIMELINE_LIBRARY_VERSION}`)
+  }
   const hasVersion = Object.hasOwn(data, 'version')
   const tableVersion = hasVersion ? data.version : undefined
   if (hasVersion && (!supportedVersion(tableVersion))) {
@@ -355,10 +376,8 @@ function extractTimelineData(source) {
     throw new Error('Timeline Data schema 与 version 不一致')
   }
   let libraryVersion
-  if (schemaVersion == null && tableVersion == null && data.libVersion != null) {
-    const match = typeof data.libVersion === 'string' && /^(\d+)\.\d+$/.exec(data.libVersion)
-    if (!match) throw new Error(`Timeline Data libVersion 格式无效：${String(data.libVersion)}`)
-    libraryVersion = Number(match[1])
+  if (schemaVersion == null && tableVersion == null && dataLibraryVersion != null) {
+    libraryVersion = Number(dataLibraryVersion[0])
     if (!supportedVersion(libraryVersion)) throw new Error(`Timeline Data libVersion 不受支持：${data.libVersion}`)
   }
   const explicitVersion = schemaVersion ?? tableVersion ?? libraryVersion
@@ -439,8 +458,8 @@ export function importTimelineData(source, project, rawLook2, options = {}) {
   return look2
 }
 
-const TIMELINE_LIBRARY = String.raw`-- TweenTimelineLib 8.3 (ClientUIAnimationEditor.TweenTimeline@8)
-local TweenTimelineLib = { Schema = "ClientUIAnimationEditor.TweenTimeline@8", Version = "8.3" }
+const TIMELINE_LIBRARY = String.raw`-- TweenTimelineLib ${TIMELINE_LIBRARY_VERSION} (ClientUIAnimationEditor.TweenTimeline@8)
+local TweenTimelineLib = { Schema = "ClientUIAnimationEditor.TweenTimeline@8", Version = "${TIMELINE_LIBRARY_VERSION}" }
 local baseAlphas = setmetatable({}, { __mode = "k" })
 local colors = { imageColor = true, fontColor = true, bgColor = true, outlineColor = true }
 local relativeFields = { anchoredPositionX = true, anchoredPositionY = true, sizeDeltaX = true, sizeDeltaY = true, localScaleX = true, localScaleY = true, localScaleZ = true }
@@ -638,6 +657,29 @@ function TweenTimelineLib.ResetBaseAlphas(root)
     children(root, function(object) baseAlphas[objectId(object)] = nil end)
 end
 local function validateTimelineVersion(data)
+    local function versionParts(value)
+        if type(value) ~= "string" or not value:match("^%d[%d%.]*$")
+            or value:sub(-1) == "." or value:find("..", 1, true) then return nil end
+        local parts = {}
+        for part in value:gmatch("%d+") do parts[#parts + 1] = tonumber(part) end
+        return #parts > 0 and parts or nil
+    end
+    local function isNewerVersion(required, installed)
+        for index = 1, math.max(#required, #installed) do
+            local left, right = required[index] or 0, installed[index] or 0
+            if left ~= right then return left > right end
+        end
+        return false
+    end
+    local requiredLibrary
+    if data.libVersion ~= nil then
+        requiredLibrary = versionParts(data.libVersion)
+        if not requiredLibrary then error("TweenTimelineLib: invalid libVersion " .. tostring(data.libVersion)) end
+        local installed = versionParts(TweenTimelineLib.Version)
+        if isNewerVersion(requiredLibrary, installed) then
+            error("TweenTimelineLib: data requires library v" .. tostring(data.libVersion) .. ", installed v" .. TweenTimelineLib.Version)
+        end
+    end
     local schemaVersion
     if data.schema ~= nil then
         if type(data.schema) ~= "string" then error("TweenTimelineLib: timeline schema must be a string") end
@@ -650,10 +692,7 @@ local function validateTimelineVersion(data)
     end
     local version = data.version
     if version == nil and schemaVersion ~= nil then version = schemaVersion end
-    if version == nil and type(data.libVersion) == "string" then
-        local digits = string.match(data.libVersion, "^(%d+)%.[0-9]+$")
-        if digits then version = tonumber(digits) end
-    end
+    if version == nil and requiredLibrary then version = requiredLibrary[1] end
     if type(version) ~= "number" or version % 1 ~= 0 or version < 3 or version > 8 then
         error("TweenTimelineLib: unsupported or missing timeline version (supported: 3-8)")
     end

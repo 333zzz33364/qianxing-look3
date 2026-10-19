@@ -2,8 +2,9 @@ import { existsSync, readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { SimulatorController } from 'qxqy-studio/host/controller'
 import { resolveWorkspaceFile, resolveWorkspaceOutput } from 'qxqy-studio/host/workspace'
+import { remapArchivePath } from '../../studio/host/archive-management.js'
 
-const ACTIONS = new Set(['get', 'patch', 'look2', 'transaction', 'history', 'template', 'image-url', 'import', 'export', 'archives', 'load-archive', 'delete-archive', 'reveal-archive', 'save', 'play', 'script-sync', 'script-sync-apply', 'image-refresh'])
+const ACTIONS = new Set(['get', 'patch', 'look2', 'transaction', 'history', 'template', 'image-url', 'import', 'export', 'archives', 'archive-manage', 'load-archive', 'delete-archive', 'reveal-archive', 'save', 'play', 'script-sync', 'script-sync-apply', 'image-refresh'])
 const stamp = path => createHash('sha256').update(readFileSync(path)).digest('hex')
 
 // One trusted operator, with independent editor tabs and their play windows.
@@ -54,6 +55,19 @@ export class EditorSessions {
       if (action === 'script-sync') return controller.scriptSyncAction(body.action, body.args || {})
       if (action === 'script-sync-apply') return controller.scriptSync.apply(body)
       if (action === 'archives') return controller.listArchives()
+      if (action === 'archive-manage') {
+        const result = controller.manageArchive(body)
+        for (const sibling of this.sessions.values()) {
+          const previous = sibling.path
+          sibling.path = remapArchivePath(previous, result)
+          sibling.controller.remapStorage(result)
+          if (previous !== sibling.path) {
+            sibling.relocatedPaths ||= new Set()
+            sibling.relocatedPaths.add(previous)
+          }
+        }
+        return { ...result, snapshot: this.snapshot(row) }
+      }
       if (action === 'patch') {
         if (!Number.isInteger(body.op?.expectedRevision)) throw new Error('expectedRevision is required')
         return { ...controller.patch(body.op), storage: { path: row.path } }
@@ -86,6 +100,7 @@ export class EditorSessions {
       }
       if (action === 'save') {
         if (body.expectedRevision !== controller.get().version) throw new Error('revision conflict: reload before saving')
+        if (row.relocatedPaths?.has(String(body.path || '').replaceAll('\\', '/'))) throw new Error('存档已改名，请刷新存档路径后保存')
         const absolute = resolveWorkspaceOutput(this.workspace, body.path)
         if (existsSync(absolute)) {
           const original = row.path ? resolveWorkspaceOutput(this.workspace, row.path) : ''

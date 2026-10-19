@@ -195,12 +195,16 @@ test('Timeline Data import rejects unknown or contradictory version declarations
     [`-- source ClientUIAnimationEditor.TweenTimeline@7\nlocal TweenTimelineData = { schema = "ClientUIAnimationEditor.TweenTimeline@8", version = 8, duration = 1, tracks = ${tracks} } return TweenTimelineData`, /源码含有互相矛盾/],
     [`-- source ClientUIAnimationEditor.TweenTimeline@8\nlocal TweenTimelineData = { version = 7, duration = 1, tracks = ${tracks} } return TweenTimelineData`, /schema 与 version 不一致/],
     [`-- source ClientUIAnimationEditor.TweenTimeline@9\nlocal TweenTimelineData = { version = 8, duration = 1, tracks = ${tracks} } return TweenTimelineData`, /源码 schema 版本不受支持/],
+    [`local TweenTimelineData = { schema = "ClientUIAnimationEditor.TweenTimeline@8", version = 8, libVersion = "9.0", duration = 1, tracks = ${tracks} } return TweenTimelineData`, /需要 TweenTimelineLib v9\.0/],
+    [`local TweenTimelineData = { schema = "ClientUIAnimationEditor.TweenTimeline@8", version = 8, libVersion = "8..3", duration = 1, tracks = ${tracks} } return TweenTimelineData`, /libVersion 格式无效/],
     [`local TweenTimelineData = { duration = 1, tracks = ${tracks} } return TweenTimelineData`, /缺少可识别的 schema、version 或 libVersion/],
     [`local TweenTimelineData = { version = "8", duration = 1, tracks = ${tracks} } return TweenTimelineData`, /version 不受支持/],
   ]
   for (const [source, message] of invalidSources) {
     assert.throws(() => importTimelineData(source, sourceProject.project, sourceProject.look2, { rootId: 'root' }), message)
   }
+  const compatibleLibrary = `local TweenTimelineData = { schema = "ClientUIAnimationEditor.TweenTimeline@8", version = 8, libVersion = "8.2", duration = 1, tracks = ${tracks} } return TweenTimelineData`
+  assert.equal(importTimelineData(compatibleLibrary, sourceProject.project, sourceProject.look2, { rootId: 'root' }).animations.length, 2)
 })
 
 test('event-only Timeline Data imports and rebuilds missing, empty, non-string and duplicate event IDs', () => {
@@ -342,11 +346,19 @@ test('TweenTimelineLib checks compatible schema and versions without mutating re
   print("version-check:" .. accepted .. ":" .. tostring(ok) .. ":" .. invalid.version .. ":" .. #invalid.tracks .. ":" .. tostring(message))
   local mismatch = { schema = "ClientUIAnimationEditor.TweenTimeline@8", version = 7, duration = 1, tracks = {} }
   local mismatchOk, mismatchMessage = pcall(function() TweenTimelineLib.Create(script.object, mismatch) end)
-  print("schema-check:" .. tostring(mismatchOk) .. ":" .. tostring(mismatchMessage))`
+  local compatible = { schema = "ClientUIAnimationEditor.TweenTimeline@8", version = 8, libVersion = "8.2", duration = 1, tracks = {} }
+  local compatibleOk = pcall(function() TweenTimelineLib.Create(script.object, compatible) end)
+  local future = { schema = "ClientUIAnimationEditor.TweenTimeline@8", version = 8, libVersion = "9.0", duration = 1, tracks = {} }
+  local futureOk, futureMessage = pcall(function() TweenTimelineLib.Create(script.object, future) end)
+  local malformed = { schema = "ClientUIAnimationEditor.TweenTimeline@8", version = 8, libVersion = "8..3", duration = 1, tracks = {} }
+  local malformedOk, malformedMessage = pcall(function() TweenTimelineLib.Create(script.object, malformed) end)
+  print("schema-check:" .. tostring(mismatchOk) .. ":" .. tostring(mismatchMessage))
+  print("lib-check:" .. tostring(compatibleOk) .. ":" .. tostring(futureOk) .. ":" .. tostring(futureMessage) .. ":" .. tostring(malformedOk) .. ":" .. tostring(malformedMessage))`
   runtime.mountScript({ path: 'version-check.lua', control: root, source })
   assert.equal(runtime.mountErrors.length, 0, JSON.stringify(runtime.mountErrors))
   assert.ok(runtime.logs.some(row => row.text?.includes('version-check:6:false:999:0:') && row.text.includes('supported: 3-8')), JSON.stringify(runtime.logs))
   assert.ok(runtime.logs.some(row => row.text?.includes('schema-check:false:') && row.text.includes('schema/version mismatch')), JSON.stringify(runtime.logs))
+  assert.ok(runtime.logs.some(row => row.text?.includes('lib-check:true:false:') && row.text.includes('requires library v9.0, installed v8.3') && row.text.includes('invalid libVersion 8..3')), JSON.stringify(runtime.logs))
 })
 
 test('multi-turn rotation preserves the unwrapped angle in JS and Lua Runtime', () => {

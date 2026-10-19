@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
 import { join } from 'node:path'
@@ -56,6 +56,31 @@ async function stopServer(server) {
   server.child.kill()
   await once(server.child, 'exit')
 }
+
+test('MCP workspace management preserves draft edits, remaps handles and refuses stale paths', async t => {
+  const workspace = mkdtempSync(join(tmpdir(), 'look3-mcp-managed-')), server = startServer(workspace)
+  t.after(async () => { await stopServer(server); rmSync(workspace, { recursive: true, force: true }) })
+  const call = async (name, args = {}) => (await server.request('tools/call', { name, arguments: args })).result
+  const open = await call('look3_project_open'), handle = open.structuredContent.handle
+  const get = async target => (await call('look3_studio_get', { handle: target })).structuredContent
+  const create = await call('look3_studio_load', { handle, operation: 'create-workspace', name: '动画', expectedRevision: (await get(handle)).version })
+  assert.equal(create.isError, undefined, JSON.stringify(create))
+  assert.equal(create.structuredContent.archives.length, 0)
+  const path = '工作区/动画/a.save.json'
+  await call('look3_project_save', { handle, path })
+  const second = (await call('look3_project_open', { path })).structuredContent.handle
+  await call('look3_studio_patch', { handle: second, op: { op: 'renameSave', name: '草稿', expectedRevision: (await get(second)).version } })
+  const bytes = readFileSync(join(workspace, path))
+  const result = await call('look3_studio_load', { handle, operation: 'rename-workspace', path: '工作区/动画', name: '改名', expectedRevision: (await get(handle)).version })
+  assert.equal(result.isError, undefined, JSON.stringify(result))
+  assert.equal((await get(second)).storage.path, '工作区/改名/a.save.json')
+  assert.equal((await get(second)).save.name, '草稿')
+  assert.deepEqual(readFileSync(join(workspace, '工作区/改名/a.save.json')), bytes)
+  assert.equal((await call('look3_project_save', { handle: second, path })).isError, true)
+  assert.equal(existsSync(join(workspace, path)), false)
+  assert.equal((await call('look3_project_save', { handle: second })).isError, undefined)
+  assert.equal(JSON.parse(readFileSync(join(workspace, '工作区/改名/a.save.json'), 'utf8')).meta.name, '草稿')
+})
 
 test('MCP handshake exposes simulator tools and supports an edit/save round trip', async () => {
   const workspace = mkdtempSync(join(tmpdir(), 'qxqy-mcp-'))

@@ -874,6 +874,13 @@ function PrimitiveImageLib.create(root, data, imagePrefabIndex)
   destroyList(previous, keepTargets)
   owned[root] = list
   ownedById[rootId] = list
+  list.controls.destroy = function(self)
+    if self ~= list.controls or owned[root] ~= list or ownedById[rootId] ~= list then return false end
+    owned[root] = nil
+    ownedById[rootId] = nil
+    destroyList(list)
+    return true
+  end
   return list.controls, list.warnings
 end
 
