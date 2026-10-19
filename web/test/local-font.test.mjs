@@ -48,9 +48,9 @@ test('Web local font authentication, privacy, export boundary and real browser r
     browser = await startTestBrowser(directory)
     const { evaluate, wait } = browser
     await browser.navigate(app.url + '/editor')
-    await wait(`document.querySelector('.qxsim-box.textbox')?.style.fontFamily.includes('QxqyLocal_')`)
+    await wait(`document.querySelector('.look2-stage-text')?.style.fontFamily.includes('QxqyLocal_')`)
     const family = fontFamily(id)
-    assert.ok((await evaluate(`getComputedStyle(document.querySelector('.qxsim-box.textbox span')).fontFamily`)).includes(family),
+    assert.ok((await evaluate(`getComputedStyle(document.querySelector('.look2-stage-text span')).fontFamily`)).includes(family),
       'the actual text span must not override the loaded font')
     const runtime = createRuntime({ canvasWidth: 240, canvasHeight: 160 })
     t.after(() => runtime.destroy())

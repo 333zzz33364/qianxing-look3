@@ -2,7 +2,7 @@
 
 面向已安装 `look3-dsh-plugin` 的 DeepSeek Harness 会话中的 AI。前提：用户已装好插件，`look3_studio_get` / `look3_studio_patch` / `look3_studio_play` / `look3_studio_play_screenshot` / `look3_studio_ui_screenshot` / `look3_studio_load` 当前可见；无需指导安装。
 
-每个会话拥有独立内存存档，固定三类资产：`UI控件-服务端`（客户端控件容器）、`UI控件-客户端`（可被 Lua 实例化的模板）、`Lua 脚本`。编辑器在 Harness"模拟器"标签，分为“UI 编辑 / Lua 脚本 / 服务端逻辑”；试玩在独立标签页 `/look3-simulator/play#<会话ID>`。
+每个会话拥有独立内存存档，固定三类资产：`UI控件-服务端`（客户端控件容器）、`UI控件-客户端`（可被 Lua 实例化的模板）、`Lua 脚本`。编辑器在 Harness“千星look3”标签；控件树、画布、动画与属性共用一个工作区，底部“Lua / 逻辑 / 同步 / 调试”切换对应面板；试玩可在画布内运行或在独立标签页 `/look3-simulator/play#<会话ID>`。
 
 两条核心工作流：**UI → JSON 转换与 GIA 往返**、**AI 驱动的交互测试**。
 

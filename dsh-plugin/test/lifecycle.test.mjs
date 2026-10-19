@@ -17,6 +17,20 @@ const routeKeys = [
   'prefix /look3-simulator/look2-psd-worker.js',
   'prefix /look2-assets/',
 ]
+const toolNames = [
+  'look3_studio_transaction',
+  'look3_studio_history',
+  'look3_studio_template',
+  'look3_animation_set',
+  'look3_animation_export',
+  'look3_script_sync',
+  'look3_studio_get',
+  'look3_studio_play_screenshot',
+  'look3_studio_ui_screenshot',
+  'look3_studio_patch',
+  'look3_studio_play',
+  'look3_studio_load',
+]
 
 async function host(t) {
   const ctx = new Context()
@@ -81,8 +95,11 @@ test('one plugin can restart repeatedly without leaking routes or splitting HTTP
   const app = await host(t)
   const owner = await app.ctx.plugin(plugin)
   for (let cycle = 0; cycle < 3; cycle++) {
-    assert.deepEqual([...app.routes.keys()], routeKeys)
-    assert.equal(app.tools.schemas().filter(tool => tool.name.startsWith('look3_')).length, 7)
+    assert.deepEqual([...app.routes.keys()].sort(), [...routeKeys].sort())
+    assert.deepEqual(
+      app.tools.schemas().filter(tool => tool.name.startsWith('look3_')).map(tool => tool.name).sort(),
+      [...toolNames].sort(),
+    )
     const before = await app.post('get')
     assert.equal(before.save.name, '未命名存档')
     await app.call('look3_studio_patch', { op: { op: 'renameSave', name: `cycle-${cycle}` } })
@@ -121,7 +138,7 @@ test('a tools service reload reactivates the plugin against the same web server'
   await app.post('patch', { op: { op: 'renameSave', name: 'old activation' } })
   await app.toolsOwner.restart()
   await owner.await()
-  assert.deepEqual([...app.routes.keys()], routeKeys)
+  assert.deepEqual([...app.routes.keys()].sort(), [...routeKeys].sort())
   const result = await app.ctx.tools.execute({
     callId: 'after-tools-reload', name: 'look3_studio_get', arguments: {},
     agent: { id: 'lifecycle-session', session: { header: {} } },

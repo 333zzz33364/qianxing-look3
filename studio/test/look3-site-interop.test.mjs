@@ -26,7 +26,9 @@ test('all reference control type names and editable enum values survive save, re
     node('effect', 'uiAnimation', { animationId: 15, layer: 'belowAllControls', playSoundEffect: true }),
     node('full', 'fullscreenAnimation', { animationId: 16 }),
     node('reference', 'reference', { referencedPrefabIndex: 12 }),
-    node('mask', 'image', { imageId: 100001, enableMask: true, enableFill: true, fillType: 'radial90', fillClockwise: false, fillAmount: .25 }),
+    node('mask', 'image', { imageId: 100001, enableMask: true, enableSoftEdge: true, softEdgeMode: 'pixel',
+      softEdgeWidthX: 12, softEdgeWidthY: 7, horizontalSoftRange: 80, verticalSoftRange: 60, reverseMaskArea: true,
+      enableFill: true, fillType: 'radial90', fillClockwise: false, fillAmount: .25 }),
   ])
   input.nodes[1].properties.vendor = { retained: true }
   const studio = createStudio()
@@ -46,9 +48,80 @@ test('all reference control type names and editable enum values survive save, re
   assert.equal(grid.previewCount, 3)
 })
 
+test('pre-v2 hierarchy world coordinates migrate through rotated parents and export current local coordinates', () => {
+  const row = (id, parentId, fields) => ({ id, parentId, name: id, type: 'container', properties: {}, ...fields })
+  const input = {
+    version: 12, name: 'legacy-world-layout', hierarchyLayoutVersion: 1,
+    controlModelVersion: 1, timelineModelVersion: 4,
+    canvasWidth: 1600, canvasHeight: 900, nodes: [
+      row('root', null, { x: 0, y: 0, width: 1600, height: 900,
+        anchorMinX: 0, anchorMinY: 0, anchorMaxX: 1, anchorMaxY: 1, pivotX: .5, pivotY: .5 }),
+      row('parent', 'root', { x: 0, y: 0, width: 400, height: 300,
+        scaleX: 2, scaleY: 1, rotation: 90, pivotX: .5, pivotY: .5 }),
+      row('child', 'parent', { type: 'image', x: 100, y: -50, width: 100, height: 80,
+        anchorMinX: .25, anchorMaxX: .75, anchorMinY: .5, anchorMaxY: .5,
+        pivotX: .75, pivotY: .5 }),
+    ],
+  }
+  const { project, look2 } = importSiteJson(input)
+  const child = project.root.children[0].children[0].children[0]
+  assert.deepEqual(child.transformByPlatform.KEYBOARD.offset, { x: -25, y: -100 })
+  assert.deepEqual(child.transformByPlatform.KEYBOARD.size, { x: -100, y: 80 })
+
+  const output = exportSiteJson(project, look2)
+  assert.equal(output.hierarchyLayoutVersion, 2)
+  assert.equal(output.controlModelVersion, 2)
+  assert.equal(output.timelineModelVersion, 10)
+  const savedChild = output.nodes.find(item => item.id === 'child')
+  assert.deepEqual([savedChild.x, savedChild.y, savedChild.width, savedChild.height], [225, 50, 100, 80])
+  const reopened = importSiteJson(output).project.root.children[0].children[0].children[0]
+  assert.deepEqual(reopened.transformByPlatform.KEYBOARD.offset, { x: -25, y: -100 })
+  assert.deepEqual(reopened.transformByPlatform.KEYBOARD.size, { x: -100, y: 80 })
+})
+
+test('mixed pre-v2 rows use UGC defaults, custom canvas coordinates, parent pivot and Y direction', () => {
+  const input = {
+    version: 12, name: 'mixed-legacy-layout', hierarchyLayoutVersion: 1,
+    canvasWidth: 1280, canvasHeight: 800, previewPresetId: 'custom-1280-800',
+    nodes: [
+      { id: 'root', name: 'root', type: 'container', parentId: null, properties: {},
+        width: 1280, height: 800, anchorMinX: 0, anchorMinY: 0, anchorMaxX: 1, anchorMaxY: 1,
+        pivotX: .5, pivotY: .5, anchorOffsetX: 0, anchorOffsetY: 0, sizeDeltaX: 1280, sizeDeltaY: 800 },
+      { id: 'parent', name: 'parent', type: 'container', parentId: 'root', properties: {},
+        width: 400, height: 300, rotation: 90, scaleX: 2, scaleY: 1, pivotX: .25, pivotY: .75,
+        anchorOffsetX: 0, anchorOffsetY: 0, sizeDeltaX: 400, sizeDeltaY: 300 },
+      { id: 'child', name: 'child', type: 'image', parentId: 'parent', properties: {},
+        x: 100, y: 40, width: 100, height: 80 },
+      { id: 'legacy-default', name: 'legacy-default', type: 'image', parentId: 'parent', properties: {},
+        width: 120, height: 50, anchorOffsetX: 0, anchorOffsetY: 0, sizeDeltaX: 120, sizeDeltaY: 50 },
+    ],
+  }
+
+  const { project } = importSiteJson(input)
+  const root = project.root.children[0]
+  const parent = root.children[0]
+  const child = parent.children.find(row => row.id === 'child')
+  const legacyDefault = parent.children.find(row => row.id === 'legacy-default')
+
+  // Complete layout rows without x/y keep upstream makeNode's fixed 800x450 defaults.
+  assert.deepEqual(root.transformByPlatform.KEYBOARD.offset, { x: 160, y: 50 })
+  assert.deepEqual(parent.transformByPlatform.KEYBOARD.offset, { x: 0, y: 0 })
+  // Missing layout state uses custom-canvas center +x and center -y, then inverse parent rotation/scale.
+  assert.deepEqual(child.transformByPlatform.KEYBOARD.offset, { x: -145, y: 135 })
+  assert.deepEqual(child.transformByPlatform.KEYBOARD.size, { x: 100, y: 80 })
+  // A second complete row with no x/y shares the fixed upstream world default under the non-centered pivot.
+  assert.deepEqual(legacyDefault.transformByPlatform.KEYBOARD.offset, { x: -100, y: 75 })
+  for (const platform of ['KEYBOARD', 'TOUCHSCREEN', 'CONTROLLER_CONSOLE', 'CONTROLLER_MOBILE']) {
+    assert.deepEqual(child.transformByPlatform[platform].offset, { x: -145, y: 135 }, platform)
+  }
+  assert.deepEqual(input.nodes[0].anchorOffsetX, 0)
+  assert.equal(input.nodes[2].x, 100)
+})
+
 test('reference incoming key values drive interpolation and export with upstream names after edits', () => {
   const input = document([node('label', 'text', { fontSize: 20 })])
   input.animations = [{ id: 'anim', name: 'incoming', duration: 1, vendor: 1,
+    events: [{ id: 'event', time: .5, name: 'play', nodeId: 'label', params: '{"value":1}', vendor: 'event' }],
     keyframeTracks: [{ id: 'lane', nodeId: 'label', fieldKey: 'fontSize', keyframes: [
       ...keys(20, 80).slice(0, 1), { ...keys(20, 80)[1], incomingValue: 40, incomingRelative: false, vendor: 'key' },
     ] }] }]
@@ -58,6 +131,8 @@ test('reference incoming key values drive interpolation and export with upstream
   assert.equal(sampleTrack(track, 1, 20), 80)
   track.keyframes[1].leftValue = 60
   const output = exportSiteJson(project, look2)
+  assert.deepEqual(output.animations[0].events, input.animations[0].events)
+  assert.equal(output.animations[0].vendor, 1)
   const key = output.animations[0].keyframeTracks[0].keyframes[1]
   assert.equal(key.incomingValue, 60)
   assert.equal(key.incomingRelative, false)
@@ -89,7 +164,9 @@ test('reference four-device templates become usable after save/reopen and retain
   let snap = reopened.get()
   const entry = snap.look2.controlTemplates[0]
   assert.deepEqual(entry.project.root.children[0].children.map(row => row.name), ['top', 'bottom'])
-  assert.equal(entry.project.root.children[0].children[0].transformByPlatform.TOUCHSCREEN.offset.x, 10)
+  const top = entry.project.root.children[0].children[0]
+  const platforms = ['KEYBOARD', 'TOUCHSCREEN', 'CONTROLLER_CONSOLE', 'CONTROLLER_MOBILE']
+  assert.deepEqual(platforms.map(platform => top.transformByPlatform[platform].offset.x), [0, 10, 20, 30])
   snap = reopened.template({ action: 'instantiate', id: entry.id, parentId: 'root', expectedRevision: snap.version })
   const copied = reopened.archiveData().assets.client.root.children[0].children[0]
   assert.equal(copied.name, entry.name)
@@ -149,6 +226,45 @@ test('legacy Tween clips migrate touching boundaries and relative values exactly
   assert.throws(() => importSiteJson(invalid), /重叠/)
 })
 
+test('Clip v4 absolute, v5 anchored and v6 parent-centered positions convert according to their source version', () => {
+  const expected = new Map([
+    [4, { position: [45, 65], size: [150, 170] }],
+    [5, { position: [10, 30], size: [250, 270] }],
+    [6, { position: [-15, 5], size: [250, 270] }],
+  ])
+  for (const version of [4, 5, 6]) {
+    const input = document([node('image', 'image')])
+    input.hierarchyLayoutVersion = 2
+    input.timelineModelVersion = version
+    const image = input.nodes.find(row => row.id === 'image')
+    Object.assign(image, { anchorMinX: .25, anchorMaxX: .75, anchorMinY: .5, anchorMaxY: .5,
+      pivotX: .75, pivotY: .5, anchorOffsetX: 0, anchorOffsetY: 0, sizeDeltaX: 0, sizeDeltaY: 100 })
+    input.tweenTracks = [
+      { id: `position-v${version}`, nodeId: 'image', fieldKey: 'anchoredPositionX', startTime: 0,
+        duration: 1, initialValue: version === 4 ? 870 : 10, endValue: version === 4 ? 890 : 30, easeType: 'Linear' },
+      { id: `size-v${version}`, nodeId: 'image', fieldKey: 'sizeDeltaX', startTime: 0,
+        duration: 1, initialValue: 250, endValue: 270, easeType: 'Linear' },
+    ]
+    const migrated = importSiteJson(input).look2.animations[0].keyframeTracks
+    const position = migrated.find(track => track.fieldKey === 'anchoredPositionX').keyframes
+    const size = migrated.find(track => track.fieldKey === 'sizeDeltaX').keyframes
+    assert.deepEqual(position.map(key => key.value), expected.get(version).position, `position v${version}`)
+    assert.deepEqual(size.map(key => key.value), expected.get(version).size, `size v${version}`)
+  }
+
+  const rotated = document([node('image', 'image')])
+  rotated.hierarchyLayoutVersion = 2
+  rotated.timelineModelVersion = 4
+  Object.assign(rotated.nodes[0], { rotation: 90, scaleX: 2, scaleY: 1,
+    anchorOffsetX: 0, anchorOffsetY: 0 })
+  Object.assign(rotated.nodes[1], { anchorMinX: .25, anchorMaxX: .75, anchorMinY: .5, anchorMaxY: .5,
+    pivotX: .75, pivotY: .5, anchorOffsetX: 0, anchorOffsetY: 0, sizeDeltaX: 0, sizeDeltaY: 100 })
+  rotated.tweenTracks = [{ id: 'rotated-absolute-x', nodeId: 'image', fieldKey: 'anchoredPositionX',
+    startTime: 0, duration: 1, initialValue: 850, endValue: 890, easeType: 'Linear' }]
+  const rotatedPosition = importSiteJson(rotated).look2.animations[0].keyframeTracks[0].keyframes
+  assert.deepEqual(rotatedPosition.map(key => key.value), [0, 0], 'v4 absolute X is converted through the scaled, rotated parent basis')
+})
+
 test('legacy reference GIA mask defaults migrate only on read, with intentional changes and opaque metadata retained', () => {
   const input = document([node('gia_node_100', 'image', { enableMask: false })])
   const component = (tag, body) => ({ [tag]: {}, '503': { [Number(tag) + 1]: body } })
@@ -159,6 +275,9 @@ test('legacy reference GIA mask defaults migrate only on read, with intentional 
   const restored = importSiteJson(input)
   assert.equal(restored.project.root.children[0].children[0].enableMask, true)
   assert.equal(restored.look2.siteExtras.giaSource.imageMaskVersion, 1)
+  const restoredOutput = exportSiteJson(restored.project, restored.look2)
+  assert.equal(restoredOutput.nodes.find(row => row.id === 'gia_node_100').properties.enableMask, true)
+  assert.equal(restoredOutput.giaSource.imageMaskVersion, 1)
   assert.deepEqual(input, original)
   input.giaSource.baseline[0].properties.enableMask = true
   const edited = importSiteJson(input)

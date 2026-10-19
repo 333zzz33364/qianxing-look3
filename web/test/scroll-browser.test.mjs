@@ -52,7 +52,8 @@ test('Web/Worker carries wheel deltas, grid Lua initialization and scene updates
   for (const [name, x] of [['LongText', 600], ['Grid', 1000]]) {
     await api('pointer', { type: 'wheel', x, y: 450, deltaY: 48 })
     const next = await api('get', { view: true })
-    assert.ok(Math.abs(next.scene.nodes.find(n => n.name === name).scroll.offset - 48) < 1e-8)
+    assert.ok(Math.abs(next.scene.nodes.find(n => n.name === name).scroll.offset - 48) < 1e-8,
+      JSON.stringify({ name, width: next.scene.width, height: next.scene.height, nodes: next.scene.nodes.slice(0, 4).map(({ name, matrix, sourceWidth, sourceHeight, scroll }) => ({ name, matrix, sourceWidth, sourceHeight, offset: scroll?.offset })) }))
   }
   await api('stop')
 })

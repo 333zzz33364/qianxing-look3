@@ -16,8 +16,8 @@ test('DSH discovery includes large archives and selects newest entries before tr
   const workspace = fixture(t)
   const controller = new SimulatorController(workspace)
   t.after(() => controller.dispose())
-  for (let index = 0; index < 55; index++) {
-    const path = join(workspace, `a-${String(index).padStart(2, '0')}.json`)
+  for (let index = 0; index < 505; index++) {
+    const path = join(workspace, `a-${String(index).padStart(3, '0')}.json`)
     writeFileSync(path, JSON.stringify({ format: 'qxqy-simulator-save', meta: { name: `Archive ${index}` } }))
     utimesSync(path, 1_700_000_000 + index, 1_700_000_000 + index)
   }
@@ -26,14 +26,14 @@ test('DSH discovery includes large archives and selects newest entries before tr
   utimesSync(largePath, 1_700_001_000, 1_700_001_000)
   const result = controller.listArchives()
   assert.equal(result.bound, true)
-  assert.equal(result.archives.length, 50)
+  assert.equal(result.archives.length, 500)
   assert.equal(result.archives[0].path, 'z-latest-large.json')
   assert.ok(result.archives[0].bytes > 8 * 1024 * 1024)
-  assert.equal(result.archives[1].path, 'a-54.json')
-  assert.equal(result.archives.at(-1).path, 'a-06.json')
-  assert.equal(result.discovery.matchedArchives, 56)
+  assert.equal(result.archives[1].path, 'a-504.json')
+  assert.equal(result.archives.at(-1).path, 'a-006.json')
+  assert.equal(result.discovery.matchedArchives, 506)
   assert.equal(result.discovery.truncated, true)
-  assert.ok(result.discovery.warnings.some(message => /最新的 50/.test(message)))
+  assert.ok(result.discovery.warnings.some(message => /最新的 500/.test(message)))
 })
 
 test('DSH absolute-path load remembers the relative path for subsequent default saves', async t => {

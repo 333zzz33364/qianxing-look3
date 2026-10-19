@@ -32,8 +32,8 @@ async function main() {
     throw new Error(`Desktop wait failed: ${expression}\n${await js('document.body.innerText')}`)
   }
   await window.loadURL('dsh-app://app/')
-  await wait(`!!document.querySelector('.qxsim-editor-nav')`)
-  await js(`(() => { const b = [...document.querySelectorAll('button')].find(b => b.textContent === '▷ 试玩 ↗'); b.focus(); b.click() })()`)
+  await wait(`!!document.querySelector('.look2-top')`)
+  await js(`(() => { const b = [...document.querySelectorAll('button')].find(b => b.textContent === '新窗口'); if (!b) throw new Error('Missing button 新窗口'); b.focus(); b.click() })()`)
   const frame = `document.querySelector('.qxsim-play-overlay iframe')`
   await wait(`${frame}?.contentDocument.querySelector('#state')?.textContent.includes('试玩运行中')`)
   assert.equal(denied, 0, 'Desktop must launch inline without asking for a forbidden window')
@@ -46,7 +46,7 @@ async function main() {
   await wait(`${frame}.contentDocument.querySelector('#log').textContent.includes('desktop-key')`)
   await js(`${frame}.contentDocument.querySelector('#close').click()`)
   await wait(`!document.querySelector('.qxsim-play-overlay')`)
-  assert.equal(await js(`document.activeElement.textContent`), '▷ 试玩 ↗')
+  assert.equal(await js(`document.activeElement.textContent`), '新窗口')
   assert.equal(await js(`fetch('/look3-simulator/api/play', { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({sessionId:'desktop-play', action:'get'}) }).then(r=>r.json()).then(r=>r.ok)`), false)
   console.log('PASS Electron Desktop policy: no popup requested, dsh-app iframe, authenticated Host API, keyboard input and stopped Worker')
 }

@@ -6,6 +6,14 @@ import { root, products, cleanGenerated } from './paths.mjs'
 import { distributable } from './distribution-filter.mjs'
 
 const external = ['@deepseek-ai/*', '@napi-rs/canvas', 'fengari', 'protobufjs']
+// Authoring geometry is shared with the browser; native font/canvas services
+// stay in Node while both hosts use the same text-layout algorithm.
+export const browserPlugins = [{
+  name: 'browser-text-layout',
+  setup(build) {
+    build.onResolve({ filter: /[\\/]text-layout\.js$/ }, args => ({ path: join(root, 'studio/play/browser-text-layout.js') }))
+  },
+}]
 
 async function bundle(entry, outfile, browser = false) {
   await build({
@@ -13,6 +21,7 @@ async function bundle(entry, outfile, browser = false) {
     format: 'esm', platform: browser ? 'browser' : 'node',
     target: browser ? 'es2022' : 'node20', minify: true,
     external: browser ? [] : external, logLevel: 'warning',
+    plugins: browser ? browserPlugins : [],
   })
 }
 
@@ -67,7 +76,7 @@ export async function buildProduct(product) {
     for (const worker of ['look2-fit-worker', 'look2-psd-worker']) {
       await build({ absWorkingDir: root, entryPoints: [`editor-ui/${worker}.js`], outfile: join(output, `${worker}.js`), bundle: true, format: 'iife', minify: true, platform: 'browser', target: 'es2022' })
     }
-    await build({ absWorkingDir: root, entryPoints: ['dsh-plugin/lib/client.js'], outfile: join(output, 'client.js'), bundle: true, format: 'iife', minify: true, platform: 'browser', target: 'es2022' })
+    await build({ absWorkingDir: root, entryPoints: ['dsh-plugin/lib/client.js'], outfile: join(output, 'client.js'), bundle: true, format: 'iife', minify: true, platform: 'browser', target: 'es2022', plugins: browserPlugins })
     await copyFile(join(root, 'skill/SKILL.md'), join(root, 'dsh-plugin/skill.md'))
     const presets = join(root, 'dsh-plugin/presets')
     await cleanGenerated(presets, join(root, 'dsh-plugin'))

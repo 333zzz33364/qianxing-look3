@@ -9,13 +9,14 @@ const end = source.indexOf("      $('theme').addEventListener", start)
 assert(start >= 0 && end > start)
 const handlerSource = source.slice(start, end)
 
-function page({ api = '/editor/api/play', opener = null, closeWorks = false, stop = async () => {}, storageThrows = false, referrer = '' } = {}) {
+function page({ api = '/editor/api/play', opener = null, closeWorks = false, stop = async () => {}, storageThrows = false, referrer = '', embedded = false } = {}) {
   let handler, stopped = 0, closed = 0
   const targets = [], storage = new Map(), timers = new Map()
   const button = { disabled: false, addEventListener(type, fn) { assert.equal(type, 'click'); handler = fn } }
   const window = { opener, closed: false, close() { closed++; window.closed = closeWorks } }
   runInNewContext(handlerSource, {
     $: () => button, API: api, sessionId: 'unsaved-preview-session', window,
+    embedded, quiesce() {}, requestEmbeddedClose() { targets.push('parent-close') },
     play: { running: true, async stop() { stopped++; await stop() } },
     sessionStorage: { setItem(key, value) { if (storageThrows) throw Error('disabled'); storage.set(key, value) } },
     location: { origin: 'http://local.test', pathname: '/look3-simulator/play', replace: target => targets.push(target) },
@@ -77,6 +78,14 @@ test('DSH fallback returns only to a same-origin host page', async () => {
     assert.deepEqual(p.targets, [expected])
     assert.equal(p.storage.size, 0)
   }
+})
+
+test('embedded play delegates close to its owner without navigation or worker stop', async () => {
+  const p = page({ embedded: true })
+  await p.click(); await p.click()
+  assert.deepEqual(p.targets, ['parent-close'])
+  assert.deepEqual(p.counts(), { stopped: 0, closed: 0 })
+  assert.equal(p.storage.size, 0)
 })
 
 const entry = readFileSync(new URL('../lib/editor-client.js', import.meta.url), 'utf8')

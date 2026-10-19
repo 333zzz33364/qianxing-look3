@@ -343,19 +343,45 @@
         if (embedded && event.key === 'Escape') { event.preventDefault(); requestEmbeddedClose() }
       })
       $('close').addEventListener('click', async () => {
+        if ($('close').disabled) return
+        $('close').disabled = true
         if (embedded) {
           requestEmbeddedClose()
           return
         }
+        let stopTimer
+        const wasRunning = play.running
         try {
           quiesce()
-          await api('stop')
-          stopped = true
-          window.close()
-        } catch (error) {
-          closing = false
-          document.querySelector('.app').inert = false
-          showError(error)
+          if (wasRunning) await Promise.race([
+            play.stop().then(() => { stopped = true }).catch(() => {}),
+            new Promise(resolve => { stopTimer = setTimeout(resolve, 1500) }),
+          ])
+        } finally {
+          clearTimeout(stopTimer)
+          const webEditor = API.startsWith('/editor/')
+          try {
+            if (window.opener && !window.opener.closed) {
+              window.opener.focus()
+              window.close()
+            } else if (!webEditor) window.close()
+          } catch { /* A blocked close must still reach the editor. */ }
+          setTimeout(() => {
+            if (window.closed) return
+            if (webEditor) {
+              let target = '/editor'
+              try { sessionStorage.setItem('look2-editor-session', sessionId) }
+              catch { target += '#session=' + encodeURIComponent(sessionId) }
+              location.replace(target)
+            } else {
+              let target = '/'
+              try {
+                const referrer = new URL(document.referrer)
+                if (referrer.origin === location.origin && referrer.pathname !== location.pathname) target = referrer.href
+              } catch { /* A directly opened host page may have no referrer. */ }
+              location.replace(target)
+            }
+          }, 100)
         }
       })
       $('theme').addEventListener('click', () => { theme = theme === 'dark' ? 'light' : 'dark'; applyTheme() })

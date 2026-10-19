@@ -331,12 +331,17 @@ test('plugin registers screenshot capture, API and standalone Pixi play routes, 
   const effects = []
   const ctx = {
     tools: { register(tool) { tools.push(tool) } },
-    webServer: { register(route) { routes.push(route) } },
+    webServer: { register(route) { routes.push(route); return () => routes.splice(routes.indexOf(route), 1) } },
     effect(factory) { effects.push(factory()) },
   }
   t.after(() => Promise.all(effects.map(dispose => dispose?.())))
   apply(ctx)
   assert.deepEqual(tools.map((tool) => tool.name), [
+    'look3_studio_transaction',
+    'look3_studio_history',
+    'look3_studio_template',
+    'look3_animation_set',
+    'look3_animation_export',
     'look3_script_sync',
     'look3_studio_get',
     'look3_studio_play_screenshot',
@@ -348,7 +353,18 @@ test('plugin registers screenshot capture, API and standalone Pixi play routes, 
   assert.equal(routes[0].path, '/look3-simulator/api')
   assert.equal(routes[1].path, '/look3-simulator/play')
   assert.equal(routes[2].path, '/look3-simulator/play-renderer.js')
-  assert.equal(routes[3].path, '/qxqy-assets')
+  assert.deepEqual(routes.map(route => `${route.kind} ${route.path}`).sort(), [
+    'prefix /look3-simulator/api',
+    'prefix /look3-simulator/play',
+    'exact /look3-simulator/play-renderer.js',
+    'prefix /look3-simulator/look2-fit-worker.js',
+    'prefix /look3-simulator/look2-psd-worker.js',
+    'prefix /look2-assets/',
+    'prefix /qxqy-assets',
+    'prefix /qxqy-audio',
+    'prefix /qxqy-font',
+  ].sort())
+  assert.equal(routes.find(route => route.path === '/qxqy-assets')?.path, '/qxqy-assets')
   const headers = {}
   let body = ''
   const response = {
@@ -401,13 +417,19 @@ test('plugin registers screenshot capture, API and standalone Pixi play routes, 
   })
   assert.match(rendererHeaders['content-type'], /text\/javascript/)
   assert.match(rendererBody, /WebGL/)
-  assert.equal(effects.length, 7)
+  assert.equal(effects.length, routes.length + 1)
 })
 
 test('client bundle loads through Harness ModuleLoader and exposes the slot plugin', () => {
   let clientModule
   new Function('window', readFileSync(new URL('../dist/client.js', import.meta.url), 'utf8'))({ __ModuleLoader__: { load: value => { clientModule = value } } })
-  const exports = clientModule.factory(name => { assert.equal(name, 'react'); return { createElement() {} } })
+  const exports = clientModule.factory(name => {
+    assert.equal(name, 'react')
+    return {
+      createElement() {}, createContext(value) { return { Provider() {}, _currentValue: value } },
+      useState() {}, useEffect() {}, useRef() {},
+    }
+  })
   assert.deepEqual(exports.inject, ['slots'])
   assert.equal(typeof exports.apply, 'function')
 })
@@ -415,8 +437,12 @@ test('client bundle loads through Harness ModuleLoader and exposes the slot plug
 test('host tool runtime is supplied by Harness instead of bundled twice', () => {
   const manifest = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'))
   assert.equal(manifest.dependencies?.['@deepseek-ai/dsh-tools'], undefined)
-  assert.match(manifest.peerDependencies?.['@deepseek-ai/dsh-tools'] || '', /0\.1\.0-rc\.6/)
-  assert.equal(manifest.devDependencies?.['@deepseek-ai/dsh-tools'], '0.1.0-rc.6')
+  const supportedPeerRanges = (manifest.peerDependencies?.['@deepseek-ai/dsh-tools'] || '')
+    .split('||').map(range => range.trim()).filter(Boolean).sort()
+  assert.deepEqual(supportedPeerRanges, ['^0.1.0-rc.6', '^0.2.0-rc.1'].sort())
+  assert.equal(manifest.devDependencies?.['@deepseek-ai/dsh-tools'], '0.2.0-rc.2')
+  const pluginManifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+  assert.equal(pluginManifest.devDependencies?.['@deepseek-ai/dsh-tools'], '0.2.0-rc.2')
 })
 
 test('sessionWorkspace reads the DSH session header cwd and tolerates missing context', () => {

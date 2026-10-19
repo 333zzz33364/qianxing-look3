@@ -3,6 +3,8 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { createWebServer } from '../server.js'
 
 test('non-local listener requires a password before creating a session', async () => {
@@ -15,7 +17,9 @@ test('password covers files and API, while health reveals no workspace informati
   t.after(async () => { await app.close(); rmSync(workspace, { recursive: true, force: true }) })
   const authorization = 'Basic ' + Buffer.from('simulator:test-secret').toString('base64')
   for (const path of ['/', '/app.js', '/api/state', '/api/preview', '/api/editor.png', '/editor', '/editor.js', '/editor/play', '/editor/api/get', '/qxqy-audio/mp3-v1/50888.mp3']) assert.equal((await fetch(app.url + path)).status, 401)
-  assert.deepEqual(await (await fetch(app.url + '/health')).json(), { status: 'ok' })
+  assert.deepEqual(await (await fetch(app.url + '/health')).json(), {
+    status: 'ok', buildId: createHash('sha256').update(readFileSync(new URL('../server.js', import.meta.url))).digest('hex'),
+  })
   assert.equal((await fetch(app.url + '/api/state', { headers: { authorization } })).status, 200)
   const wrong = 'Basic ' + Buffer.from('simulator:wrong-secret').toString('base64')
   assert.equal((await fetch(app.url, { headers: { authorization: wrong } })).status, 401)

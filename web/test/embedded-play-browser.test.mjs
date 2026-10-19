@@ -7,6 +7,7 @@ import { createWebServer } from '../server.js'
 import { createStudio } from '../../studio/index.js'
 import { startTestBrowser } from './browser-helper.mjs'
 import { build } from 'esbuild'
+import { browserPlugins } from '../../scripts/build.mjs'
 import { fileURLToPath } from 'node:url'
 
 // QXQY_BROWSER=<Chrome/Edge executable> node --test test/embedded-play-browser.test.mjs
@@ -17,7 +18,13 @@ test('blocked play popup falls back to an owned iframe with saved drafts, keyboa
   studio.patch({ op: 'addScript', controlId: 'n1', controlAsset: 'server-control-template', path: 'main.lua', source: '-- original' })
   writeFileSync(join(temp, 'game.save.json'), JSON.stringify(studio.archiveData()))
   const app = await createWebServer({ workspace: temp, initialPath: 'game.save.json', port: 0 })
-  const fixture = await build({ entryPoints: [fileURLToPath(new URL('./fixtures/play-lifecycle-client.js', import.meta.url))], bundle: true, write: false, format: 'iife', platform: 'browser' })
+  let browser
+  t.after(async () => {
+    await browser?.close()
+    await app.close()
+    rmSync(temp, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 })
+  })
+  const fixture = await build({ entryPoints: [fileURLToPath(new URL('./fixtures/play-lifecycle-client.js', import.meta.url))], bundle: true, write: false, format: 'iife', platform: 'browser', plugins: browserPlugins })
   const handler = app.server.listeners('request')[0]
   app.server.removeListener('request', handler)
   app.server.on('request', (request, response) => {
@@ -25,36 +32,33 @@ test('blocked play popup falls back to an owned iframe with saved drafts, keyboa
     else if (request.url === '/fixture.js') { response.setHeader('content-type', 'text/javascript'); response.end(fixture.outputFiles[0].contents) }
     else void handler(request, response)
   })
-  let browser
-  t.after(async () => {
-    await browser?.close()
-    await app.close()
-    rmSync(temp, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 })
-  })
   browser = await startTestBrowser(temp)
   const { evaluate, wait } = browser
   const click = text => evaluate(`(() => { const b = [...document.querySelectorAll('button')].find(b => b.textContent === ${JSON.stringify(text)}); if (!b || b.disabled) throw new Error('Missing button ' + ${JSON.stringify(text)}); b.focus(); b.click() })()`)
   await browser.navigate(`${app.url}/editor`)
-  await wait(`!!document.querySelector('.qxsim-editor-nav')`)
+  await wait(`!!document.querySelector('.look2-top')`)
   await evaluate(`window.openOriginal = window.open; window.open = () => null`)
-  await click('Lua 脚本')
+  await click('Lua')
   await wait(`!!document.querySelector('.qxsim-script-editor textarea')`)
   await evaluate(`(() => { const el = document.querySelector('.qxsim-script-editor textarea'); Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(el, ${JSON.stringify(source)}); el.dispatchEvent(new Event('input', { bubbles: true })); })()`)
+  await wait(`document.querySelector('.qxsim-script-editor .qxsim-script-footer')?.textContent.includes('有未保存的修改')`)
   // Failed saves must keep the draft and never launch a stale game.
-  await evaluate(`window.fetchOriginal = window.fetch; window.fetch = (url, init) => String(url).endsWith('/patch') ? Promise.reject(new Error('test save failure')) : fetchOriginal(url, init)`)
-  await click('▷ 试玩 ↗')
-  await wait(`document.querySelector('[role=alert]')?.textContent.includes('test save failure')`)
+  await evaluate(`window.fetchOriginal = window.fetch; window.__look3FetchCalls = []; window.fetch = (url, init) => { const value = String(url); const body = init?.body ? JSON.parse(init.body) : null; const scriptUpdate = value.endsWith('/transaction') && body?.ops?.some(op => op.op === 'updateScript'); window.__look3FetchCalls.push({ url: value, scriptUpdate }); return scriptUpdate ? Promise.reject(new Error('test save failure')) : fetchOriginal(url, init) }`)
+  await click('新窗口')
+  await wait(`window.__look3FetchCalls.some(call => call.scriptUpdate) || !!document.querySelector('.qxsim-play-overlay iframe')`)
+  assert.equal(await evaluate(`window.__look3FetchCalls.some(call => call.scriptUpdate)`), true, `play preparation did not submit the dirty Lua draft: ${JSON.stringify(await evaluate('window.__look3FetchCalls'))}`)
+  await wait(`document.querySelector('.look2-error-trigger')?.title.includes('test save failure')`)
   assert.equal(await evaluate(`!!document.querySelector('.qxsim-play-overlay')`), false)
   assert.equal(await evaluate(`document.querySelector('.qxsim-script-editor textarea').value`), source)
   await evaluate(`window.fetch = fetchOriginal`)
   // Delay the save: no frame/start may exist until this completes.
-  await evaluate(`window.fetchOriginal = window.fetch; window.fetch = async (url, init) => { if (String(url).endsWith('/patch')) await new Promise(r => { window.releaseSave = r }); return fetchOriginal(url, init) }`)
-  await click('▷ 试玩 ↗')
+  await evaluate(`window.fetchOriginal = window.fetch; window.fetch = async (url, init) => { const body = init?.body ? JSON.parse(init.body) : null; if (String(url).endsWith('/transaction') && body?.ops?.some(op => op.op === 'updateScript')) await new Promise(r => { window.releaseSave = r }); return fetchOriginal(url, init) }`)
+  await click('新窗口')
   await wait(`!!window.releaseSave`)
   assert.equal(await evaluate(`!!document.querySelector('.qxsim-play-overlay')`), false)
   await evaluate(`releaseSave(); window.fetch = fetchOriginal`)
   await wait(`!!document.querySelector('.qxsim-play-overlay iframe')?.contentWindow.qxqyEmbeddedPlay`)
-  const sessionId = await evaluate(`document.querySelector('.qxsim').dataset.qxsimSessionId`)
+  const sessionId = await evaluate(`document.querySelector('.look2').dataset.qxsimSessionId`)
   const api = async (action, args = {}) => (await (await fetch(`${app.url}/editor/api/play`, {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sessionId, action, args }),
   })).json())
@@ -82,12 +86,12 @@ test('blocked play popup falls back to an owned iframe with saved drafts, keyboa
   await wait(`!document.querySelector('.qxsim-play-overlay')`)
   assert.equal((await api('get')).ok, false)
   assert.equal(await evaluate(`document.querySelector('.qxsim-script-editor textarea').value`), source)
-  assert.equal(await evaluate(`document.activeElement.textContent`), '▷ 试玩 ↗')
+  assert.equal(await evaluate(`document.activeElement.textContent`), '新窗口')
 
   // Return from the iframe before its start fetch settles; the parent must
   // drain that start before stop and before removing the frame.
   await evaluate(`window.fetch = async (url, init) => { if (String(url).endsWith('/play') && JSON.parse(init.body).action === 'start') await new Promise(r => { window.delayedStart = r }); return fetchOriginal(url, init) }`)
-  await click('▷ 试玩 ↗')
+  await click('新窗口')
   await wait(`!!window.delayedStart`)
   await click('关闭试玩')
   assert.equal(await evaluate(`document.querySelector('.qxsim-play-overlay').open`), true)
@@ -97,7 +101,7 @@ test('blocked play popup falls back to an owned iframe with saved drafts, keyboa
 
   // The normal browser path still uses a separate tab, not the fallback.
   await evaluate(`window.open = openOriginal`)
-  await click('▷ 试玩 ↗')
+  await click('新窗口')
   await wait(`!document.querySelector('.qxsim-actions button[disabled]')`)
   let popup
   for (let i = 0; i < 100 && !popup; i++) {
@@ -112,23 +116,23 @@ test('blocked play popup falls back to an owned iframe with saved drafts, keyboa
   // Harness can destroy/recreate the view or change its session prop without
   // a full browser navigation. Cleanup must keep using the old session id.
   await browser.navigate(`${app.url}/fixture`)
-  await wait(`!!document.querySelector('.qxsim-editor-nav')`)
+  await wait(`!!document.querySelector('.look2-top')`)
   await evaluate(`window.open = () => null; window.fetchOriginal = window.fetch; window.fetch = async (url, init) => { if (String(url).endsWith('/play') && JSON.parse(init.body).action === 'start') await new Promise(r => { window.releaseStart = r }); return fetchOriginal(url, init) }`)
-  await click('▷ 试玩 ↗')
+  await click('新窗口')
   await wait(`!!window.releaseStart`)
   await evaluate(`mountSession(null)`)
-  await wait(`!document.querySelector('.qxsim')`)
+  await wait(`!document.querySelector('.look2')`)
   await evaluate(`mountSession('lifecycle-a')`)
-  await wait(`!!document.querySelector('.qxsim-editor-nav')`)
-  await click('▷ 试玩 ↗')
+  await wait(`!!document.querySelector('.look2-top')`)
+  await click('新窗口')
   assert.equal(await evaluate(`!!document.querySelector('.qxsim-play-overlay')`), false)
   await evaluate(`window.fetch = fetchOriginal; releaseStart()`)
   await wait(`${frame}?.contentDocument.querySelector('#state')?.textContent.includes('试玩运行中')`)
   await browser.key('Escape', 'Escape')
   await wait(`!document.querySelector('.qxsim-play-overlay')`)
-  await click('▷ 试玩 ↗')
+  await click('新窗口')
   await wait(`${frame}?.contentDocument.querySelector('#state')?.textContent.includes('试玩运行中')`)
   await evaluate(`mountSession('lifecycle-b')`)
-  await wait(`document.querySelector('.qxsim')?.dataset.qxsimSessionId === 'lifecycle-b' && !document.querySelector('.qxsim-play-overlay')`)
+  await wait(`document.querySelector('.look2')?.dataset.qxsimSessionId === 'lifecycle-b' && !document.querySelector('.qxsim-play-overlay')`)
   await wait(`fetch('/editor/api/play', { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({sessionId:'lifecycle-a', action:'get'}) }).then(r => r.json()).then(r => !r.ok)`)
 })

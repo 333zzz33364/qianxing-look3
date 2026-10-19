@@ -315,7 +315,7 @@ test('controller renders play screenshots from Runtime paint without a browser p
 test('controller renders editor screenshots from boxes without the simulator tab', async () => {
   const controller = new SimulatorController()
   try {
-    const captured = controller.requestUiScreenshot()
+    const captured = await controller.requestUiScreenshot()
     assert.equal(captured.page, 'UI 编辑')
     assert.equal(captured.width, 1600)
     assert.equal(captured.height, 900)
@@ -332,8 +332,8 @@ test('plugin registers screenshot capture, API and standalone Pixi play routes, 
   const effects = []
   const ctx = {
     tools: { register(tool) { tools.push(tool) } },
-    webServer: { register(route) { routes.push(route) } },
-    effect(factory) { effects.push(factory) },
+    webServer: { register(route) { routes.push(route); return () => routes.splice(routes.indexOf(route), 1) } },
+    effect(factory) { const cleanup = factory(); effects.push(cleanup); return cleanup },
   }
   apply(ctx)
   assert.deepEqual(tools.map((tool) => tool.name), [
@@ -342,6 +342,7 @@ test('plugin registers screenshot capture, API and standalone Pixi play routes, 
     'look3_studio_template',
     'look3_animation_set',
     'look3_animation_export',
+    'look3_script_sync',
     'look3_studio_get',
     'look3_studio_play_screenshot',
     'look3_studio_ui_screenshot',
@@ -436,11 +437,15 @@ test('plugin registers screenshot capture, API and standalone Pixi play routes, 
   assert.equal(assetStatus, 502)
   assert.equal(typeof JSON.parse(assetBody).error, 'string')
   assert.ok(JSON.parse(assetBody).error)
-  assert.equal(effects.length, 1)
+  assert.equal(effects.length, routes.length + 1)
+  await Promise.all(effects.map((dispose) => dispose?.()))
+  assert.equal(routes.length, 0)
 })
 
 test('client bundle parses and includes editor-grade controls and workflow', () => {
   const source = readFileSync(new URL('../../editor-ui/index.js', import.meta.url), 'utf8')
+  const colorField = readFileSync(new URL('../../editor-ui/color-field.js', import.meta.url), 'utf8')
+  const playLauncher = readFileSync(new URL('../../editor-ui/play-launcher.js', import.meta.url), 'utf8')
   assert.doesNotThrow(() => new Function(readFileSync(new URL('../dist/client.js', import.meta.url), 'utf8')))
   let clientModule
   new Function('window', readFileSync(new URL('../dist/client.js', import.meta.url), 'utf8'))({ __ModuleLoader__: { load: value => { clientModule = value } } })
@@ -455,7 +460,10 @@ test('client bundle parses and includes editor-grade controls and workflow', () 
   assert.equal(typeof exports.apply, 'function')
   assert.match(source, /field\.type === 'color'/)
   assert.match(source, /field\.type === 'enum'/)
-  assert.match(source, /e\('input', \{ type: 'color'/)
+  assert.match(source, /import \{ createColorField \} from '\.\/color-field\.js'/)
+  assert.match(source, /const ColorField = createColorField\(React\)/)
+  assert.match(source, /field\.type === 'color'\) return e\(ColorField, \{ field, commit \}\)/)
+  assert.match(colorField, /e\('input', \{ type: 'color'/)
   assert.match(source, /aria-label': '画布缩放'/)
   assert.match(source, /hiddenCanvasIds/)
   assert.match(source, /toggleCanvasVisible/)
@@ -481,8 +489,10 @@ test('client bundle parses and includes editor-grade controls and workflow', () 
   assert.match(source, /\.qxsim\[data-theme=light\]/)
   assert.match(source, /height:100%;min-width:0;min-height:0;max-height:none/)
   assert.doesNotMatch(source, /100dvh/)
-  assert.match(source, /window\.open\('about:blank', '_blank'\)/)
-  assert.match(source, /playUrl\(sessionId\)/)
+  assert.match(source, /import \{ createPlayLauncher \} from '\.\/play-launcher\.js'/)
+  assert.match(playLauncher, /window\.open\('about:blank', '_blank'\)/)
+  assert.match(playLauncher, /playUrl\(sessionId\)/)
+  assert.match(playLauncher, /url\.searchParams\.set\('embedded', '1'\)/)
   assert.match(readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8'), /\/look3-simulator\/play#/)
   assert.doesNotMatch(source, /function captureEditorScreenshot/)
   assert.doesNotMatch(source, /useUiScreenshotCapture/)
@@ -540,7 +550,7 @@ test('client bundle parses and includes editor-grade controls and workflow', () 
   assert.doesNotMatch(source, /field\.type === 'note'[^\n]+暂不支持/)
   assert.doesNotMatch(source, /推断字段|未知字段，只读|GIA 已验证|协议边界|兼容性提示/)
   const size = source.indexOf("f.width ? e(Pair")
-  const rotation = source.indexOf("f.rotationZ ? e(DraftField")
+  const rotation = source.indexOf("...['rotationX', 'rotationY', 'rotationZ'].map(key => f[key] ? e(DraftField")
   const anchors = source.indexOf("f.anchorType ? e(DraftField")
   assert.ok(size >= 0 && size < rotation && rotation < anchors)
   assert.doesNotMatch(source, /\.qxsim-stage-wrap[^}]*background:#101521/)
@@ -577,7 +587,7 @@ test('host tool runtime is supplied by Harness instead of bundled twice', () => 
   assert.equal(manifest.dependencies?.['@deepseek-ai/dsh-tools'], undefined)
   const supportedPeerRanges = (manifest.peerDependencies?.['@deepseek-ai/dsh-tools'] || '')
     .split('||').map((range) => range.trim()).filter(Boolean).sort()
-  assert.deepEqual(supportedPeerRanges, ['^0.1.0-rc.6', '^0.2.0-rc.2'].sort())
+  assert.deepEqual(supportedPeerRanges, ['^0.1.0-rc.6', '^0.2.0-rc.1'].sort())
   assert.equal(manifest.devDependencies?.['@deepseek-ai/dsh-tools'], '0.2.0-rc.2')
   assert.equal(pluginManifest.devDependencies?.['@deepseek-ai/dsh-tools'], '0.2.0-rc.2')
 })
@@ -611,7 +621,7 @@ test('editor HTTP get binds the live session cwd instead of the host startup dir
   const ctx = {
     tools: { register() {} },
     webServer: { register(route) { routes.push(route) } },
-    effect() {},
+    effect(factory) { return factory() },
     get(name) {
       if (name === 'sessions') {
         return { get: () => ({ header: { cwd: testWorkspace } }) }

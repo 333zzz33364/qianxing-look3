@@ -362,10 +362,15 @@ function applyPatchMutating(project, op) {
         })
       }
     }
+    const id = op.id === undefined ? nextUniqueId(project.root) : String(op.id)
+    if (!id.trim()) throw new Error('add: id must be a non-empty string')
+    if (findNode(project.root, id)) throw new Error(`duplicate node id: ${id}`)
     const child = addChild(parent, op.kind, {
-      id: nextUniqueId(project.root),
+      id,
       guid: nextUniqueGuid(project.root),
       name: op.name,
+      ...(op.transformByPlatform !== undefined ? { transformByPlatform: op.transformByPlatform } : {}),
+      ...(op.syncAllDevices !== undefined ? { syncAllDevices: op.syncAllDevices } : {}),
     })
     project.selectedId = child.id
     return project

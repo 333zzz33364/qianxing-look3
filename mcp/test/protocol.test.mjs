@@ -74,10 +74,12 @@ test('MCP handshake exposes simulator tools and supports an edit/save round trip
     const listed = await server.request('tools/list')
     const names = listed.result.tools.map((tool) => tool.name)
     assert.deepEqual(names, [
+      'look3_script_sync',
       'look3_project_open', 'look3_project_save', 'look3_studio_get', 'look3_studio_patch',
       'look3_studio_transaction', 'look3_studio_history', 'look3_studio_template',
       'look3_animation_set', 'look3_animation_export',
       'look3_studio_play', 'look3_studio_ui_screenshot', 'look3_studio_play_screenshot', 'look3_studio_load',
+      'look3_preview_status', 'look3_preview_open',
     ])
     const playArgsSchema = listed.result.tools.find((tool) => tool.name === 'look3_studio_play').inputSchema.properties.args
     assert.deepEqual(playArgsSchema.properties.asset.enum, ['server', 'client'])

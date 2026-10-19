@@ -1,4 +1,4 @@
-import { CANVAS_PRESETS, PLATFORMS } from '../constants.js'
+import { CANVAS_PRESETS, DEFAULT_SIZE, PLATFORMS } from '../constants.js'
 import { createDefaultClientTemplateProject, createNode } from '../ui/authoring.js'
 import { createRectTransform } from '../ui/layout.js'
 import { layoutTree } from '../ui/inspector.js'
@@ -11,6 +11,12 @@ import { migrateSiteTweenClips } from './site-legacy.js'
 
 export const SITE_JSON_VERSION = 12
 const SITE_CANVAS_FIELDS = ['deviceMode', 'previewPresetId', 'canvasWidth', 'canvasHeight']
+const LEGACY_DEFAULT_SIZE_BY_SITE_TYPE = {
+  primitive: [150, 150], container: [280, 180], image: [150, 150], text: [360, 90],
+  textWindow: [420, 240], presetButton: [220, 72], cursorEventArea: [240, 140],
+  gridScroller: [420, 300], keyHint: [180, 64], uiAnimation: [240, 140],
+  fullscreenAnimation: [640, 360], reference: [320, 180],
+}
 
 const TYPE_TO_KIND = SITE_TYPE_TO_KIND
 
@@ -168,6 +174,120 @@ function siteTransform(row) {
   return Object.fromEntries(PLATFORMS.map((platform) => [platform, structuredClone(rt)]))
 }
 
+function hasSiteLayoutState(row) {
+  return ['anchorOffsetX', 'anchorOffsetY', 'sizeDeltaX', 'sizeDeltaY'].every((key) => Number.isFinite(row[key]))
+}
+
+function legacyNodeSize(row, node, axis) {
+  const raw = row[axis]
+  if (Number.isFinite(raw)) return Number(raw)
+  const defaults = LEGACY_DEFAULT_SIZE_BY_SITE_TYPE[row.type] || DEFAULT_SIZE[node.kind]
+  return Number(defaults?.[axis === 'width' ? 0 : 1] ?? (axis === 'width' ? 100 : 40))
+}
+
+function legacyPosition(row, canvas) {
+  const hasLayoutState = hasSiteLayoutState(row)
+  const x = Number.isFinite(row.x) ? Number(row.x) : 0
+  const y = Number.isFinite(row.y) ? Number(row.y) : 0
+  return hasLayoutState
+    ? { x: Number.isFinite(row.x) ? Number(row.x) : CANVAS_PRESETS['pc-16-9'].width / 2,
+      y: Number.isFinite(row.y) ? Number(row.y) : CANVAS_PRESETS['pc-16-9'].height / 2 }
+    : { x: canvas.width / 2 + x, y: canvas.height / 2 - y }
+}
+
+function legacyLinearTransform(row) {
+  const radians = (Number(row.rotation) || 0) * Math.PI / 180
+  const scaleX = Number.isFinite(row.scaleX) ? Number(row.scaleX) : 1
+  const scaleY = Number.isFinite(row.scaleY) ? Number(row.scaleY) : 1
+  const cosine = Math.cos(radians), sine = Math.sin(radians)
+  return { a: cosine * scaleX, b: sine * scaleX, c: -sine * scaleY, d: cosine * scaleY }
+}
+
+function multiplyLinear(parent, local) {
+  return {
+    a: parent.a * local.a + parent.c * local.b,
+    b: parent.b * local.a + parent.d * local.b,
+    c: parent.a * local.c + parent.c * local.d,
+    d: parent.b * local.c + parent.d * local.d,
+  }
+}
+
+function inverseLegacyVector(matrix, x, y) {
+  const determinant = matrix.a * matrix.d - matrix.b * matrix.c
+  if (Math.abs(determinant) < 1e-6) return { x: 0, y: 0 }
+  return {
+    x: (matrix.d * x - matrix.c * y) / determinant,
+    y: (-matrix.b * x + matrix.a * y) / determinant,
+  }
+}
+
+function roundLayout(value) {
+  return Number(value.toFixed(2))
+}
+
+/** Match UGC's pre-hierarchyLayoutVersion=2 world-position migration. */
+function migrateLegacyHierarchyLayout(input, project, byId) {
+  const canvas = projectCanvas(project)
+  const rows = new Map(input.nodes.map((row) => [String(row.id), row]))
+  const migrated = new Map()
+  const ordered = []
+  const visit = (node) => {
+    ordered.push(node)
+    for (const child of node.children || []) visit(child)
+  }
+  for (const root of project.root.children || []) visit(root)
+
+  for (const node of ordered) {
+    const row = rows.get(node.id)
+    if (!row) continue
+    const world = legacyPosition(row, canvas)
+    const parentId = row.parentId == null ? null : String(row.parentId)
+    const parent = parentId == null ? null : byId.get(parentId)
+    const parentWorld = parentId == null ? null : migrated.get(parentId)
+    const width = legacyNodeSize(row, node, 'width')
+    const height = legacyNodeSize(row, node, 'height')
+    const transform = legacyLinearTransform(row)
+    let localX = world.x
+    let localY = world.y
+    let worldMatrix = transform
+    let parentWidth = canvas.width
+    let parentHeight = canvas.height
+
+    if (parent && parentWorld) {
+      const parentRow = rows.get(parent.id)
+      const parentWidthActual = legacyNodeSize(parentRow, parent, 'width')
+      const parentHeightActual = legacyNodeSize(parentRow, parent, 'height')
+      const local = inverseLegacyVector(parentWorld.matrix, world.x - parentWorld.x, world.y - parentWorld.y)
+      localX = (Number.isFinite(parentRow.pivotX) ? Number(parentRow.pivotX) : 0.5) * parentWidthActual + local.x
+      localY = (Number.isFinite(parentRow.pivotY) ? Number(parentRow.pivotY) : 0.5) * parentHeightActual + local.y
+      parentWidth = parentWidthActual
+      parentHeight = parentHeightActual
+      worldMatrix = multiplyLinear(parentWorld.matrix, transform)
+    }
+
+    const anchorMinX = Number.isFinite(row.anchorMinX) ? Number(row.anchorMinX) : 0.5
+    const anchorMinY = Number.isFinite(row.anchorMinY) ? Number(row.anchorMinY) : 0.5
+    const anchorMaxX = Number.isFinite(row.anchorMaxX) ? Number(row.anchorMaxX) : 0.5
+    const anchorMaxY = Number.isFinite(row.anchorMaxY) ? Number(row.anchorMaxY) : 0.5
+    const pivotX = Number.isFinite(row.pivotX) ? Number(row.pivotX) : 0.5
+    const pivotY = Number.isFinite(row.pivotY) ? Number(row.pivotY) : 0.5
+    const anchorX = ((1 - pivotX) * anchorMinX + pivotX * anchorMaxX) * parentWidth
+    const anchorY = ((1 - pivotY) * anchorMinY + pivotY * anchorMaxY) * parentHeight
+    const sizeX = width - (anchorMaxX - anchorMinX) * parentWidth
+    const sizeY = height - (anchorMaxY - anchorMinY) * parentHeight
+    const offsetX = roundLayout(localX - anchorX)
+    const offsetY = roundLayout(localY - anchorY)
+    const sizeDeltaX = roundLayout(sizeX)
+    const sizeDeltaY = roundLayout(sizeY)
+    for (const platform of PLATFORMS) {
+      const rt = node.transformByPlatform[platform]
+      rt.offset = { x: offsetX, y: offsetY }
+      rt.size = { x: sizeDeltaX, y: sizeDeltaY }
+    }
+    migrated.set(node.id, { x: world.x, y: world.y, matrix: worldMatrix })
+  }
+}
+
 function siteNode(row) {
   const kind = TYPE_TO_KIND[row.type]
   if (!kind) throw new Error(`参考网站的控件类型暂不支持：${row.type}`)
@@ -229,6 +349,8 @@ export function importSiteJson(input) {
     .filter((key) => Object.hasOwn(input, key))
     .map((key) => [key, input[key]]))
   adoptSiteCanvas(project, { siteCanvasSettings })
+  const hasLegacyWorldLayout = input.nodes.some((row) => Number.isFinite(row.x) || Number.isFinite(row.y))
+  if (input.hierarchyLayoutVersion !== 2 && hasLegacyWorldLayout) migrateLegacyHierarchyLayout(input, project, byId)
   const look2 = normalizeLook2({
     semanticVersion: 2,
     frameRate: input.frameRate, timelineSnapEnabled: input.timelineSnapEnabled,
@@ -246,20 +368,23 @@ export function exportSiteJson(project, rawLook2) {
   const look2 = normalizeLook2(rawLook2, project)
   const retainedCanvas = look2.siteCanvasSettings || {}
   const canvasValue = (key, fallback) => Object.hasOwn(retainedCanvas, key) ? retainedCanvas[key] : fallback
+  const canvas = projectCanvas(project)
   const { boxes } = layoutTree(project.root, projectCanvas(project))
   // A Look project can contain a server-container wrapper. The reference format starts at its client roots.
   const nodes = []
-  const visit = (node, parentId = null) => {
+  const visit = (node, parentId = null, parentSize = canvas) => {
     const rt = node.transformByPlatform?.[CANVAS_PRESETS[project.canvasId]?.platform || 'KEYBOARD'] || createRectTransform()
     const original = look2.siteNodes[node.id] || {}
     const box = boxes[node.id]
+    const anchorReferenceX = parentSize.width * ((1 - rt.pivot.x) * rt.anchorMin.x + rt.pivot.x * rt.anchorMax.x)
+    const anchorReferenceY = parentSize.height * ((1 - rt.pivot.y) * rt.anchorMin.y + rt.pivot.y * rt.anchorMax.y)
     const resourceImage = Boolean(original.properties?.imageResourceId || original.properties?.primitiveResourceId)
     nodes.push({
       ...original, id: node.id, parentId, name: node.name,
       type: node.kind === 'image' && (original.type === 'primitive' || resourceImage)
         ? 'primitive' : TYPE_TO_KIND[original.type] === node.kind ? original.type : KIND_TO_SITE_TYPE[node.kind] || node.kind,
       active: node.active !== false, visible: node.visible !== false,
-      x: box?.centerX ?? original.x ?? 0, y: box?.centerY ?? original.y ?? 0,
+      x: anchorReferenceX + rt.offset.x, y: anchorReferenceY + rt.offset.y,
       width: box?.width ?? original.width ?? 0, height: box?.height ?? original.height ?? 0,
       scaleX: rt.scale.x, scaleY: rt.scale.y, scaleZ: rt.scale.z,
       rotationX: rt.rotation.x, rotationY: rt.rotation.y, rotation: rt.rotation.z,
@@ -295,16 +420,17 @@ export function exportSiteJson(project, rawLook2) {
         disableCursorEventPassthrough: node.disableCursorEventPassthrough, showCursor: node.showCursor,
       } : {}) },
     })
-    for (const child of node.children || []) visit(child, node.id)
+    const childParentSize = node.kind === 'server-container' || !box
+      ? canvas : { width: box.width, height: box.height }
+    for (const child of node.children || []) visit(child, node.id, childParentSize)
   }
   for (const root of project.root.children || []) visit(root)
-  const canvas = projectCanvas(project)
   const animations = writeSiteAnimations(look2.animations)
   return toJson({
     ...look2.siteExtras,
-    version: SITE_JSON_VERSION, hierarchyLayoutVersion: look2.siteExtras.hierarchyLayoutVersion || 2,
-    controlModelVersion: look2.siteExtras.controlModelVersion || 2,
-    timelineModelVersion: look2.siteExtras.timelineModelVersion || 10,
+    version: SITE_JSON_VERSION, hierarchyLayoutVersion: 2,
+    controlModelVersion: 2,
+    timelineModelVersion: 10,
     name: project.meta.name,
     deviceMode: canvasValue('deviceMode', canvas.device),
     previewPresetId: canvasValue('previewPresetId', project.canvasId),

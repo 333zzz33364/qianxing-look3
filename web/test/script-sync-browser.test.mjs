@@ -66,8 +66,8 @@ test('browser buttons save configuration, preview without copying, and explicitl
   }
   const fill = (label, value) => evaluate(`(() => { const el = [...document.querySelectorAll('label')].find(e => e.textContent.includes(${JSON.stringify(label)})).querySelector('input'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, ${JSON.stringify(value)}); el.dispatchEvent(new Event('input', { bubbles: true })); })()`)
   await send('Page.navigate', { url: `${app.url}/editor` }, sessionId)
-  await wait(`!!document.querySelector('.qxsim-editor-nav')`)
-  await click('Lua 脚本')
+  await wait(`!!document.querySelector('.look2-top')`)
+  await click('同步')
   await wait(`!![...document.querySelectorAll('summary')].find(e => e.textContent.includes('实机脚本同步'))`)
   await evaluate(`[...document.querySelectorAll('summary')].find(e => e.textContent.includes('实机脚本同步')).click()`)
   await fill('项目脚本文件夹', 'game')

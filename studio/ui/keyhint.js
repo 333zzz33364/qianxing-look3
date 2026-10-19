@@ -1,4 +1,4 @@
-import { buildEnumTree } from 'qxqy-lua-runtime'
+import { buildEnumTree } from '../../client/lua-runtime/src/enums.js'
 
 // The runtime owns the public names. Native encodings are only the ranges
 // verified by the fixed UI editor; ordinal positions are not wire values.

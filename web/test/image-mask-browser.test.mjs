@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { build } from 'esbuild'
+import { browserPlugins } from '../../scripts/build.mjs'
 import { createCanvas, loadImage } from '@napi-rs/canvas'
 import { startTestBrowser } from './browser-helper.mjs'
 import { maskScenes, maskSamples, maskAlphas } from '../../studio/test/fixtures/image-mask.mjs'
@@ -22,7 +23,7 @@ window.sample = async (scene, flat = false) => {
   return ${JSON.stringify(maskSamples)}.map(([x,y]) => Array.from(out.pixels.slice((y*out.width+x)*4,(y*out.width+x)*4+4)));
 };
 renderer.ready.then(() => window.ready = true);
-` }, bundle: true, platform: 'browser', format: 'esm', write: false, logLevel: 'silent',
+` }, bundle: true, platform: 'browser', format: 'esm', write: false, logLevel: 'silent', plugins: browserPlugins,
     // The virtual entry resolves './studio/...' from the repo root, but bare
     // 'pixi.js' is a studio dependency that pnpm keeps out of the root store,
     // so esbuild needs studio's node_modules on its lookup path explicitly.

@@ -1,5 +1,45 @@
 import { COLOR_FIELDS, sampleTrack } from './sampling.js'
 import { canvasBox, computeRect, identityMatrix, composeRectMatrix, applyMatrix } from '../ui/layout.js'
+import { PLATFORMS } from '../constants.js'
+import { getPlatformTransform } from '../ui/transforms.js'
+
+const transformFields = Object.freeze({
+  anchoredPositionX: ['offset', 'x'], anchoredPositionY: ['offset', 'y'],
+  sizeDeltaX: ['size', 'x'], sizeDeltaY: ['size', 'y'],
+  anchorMinX: ['anchorMin', 'x'], anchorMinY: ['anchorMin', 'y'],
+  anchorMaxX: ['anchorMax', 'x'], anchorMaxY: ['anchorMax', 'y'],
+  pivotX: ['pivot', 'x'], pivotY: ['pivot', 'y'],
+  localScaleX: ['scale', 'x'], localScaleY: ['scale', 'y'], localScaleZ: ['scale', 'z'],
+  localRotationX: ['rotation', 'x'], localRotationY: ['rotation', 'y'], localRotationZ: ['rotation', 'z'],
+})
+
+/**
+ * Project a compiled preview tree onto an authoring platform while leaving its
+ * viewport and the project/runtime device selection untouched.
+ */
+export function projectPreviewTreeForPlatform(compiledRoot, authoredRoot, platform) {
+  if (!PLATFORMS.includes(platform)) throw new Error(`unknown platform ${platform}`)
+  if (!compiledRoot) return null
+  const authoringById = new Map()
+  const collect = node => {
+    if (!node || typeof node !== 'object') return
+    if (node.id) authoringById.set(node.id, node)
+    for (const child of node.children || []) collect(child)
+  }
+  collect(authoredRoot)
+
+  function project(node) {
+    const authored = authoringById.get(node.authoringId)
+    const result = { ...node }
+    if (authored?.transformByPlatform) {
+      const transform = getPlatformTransform(authored.transformByPlatform, platform)
+      for (const [field, [part, axis]] of Object.entries(transformFields)) result[field] = transform[part][axis]
+    }
+    if (node.children) result.children = node.children.map(project)
+    return result
+  }
+  return project(compiledRoot)
+}
 
 function colorValue(value) {
   if (value && typeof value === 'object') return value

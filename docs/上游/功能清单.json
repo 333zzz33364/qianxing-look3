@@ -260,8 +260,8 @@
         "studio/play/session.js"
       ],
       "tests": [
-        "server/test",
-        "studio/test/multiplayer.test.mjs"
+        "server/test/server.test.mjs",
+        "studio/test/autotest.test.mjs"
       ],
       "status": "pending",
       "evidence": [],
@@ -1183,7 +1183,7 @@
   ],
   "projectStatus": "paused-by-user",
   "projectComplete": false,
-  "checkpoint": "look3-workspace/整合/20261018-恢复/暂停检查点.json",
-  "note": "2026-10-18恢复后再次暂停：新增核心/活动界面/格式适配及局部日志已保存；62项仍待完整审计，所有pending保持未接受；首轮宿主失败及最终全回归/构建/页面缺口见progressReport。",
-  "progressReport": "look3-workspace/整合/20261018-恢复/暂停验证汇总.json"
+  "checkpoint": "look3-workspace/整合/20261019/暂停检查点.json",
+  "note": "2026-10-19完成骨骼/四平台作者预览小阶段后暂停；宿主、文字、滚动与格式有局部及中途安装证据，最终全回归/最终包与62项完整独立审计仍未完成；接受状态不前移。",
+  "progressReport": "look3-workspace/整合/20261019/暂停验证汇总.json"
 }

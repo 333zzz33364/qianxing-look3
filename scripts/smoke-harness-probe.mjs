@@ -27,7 +27,7 @@ export function apply(ctx, config) {
         assert.equal(evaluatePluginCompatibility(manifest, {}, version), undefined, version)
       }
       assert.ok(evaluatePluginCompatibility(manifest, {}, '0.3.0-rc.1'), 'Do not silently admit a future minor API')
-      const preset = await ctx.agentPresets.resolve('wonderland-lua-builder')
+      const preset = await ctx.agentPresets.resolve('look3-wonderland-lua-builder')
       assert.equal(preset.broken, undefined, JSON.stringify(preset))
       const lease = await ctx.agentPresets.acquireScope(preset.id)
       try {
@@ -37,20 +37,20 @@ export function apply(ctx, config) {
         assert.equal(skill.resourceBase.kind, 'directory')
         assert.match(await readFile(join(skill.resourceBase.path, 'references/workflow.md'), 'utf8'), /PREFLIGHT/)
       } finally { await lease[Symbol.asyncDispose]() }
-      assert.ok(await ctx.skills.get('qxqy-simulator'))
-      assert.equal(ctx.tools.schemas().filter(tool => tool.name.startsWith('qxqy_')).length, 7)
-      const before = (await call('qxqy_studio_get')).value
+      assert.ok(await ctx.skills.get('look3-simulator'))
+      assert.equal(ctx.tools.schemas().filter(tool => tool.name.startsWith('look3_')).length, 12)
+      const before = (await call('look3_studio_get')).value
       assert.equal(before.workspace.path, config.workspace)
-      await call('qxqy_studio_patch', { op: { op: 'set', id: 'n2', key: 'text', value: 'Harness 0.2', expectedRevision: before.version } })
-      assert.ok((await call('qxqy_studio_ui_screenshot')).content.some(block => block.type === 'image'))
-      assert.equal((await call('qxqy_studio_play', { action: 'start' })).value.running, true)
-      assert.ok((await call('qxqy_studio_play_screenshot')).content.some(block => block.type === 'image'))
-      await call('qxqy_studio_play', { action: 'stop' })
+      await call('look3_studio_patch', { op: { op: 'set', id: 'n2', key: 'text', value: 'Harness 0.2', expectedRevision: before.version } })
+      assert.ok((await call('look3_studio_ui_screenshot')).content.some(block => block.type === 'image'))
+      assert.equal((await call('look3_studio_play', { action: 'start' })).value.running, true)
+      assert.ok((await call('look3_studio_play_screenshot')).content.some(block => block.type === 'image'))
+      await call('look3_studio_play', { action: 'stop' })
       const url = `http://127.0.0.1:${ctx.webServer.port}`
-      for (const path of ['/qxqy-simulator/play', '/qxqy-simulator/play-renderer.js']) {
+      for (const path of ['/look3-simulator/play', '/look3-simulator/play-renderer.js']) {
         assert.equal((await fetch(url + path, { signal: AbortSignal.timeout(5_000) })).status, 200, path)
       }
-      const snapshot = await (await fetch(`${url}/qxqy-simulator/api/get`, {
+      const snapshot = await (await fetch(`${url}/look3-simulator/api/get`, {
         method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sessionId }), signal: AbortSignal.timeout(5_000),
       })).json()
       assert.equal(snapshot.ok, true)
@@ -62,17 +62,17 @@ export function apply(ctx, config) {
       for (let cycle = 0; cycle < 2; cycle++) {
         // A live Worker and all routes must be disposed before this activation
         // is replaced. Previously the very first restart hit duplicate prefix.
-        await call('qxqy_studio_play', { action: 'start' })
+        await call('look3_studio_play', { action: 'start' })
         await owners[0].restart()
-        assert.equal(ctx.tools.schemas().filter(tool => tool.name.startsWith('qxqy_')).length, 7)
-        const beforeRestartEdit = (await call('qxqy_studio_get')).value
-        await call('qxqy_studio_patch', { op: { op: 'renameSave', name: `restart-${cycle}`, expectedRevision: beforeRestartEdit.version } })
-        const reloaded = await (await fetch(`${url}/qxqy-simulator/api/get`, {
+        assert.equal(ctx.tools.schemas().filter(tool => tool.name.startsWith('look3_')).length, 12)
+        const beforeRestartEdit = (await call('look3_studio_get')).value
+        await call('look3_studio_patch', { op: { op: 'renameSave', name: `restart-${cycle}`, expectedRevision: beforeRestartEdit.version } })
+        const reloaded = await (await fetch(`${url}/look3-simulator/api/get`, {
           method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sessionId }), signal: AbortSignal.timeout(5_000),
         })).json()
         assert.equal(reloaded.ok, true, JSON.stringify(reloaded))
         assert.equal(reloaded.value.save.name, `restart-${cycle}`, 'HTTP and tools must share the new registry')
-        for (const path of ['/qxqy-simulator/play', '/qxqy-simulator/play-renderer.js']) {
+        for (const path of ['/look3-simulator/play', '/look3-simulator/play-renderer.js']) {
           assert.equal((await fetch(url + path, { signal: AbortSignal.timeout(5_000) })).status, 200, path)
         }
       }

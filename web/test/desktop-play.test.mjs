@@ -8,6 +8,7 @@ import { spawn } from 'node:child_process'
 import { createServer } from 'node:http'
 import { once } from 'node:events'
 import { build } from 'esbuild'
+import { browserPlugins } from '../../scripts/build.mjs'
 import { apply } from '../../dsh-plugin/lib/index.js'
 import { createStudio } from '../../studio/index.js'
 
@@ -16,7 +17,7 @@ test('Desktop custom protocol supports fallback play under Electron window denia
   const routes = []
   let dispose
   apply({ tools: { register() {} }, webServer: { register(route) { routes.push(route) } }, effect(factory) { dispose = factory() } })
-  const fixture = await build({ entryPoints: [fileURLToPath(new URL('./fixtures/harness-client.js', import.meta.url))], bundle: true, write: false, platform: 'browser', format: 'iife' })
+  const fixture = await build({ entryPoints: [fileURLToPath(new URL('./fixtures/harness-client.js', import.meta.url))], bundle: true, write: false, platform: 'browser', format: 'iife', plugins: browserPlugins })
   const server = createServer((request, response) => {
     if (request.headers.cookie !== 'test-desktop-auth=1') { response.statusCode = 401; response.end('Test auth required'); return }
     const path = new URL(request.url, 'http://localhost').pathname

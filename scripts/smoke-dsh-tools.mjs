@@ -37,24 +37,24 @@ export async function smokeDshTools(workspace) {
     return result
   }
   try {
-    assert.equal(tools.schemas().filter(tool => tool.name.startsWith('qxqy_')).length, 7)
-    const before = (await call('qxqy_studio_get')).value
+    assert.equal(tools.schemas().filter(tool => tool.name.startsWith('look3_')).length, 12)
+    const before = (await call('look3_studio_get')).value
     assert.equal(before.workspace.path, workspace)
-    await call('qxqy_studio_patch', { op: { op: 'renameSave', name: 'Tool pipeline', expectedRevision: before.version } })
-    assert.equal((await call('qxqy_studio_get')).value.save.name, 'Tool pipeline')
-    assert.equal((await call('qxqy_studio_get', {}, { ...agent, id: 'other-session' })).value.save.name, '未命名存档')
-    await call('qxqy_studio_patch', { op: { op: 'set', id: 'n2', key: 'text', value: 'Tool pipeline', expectedRevision: before.version } })
+    await call('look3_studio_patch', { op: { op: 'renameSave', name: 'Tool pipeline', expectedRevision: before.version } })
+    assert.equal((await call('look3_studio_get')).value.save.name, 'Tool pipeline')
+    assert.equal((await call('look3_studio_get', {}, { ...agent, id: 'other-session' })).value.save.name, '未命名存档')
+    await call('look3_studio_patch', { op: { op: 'set', id: 'n2', key: 'text', value: 'Tool pipeline', expectedRevision: (await call('look3_studio_get')).value.version } })
     // Preserve the legacy string-json input form too.
-    await call('qxqy_studio_patch', { op: JSON.stringify({ op: 'renameSave', name: 'String input' }) })
-    await call('qxqy_script_sync', { action: 'status' })
-    assert.ok((await call('qxqy_studio_load')).value.archives.length > 0)
-    assert.ok((await call('qxqy_studio_ui_screenshot')).content.some(block => block.type === 'image'))
-    assert.equal((await call('qxqy_studio_play', { action: 'start' })).value.running, true)
-    await call('qxqy_studio_play', { action: 'step', args: { dt: 1 / 30 } })
-    assert.ok((await call('qxqy_studio_play_screenshot')).content.some(block => block.type === 'image'))
-    await call('qxqy_studio_play', { action: 'stop' })
+    await call('look3_studio_patch', { op: JSON.stringify({ op: 'renameSave', name: 'String input' }) })
+    await call('look3_script_sync', { action: 'status' })
+    assert.ok((await call('look3_studio_load')).value.archives.length > 0)
+    assert.ok((await call('look3_studio_ui_screenshot')).content.some(block => block.type === 'image'))
+    assert.equal((await call('look3_studio_play', { action: 'start' })).value.running, true)
+    await call('look3_studio_play', { action: 'step', args: { dt: 1 / 30 } })
+    assert.ok((await call('look3_studio_play_screenshot')).content.some(block => block.type === 'image'))
+    await call('look3_studio_play', { action: 'stop' })
     const stale = await tools.execute({
-      callId: `smoke-${++callId}`, name: 'qxqy_studio_patch', agent,
+      callId: `smoke-${++callId}`, name: 'look3_studio_patch', agent,
       arguments: { op: { op: 'set', id: 'n2', key: 'text', value: 'stale', expectedRevision: before.version } },
       signal: AbortSignal.timeout(5_000),
     })
@@ -62,14 +62,14 @@ export async function smokeDshTools(workspace) {
     assert.match(JSON.stringify(stale), /revision conflict/)
     for (let cycle = 0; cycle < 2; cycle++) {
       await owner.restart()
-      assert.equal(routes.size, 6)
-      assert.equal(tools.schemas().filter(tool => tool.name.startsWith('qxqy_')).length, 7)
-      assert.equal((await call('qxqy_studio_get')).value.save.name, '未命名存档')
+      assert.equal(routes.size, 9)
+      assert.equal(tools.schemas().filter(tool => tool.name.startsWith('look3_')).length, 12)
+      assert.equal((await call('look3_studio_get')).value.save.name, '未命名存档')
     }
   } finally {
     await owner.dispose()
   }
   assert.equal(routes.size, 0)
-  assert.equal(tools.schemas().filter(tool => tool.name.startsWith('qxqy_')).length, 0)
+  assert.equal(tools.schemas().filter(tool => tool.name.startsWith('look3_')).length, 0)
   console.log('PASS installed DSH tool pipeline: registration, session isolation, JSON args, revisions, Worker, image content and restart cleanup')
 }

@@ -1,6 +1,6 @@
 import { importPsd, importSpine } from './look2-assets.js'
 import { sampleTrack, EASE_TYPES, TWEENABLE_FIELDS } from '../studio/look2/sampling.js'
-import { previewAnimation } from '../studio/look2/preview.js'
+import { previewAnimation, projectPreviewTreeForPlatform } from '../studio/look2/preview.js'
 import { createPrimitivePreviewSource } from './primitive-preview.js'
 import { applyStageImageMask, stageMaskKey } from './stage-image-mask.js'
 import { createResourcesPanel } from './look2-resources.js'
@@ -15,6 +15,9 @@ import { REFERENCE_THEME, editorIcon } from './look2-theme.js'
 import { describeEditorError, emptyErrorLog, ERROR_LOG_CSS, loadErrorLog, saveErrorLog, updateErrorLog } from './error-log.js'
 import { buildPlayLog, canStopInlinePlay, playLogFilename, playTargetGuide } from './play-log.js'
 import { normalizeImageMeta, rasterizeSlices, supportsImageStretch } from '../studio/assets/image-stretch.js'
+import { loadBrowserFont } from '../studio/play/browser-font.js'
+import { textLayout } from '../studio/play/text-layout.js'
+import { DEFAULT_FONT } from '../studio/fonts.js'
 
 const PLAY_TARGET_GUIDE = playTargetGuide()
 const playHelpTitle = `${PLAY_TARGET_GUIDE.full.label}：${PLAY_TARGET_GUIDE.full.detail}\n${PLAY_TARGET_GUIDE.template.label}：${PLAY_TARGET_GUIDE.template.detail}\n${PLAY_TARGET_GUIDE.difference}`
@@ -87,6 +90,12 @@ export function groupWorkspaceArchives(archives = []) {
   for (const entry of archives) (String(entry?.path || '').includes('/') ? other : root).push(entry)
   return { root, other }
 }
+
+import {
+  BONE_THICKNESS, DEFAULT_BONE_ARROW_LENGTH, MAX_BONE_ARROW_LENGTH,
+  buildBoneAttachmentPlan, buildBoneTransformMap, preserveAttachmentAnimationState,
+  preserveUntrackedAttachmentPose, updateBoneDirectionState,
+} from '../studio/look2/bones.js'
 
 export function createAnimationView(React, { api, playUrl, InlinePlay, usePlayLauncher, WorkspaceInspector, WorkspaceDock }) {
   const h = React.createElement
@@ -163,7 +172,7 @@ export function createAnimationView(React, { api, playUrl, InlinePlay, usePlayLa
 .look2-timeline{height:209px;min-height:132px;max-height:60%;display:flex;flex:0 0 auto;flex-direction:column;border-top:1px solid var(--line);background:#1d2128}.look2-timeline-resize{height:4px;cursor:row-resize;background:#252b34}.look2-timeline-resize:hover{background:#548cf066}.look2-timeline-top{display:flex;align-items:center;gap:5px;height:31px;min-height:31px;padding:3px 8px;border-bottom:1px solid var(--line)}.look2-timeline-top input[type=range]{width:110px}.look2-timeline-top input.timeline-seek{flex:1}.look2-time-readout{width:56px;text-align:center;color:#c8d1df;font-variant-numeric:tabular-nums}.look2-timeline-body{display:flex;flex:1;min-height:0;overflow:hidden}.look2-timeline-names{flex:0 0 230px;overflow:auto;border-right:1px solid var(--line);scrollbar-width:thin}.look2-timeline-scroll{flex:1;min-width:0;overflow:auto;position:relative;scrollbar-width:thin}.look2-ruler-row,.look2-event-row,.look2-track{display:grid;grid-template-columns:230px minmax(0,1fr);min-height:25px;border-bottom:1px solid #303640}.look2-ruler-row{height:24px;min-height:24px}.look2-ruler-name,.look2-track-name{position:sticky;left:0;z-index:2;display:flex;align-items:center;gap:5px;padding:2px 6px;border-right:1px solid var(--line);background:#20242c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.look2-ruler-lane,.look2-track-lane,.look2-event-lane{height:25px;position:relative;background-color:#1b1f26}.look2-ruler-lane{height:24px;background-image:repeating-linear-gradient(90deg,transparent 0,transparent calc(var(--minor-step) - 1px),#343b45 calc(var(--minor-step) - 1px),#343b45 var(--minor-step))}.look2-ruler-mark{position:absolute;top:0;height:100%;border-left:1px solid #667181;color:#aab3c0;font-size:9px;padding:1px 3px}.look2-track-lane{height:25px;background-image:repeating-linear-gradient(90deg,transparent 0,transparent calc(var(--minor-step) - 1px),#303640 calc(var(--minor-step) - 1px),#303640 var(--minor-step))}.look2-track{min-height:25px}.look2-track-name{font-size:10px}.look2-track-name select{max-width:100px;padding:2px;font-size:10px}.look2-track-lane .look2-key{position:absolute;top:3px;transform:translateX(-50%);width:15px;height:17px;padding:0!important;border:0!important;background:transparent!important;color:#e7bf5b!important;font-size:13px!important;z-index:1}.look2-key.sel{color:#fff!important;text-shadow:0 0 6px #79baff}.look2-key.multi{color:#72c8ff!important}.look2-event-lane{background-image:repeating-linear-gradient(90deg,transparent 0,transparent calc(var(--minor-step) - 1px),#303640 calc(var(--minor-step) - 1px),#303640 var(--minor-step))}.look2-event-dot{position:absolute;top:3px;transform:translateX(-50%);color:#de8df6!important;border:0!important;background:transparent!important;padding:0!important}.look2-playhead{position:absolute;z-index:5;top:0;bottom:0;width:1px;background:#fc654d;pointer-events:none;box-shadow:0 0 4px #ff765b}.look2-key-editor{display:flex;align-items:center;gap:5px;flex-wrap:wrap;padding:4px 8px;border-top:1px solid var(--line);min-height:35px}.look2-key-editor input[type=number]{width:70px}.look2-key-editor input[type=text]{width:115px}.look2-key-editor .color-value{display:flex;align-items:center;gap:3px}.look2-key-editor input[type=color]{width:28px;height:22px;padding:1px}.look2-event-editor{display:grid;grid-template-columns:80px 1fr 1fr 1fr auto;gap:5px;padding:4px 8px;border-top:1px solid var(--line)}.look2-event-log{position:absolute;right:8px;bottom:8px;z-index:6;max-width:300px;max-height:100px;overflow:auto;background:#10151bdc;border:1px solid var(--line);border-radius:4px;padding:4px 7px;font:10px/1.4 ui-monospace,monospace}
 .look2-modal-backdrop{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:#080b12bc}.look2-modal{width:min(860px,95vw);height:min(610px,85vh);display:flex;flex-direction:column;background:#20242c;border:1px solid #515d70;border-radius:7px;box-shadow:0 20px 55px #000b}.look2-modal.lua-import{width:min(460px,92vw);height:auto;max-height:85vh}.look2-modal header{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line);min-height:38px}.look2-modal header .spacer{flex:1}.look2-resource-body{display:grid;grid-template-columns:230px 1fr;min-height:0;flex:1}.look2-context-menu{position:fixed;z-index:50;min-width:160px;max-height:75vh;overflow:auto;padding:4px;background:#252b35;border:1px solid #5c6675;border-radius:5px;box-shadow:0 8px 24px #0009}.look2-context-menu button{display:block;width:100%;text-align:left;border:0;background:transparent;border-radius:2px;padding:5px 8px}.look2-context-menu button:hover{background:#34465f}.look2-history-list,.look2-template-list{min-height:0;overflow:auto;padding:8px}.look2-history-row,.look2-template-row{display:flex;align-items:center;gap:6px;padding:5px;border-bottom:1px solid var(--line2)}.look2-history-row button:first-child,.look2-template-row button:first-child{flex:1;text-align:left}.look2-template-row input{width:64px}.look2-modal form{padding:10px}
 @media(max-width:1050px){.look2-main{grid-template-columns:min(var(--tree-width,252px),210px) minmax(0,1fr) min(var(--anim-width,192px),160px) min(var(--inspector-width,306px),240px)}.look2-timeline-names{flex-basis:190px}.look2-ruler-row,.look2-event-row,.look2-track{grid-template-columns:190px minmax(0,1fr)}}@media(max-width:760px){.look2-main{grid-template-columns:min(var(--tree-width,252px),34px) minmax(0,1fr) min(var(--anim-width,192px),34px) min(var(--inspector-width,306px),230px)}.look2-main .look2-pane.collapsed{width:100%}.look2-top{overflow:auto}.look2-inspector-pane{position:absolute;right:0;top:68px;bottom:0;width:min(270px,100%);z-index:8;box-shadow:-8px 0 22px #0008}}
-nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!important;height:54px!important;margin:10px 10px!important;padding:0 10px!important;gap:0!important;overflow:hidden;background:#eeedff!important;color:#fff!important;border:0!important;border-radius:8px!important}.look2+*{}nav[aria-label="look2.0 工作区"]:before{content:'✨ 客户端 UI 动画编辑器';position:absolute;left:65px;right:250px;top:0;height:54px;display:flex;align-items:center;padding:0 20px;border-radius:10px;background:linear-gradient(105deg,#676be0,#516be5 55%,#00b9ec);box-shadow:0 2px 8px #676be766;color:#fff;font-size:20px;font-weight:700;pointer-events:none}nav[aria-label="look2.0 工作区"] button:first-child{width:55px!important;height:54px!important;padding:0!important;border:0!important;border-radius:8px!important;background:#9587e9!important;color:#fff!important;font-size:0!important}nav[aria-label="look2.0 工作区"] button:first-child:before{content:'☰';font-size:26px}nav[aria-label="look2.0 工作区"] button:nth-child(2){position:absolute;right:78px;top:7px;height:40px;background:#fff!important;border:1px solid #dad9e8!important;border-radius:7px!important;color:#333a4a!important;font-size:11px!important;padding:0 11px!important;z-index:1}nav[aria-label="look2.0 工作区"] button:nth-child(2):after{content:'  ↗'}nav[aria-label="look2.0 工作区"] span{position:absolute;right:10px;top:17px;margin:0!important;color:#333a4a!important;font-size:11px}.look2{margin:0 10px 10px!important;width:auto!important;height:auto!important;flex:1 1 auto!important;border-radius:0 0 7px 7px}.look2-top{height:48px;min-height:48px;flex-basis:48px;padding:5px 8px;background:#292e37}.look2-top strong{display:none}.look2-sub:has(button){flex:0 0 auto}.look2-status{height:0;min-height:0;padding:0;border:0;overflow:hidden;flex:0 0 0}.look2-main{min-height:240px}.look2-pane{position:relative}.look2-pane.collapsed{justify-content:flex-start}.look2-pane.collapsed .look2-pane-head{justify-content:center;padding:2px}.look2-stage-column{display:flex;flex-direction:column;min-width:0;min-height:0;border-right:1px solid var(--line)}.look2-stage-tools{display:flex;align-items:center;gap:5px;height:27px;min-height:27px;padding:3px 8px;background:#252a33;border-top:1px solid var(--line);font-size:10px;color:#aab4c1}.look2-stage-tools button{padding:2px 5px;font-size:10px}.look2-stage-tools .active{color:#fff;background:#355d9a}.look2-tree-toolbar{display:flex;align-items:center;gap:4px}.look2-tree-toolbar button{padding:2px 5px}.look2-track-group{display:grid;align-items:center;height:22px;min-height:22px;padding:0;border-bottom:1px solid #343a45;background:#272d37;color:#aeb8c6;font-size:10px}.look2-track-group button{border:0;background:transparent;padding:1px 6px;color:inherit;text-align:left}.look2-ruler-mark.major{border-left-color:#8793a4;color:#d0d7e1}.look2-timeline{height:var(--timeline-height,209px);min-height:145px;max-height:none;border-top:0;flex-basis:var(--timeline-height,209px)}.look2-timeline-resize{flex:0 0 4px}.look2-timeline-top{height:39px;min-height:39px;background:#242a33}.look2-timeline-body{display:grid;grid-template-columns:minmax(0,1fr) 223px}.look2-timeline-scroll{height:100%}.look2-key-inspector{min-width:0;overflow:auto;border-left:1px solid var(--line);padding:5px 8px;background:#232832}.look2-key-inspector h4{margin:1px 0 5px;color:#e1e7ef;font-size:10px}.look2-key-inspector .look2-field{min-height:22px;margin:3px 0}.look2-key-inspector .look2-field label{font-size:10px}.look2-key-inspector .look2-field input[type=number]{width:85px}.look2-event-editor{grid-template-columns:1fr;max-height:130px;overflow:auto}.look2-event-editor input,.look2-event-editor select,.look2-event-editor textarea{width:100%}.look2-event-log{bottom:4px;left:240px;right:auto}.look2-modal header .spacer{flex:1}.look2-modal .modal-content{min-height:0;flex:1;overflow:auto}.look2-modal .look2-field{padding:0 10px}.look2-modal .look2-field input[type=text]{width:250px}
+nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!important;height:54px!important;margin:10px 10px!important;padding:0 10px!important;gap:0!important;overflow:hidden;background:#eeedff!important;color:#fff!important;border:0!important;border-radius:8px!important}.look2+*{}nav[aria-label="look2.0 工作区"]:before{content:'✨ 千星look3';position:absolute;left:65px;right:250px;top:0;height:54px;display:flex;align-items:center;padding:0 20px;border-radius:10px;background:linear-gradient(105deg,#676be0,#516be5 55%,#00b9ec);box-shadow:0 2px 8px #676be766;color:#fff;font-size:20px;font-weight:700;pointer-events:none}nav[aria-label="look2.0 工作区"] button:first-child{width:55px!important;height:54px!important;padding:0!important;border:0!important;border-radius:8px!important;background:#9587e9!important;color:#fff!important;font-size:0!important}nav[aria-label="look2.0 工作区"] button:first-child:before{content:'☰';font-size:26px}nav[aria-label="look2.0 工作区"] button:nth-child(2){position:absolute;right:78px;top:7px;height:40px;background:#fff!important;border:1px solid #dad9e8!important;border-radius:7px!important;color:#333a4a!important;font-size:11px!important;padding:0 11px!important;z-index:1}nav[aria-label="look2.0 工作区"] button:nth-child(2):after{content:'  ↗'}nav[aria-label="look2.0 工作区"] span{position:absolute;right:10px;top:17px;margin:0!important;color:#333a4a!important;font-size:11px}.look2{margin:0 10px 10px!important;width:auto!important;height:auto!important;flex:1 1 auto!important;border-radius:0 0 7px 7px}.look2-top{height:48px;min-height:48px;flex-basis:48px;padding:5px 8px;background:#292e37}.look2-top strong{display:none}.look2-sub:has(button){flex:0 0 auto}.look2-status{height:0;min-height:0;padding:0;border:0;overflow:hidden;flex:0 0 0}.look2-main{min-height:240px}.look2-pane{position:relative}.look2-pane.collapsed{justify-content:flex-start}.look2-pane.collapsed .look2-pane-head{justify-content:center;padding:2px}.look2-stage-column{display:flex;flex-direction:column;min-width:0;min-height:0;border-right:1px solid var(--line)}.look2-stage-tools{display:flex;align-items:center;gap:5px;height:27px;min-height:27px;padding:3px 8px;background:#252a33;border-top:1px solid var(--line);font-size:10px;color:#aab4c1}.look2-stage-tools button{padding:2px 5px;font-size:10px}.look2-stage-tools .active{color:#fff;background:#355d9a}.look2-tree-toolbar{display:flex;align-items:center;gap:4px}.look2-tree-toolbar button{padding:2px 5px}.look2-track-group{display:grid;align-items:center;height:22px;min-height:22px;padding:0;border-bottom:1px solid #343a45;background:#272d37;color:#aeb8c6;font-size:10px}.look2-track-group button{border:0;background:transparent;padding:1px 6px;color:inherit;text-align:left}.look2-ruler-mark.major{border-left-color:#8793a4;color:#d0d7e1}.look2-timeline{height:var(--timeline-height,209px);min-height:145px;max-height:none;border-top:0;flex-basis:var(--timeline-height,209px)}.look2-timeline-resize{flex:0 0 4px}.look2-timeline-top{height:39px;min-height:39px;background:#242a33}.look2-timeline-body{display:grid;grid-template-columns:minmax(0,1fr) 223px}.look2-timeline-scroll{height:100%}.look2-key-inspector{min-width:0;overflow:auto;border-left:1px solid var(--line);padding:5px 8px;background:#232832}.look2-key-inspector h4{margin:1px 0 5px;color:#e1e7ef;font-size:10px}.look2-key-inspector .look2-field{min-height:22px;margin:3px 0}.look2-key-inspector .look2-field label{font-size:10px}.look2-key-inspector .look2-field input[type=number]{width:85px}.look2-event-editor{grid-template-columns:1fr;max-height:130px;overflow:auto}.look2-event-editor input,.look2-event-editor select,.look2-event-editor textarea{width:100%}.look2-event-log{bottom:4px;left:240px;right:auto}.look2-modal header .spacer{flex:1}.look2-modal .modal-content{min-height:0;flex:1;overflow:auto}.look2-modal .look2-field{padding:0 10px}.look2-modal .look2-field input[type=text]{width:250px}
  .look2-platform-picker{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;margin:4px 0 8px}.look2-platform-picker button{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;padding:3px 1px}.look2-platform-picker button.selected{background:#315b99;border-color:#5c95ef;color:#fff}.look2-platform-picker button span{font-size:15px;line-height:18px;background:transparent;padding:0}.look2-platform-picker button small{font-size:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.look2-platform-transform{margin-top:10px;padding-top:5px;border-top:1px solid var(--line2)}.look2-platform-transform.look2-platform-compact{margin-top:0;padding-top:0;border-top:0}.look2-platform-transform>small{display:block;color:var(--muted);margin-bottom:6px}.look2-platform-value{display:grid;grid-template-columns:78px minmax(0,1fr);align-items:center;gap:5px;margin:4px 0}.look2-platform-value>label{color:var(--muted);font-size:10px}.look2-platform-axes{display:grid;gap:3px}.look2-platform-axes label{display:flex;align-items:center;gap:2px;min-width:0}.look2-platform-axes label small{color:var(--muted);font-size:9px}.look2-platform-axes input{width:100%;min-width:0;padding:3px 4px}.look2-stage-coordinates{color:#d0d9e6;font-variant-numeric:tabular-nums}
 .look2-stage-visual{position:absolute;inset:0;overflow:hidden;pointer-events:none;user-select:none}.look2-stage-image-mask{position:absolute;inset:0;overflow:hidden}.look2-stage-image{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:contain;pointer-events:none}.look2-stage-text{position:absolute;inset:0;display:flex;box-sizing:border-box;overflow:hidden;padding:2px;white-space:pre-wrap;overflow-wrap:anywhere;user-select:none;pointer-events:none}.look2-mask-guides{position:absolute;inset:4%;border:1px dashed #f6d06c;pointer-events:none}.look2-mask-guides.reverse{border-color:#ff8d8d;background:repeating-linear-gradient(135deg,#ff8d8d18 0 4px,transparent 4px 9px)}.look2-mask-guides:after{content:attr(data-label);position:absolute;right:2px;top:2px;padding:1px 3px;border-radius:2px;background:#121820bf;color:#f6d06c;font:8px/1.2 sans-serif}.look2-box .look2-image-placeholder{position:absolute;inset:0;display:grid;place-items:center;color:#e4c477;font-size:10px;text-align:center;background:repeating-conic-gradient(#343b45 0% 25%,#262d36 0% 50%) 50%/12px 12px;overflow:hidden}.look2-stage-defs{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
   .look2-box{display:block;place-items:unset;border:0;background:transparent;overflow:visible;white-space:normal;text-overflow:clip}
@@ -397,6 +406,14 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
     const nodeClipboardRef = React.useRef(null)
     const hotkeyRef = React.useRef(null)
     const [message, setMessage] = React.useState('')
+    const [fontFamily, setFontFamily] = React.useState(DEFAULT_FONT)
+    React.useEffect(() => {
+      let active = true
+      loadBrowserFont().then(family => { if (active) setFontFamily(family || DEFAULT_FONT) }, reason => {
+        if (active) setError(String(reason.message || reason))
+      })
+      return () => { active = false }
+    }, [])
     const [errorLog, setErrorLog] = React.useState(() => loadErrorLog(sessionId))
     const error = errorLog.current
     const setError = update => {
@@ -437,6 +454,11 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
     const [animatorCollapsed, setAnimatorCollapsed] = React.useState(false)
     const [collapsedGroups, setCollapsedGroups] = React.useState({})
     const [boneView, setBoneView] = React.useState(false)
+    const [boneCreateMode, setBoneCreateMode] = React.useState(false)
+    const [boneParentId, setBoneParentId] = React.useState('')
+    const [boneDraft, setBoneDraft] = React.useState(null)
+    const [boneLengthDraft, setBoneLengthDraft] = React.useState(null)
+    const bonePointerRef = React.useRef(null)
     const [timelineHeight, setTimelineHeight] = React.useState(209)
     const [pixelsPerSecond, setPixelsPerSecond] = React.useState(80)
     const [timelineWidth, setTimelineWidth] = React.useState(0)
@@ -574,9 +596,6 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
       return () => { observer?.disconnect(); window.removeEventListener('resize', measure) }
     }, [snap?.canvas?.width, snap?.canvas?.height, hiddenPanels.tree, hiddenPanels.animator, hiddenPanels.inspector])
     React.useEffect(() => {
-      if (snap?.canvas?.platform) setInspectorPlatform(snap.canvas.platform)
-    }, [snap?.canvas?.id])
-    React.useEffect(() => {
       const handle = event => {
         if (event.key === 'Escape') setShowErrors(false)
         if (hotkeyRef.current) hotkeyRef.current(event)
@@ -659,6 +678,10 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
       setPlaying(false); setEventLog([]); setPlayhead(0)
       setSelectedKey(null); setSelectedKeys([]); setSelectedEventId(null)
       timelineInitialFitRef.current = false
+    }, [snap?.asset?.type])
+    React.useEffect(() => {
+      setBoneCreateMode(false); setBoneParentId(''); setBoneDraft(null); setBoneLengthDraft(null)
+      return () => bonePointerRef.current?.cleanup?.()
     }, [snap?.asset?.type])
     React.useEffect(() => { setPlaying(false); setEventLog([]); includeStartEventRef.current = false }, [snap?.look2?.activeAnimationId])
     React.useEffect(() => {
@@ -1210,7 +1233,8 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
     const activeTrackField = trackFieldOptions.some(field => field.fieldKey === trackField) ? trackField : trackFieldOptions[0]?.fieldKey || ''
     const allTracks = active.keyframeTracks || []
     const events = active.events || []
-    const previewBoxes = previewAnimation(snap.animationPreviewRoot, active, playhead, snap.canvas)
+    const previewRoot = projectPreviewTreeForPlatform(snap.animationPreviewRoot, snap.root, inspectorPlatform)
+    const previewBoxes = previewAnimation(previewRoot, active, playhead, snap.canvas)
     const selectedTrack = allTracks.find(item => item.id === selectedKey?.trackId)
     const key = selectedTrack?.keyframes?.find(item => item.id === selectedKey?.keyId)
     const selectedEvent = events.find(event => event.id === selectedEventId)
@@ -1332,7 +1356,8 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
         const nextState = clone(currentState)
         const nextAnimation = nextState.animations.find(item => item.id === animation.id)
         const nextTrack = nextAnimation.keyframeTracks.find(item => item.id === trackId)
-        const preview = previewAnimation(current.animationPreviewRoot, animation, time, current.canvas)
+        const previewRoot = projectPreviewTreeForPlatform(current.animationPreviewRoot, current.root, inspectorPlatform)
+        const preview = previewAnimation(previewRoot, animation, time, current.canvas)
         const base = defaultValueForTrack(nextTrack.fieldKey, preview.find(box => box.id === nextTrack.nodeId)?.base)
         const value = sampleTrack(nextTrack, time, base) ?? base
         const created = { id: uid('key'), time, value, relative: false, easeType: 'Linear', interpolation: nextTrack.fieldKey === 'visible' ? 'step' : 'tween' }
@@ -1649,11 +1674,169 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
       }, '移动关键帧').then(() => setPlayhead(snapTime(drag.time + initialPlan.shift))).catch(() => {})
     }
     function stageWorldPoint(event) {
-      const stage = event.currentTarget.closest('.look2-stage') || stageWrapRef.current?.querySelector('.look2-stage')
+      const stage = event.currentTarget?.closest?.('.look2-stage') || stageWrapRef.current?.querySelector('.look2-stage')
       const rect = stage?.getBoundingClientRect()
       if (!rect || !snapRef.current) return { x: 0, y: 0 }
       const current = snapRef.current.canvas
       return { x: (event.clientX - rect.left) * current.width / rect.width, y: current.height - (event.clientY - rect.top) * current.height / rect.height }
+    }
+    function setBoneParent(id) {
+      const target = treeRowById.get(id)
+      if (!target || target.kind !== 'container') { setError('骨骼父级必须是容器节点'); return false }
+      if (snap.editorLocks?.[id]) { setError('父级已锁定，不能作为骨骼父级'); return false }
+      if (isNodeHidden(id)) { setError('隐藏的控件不能作为当前骨骼父级'); return false }
+      setBoneParentId(id); setMessage(`当前骨骼父级：${target.name}`); return true
+    }
+    function toggleBoneCreateMode() {
+      if (!clientTemplates || interactionLocked) return
+      if (boneCreateMode) {
+        bonePointerRef.current?.cleanup?.()
+        setBoneCreateMode(false); setBoneDraft(null); setMessage('已退出骨骼创建模式')
+        return
+      }
+      const selected = treeRowById.get(snap.selectedId)
+      const selectedParent = selected?.kind === 'container' ? selected.id : selected?.parentId
+      const candidate = [selectedParent, ...snap.tree.filter(item => item.kind === 'container').map(item => item.id)]
+        .find(id => id && treeRowById.get(id)?.kind === 'container' && !snap.editorLocks?.[id] && !isNodeHidden(id))
+      if (!candidate) { setError('没有可用的容器节点作为骨骼父级'); return }
+      setBoneView(true); setBoneParentId(candidate); setBoneCreateMode(true); setPlaying(false)
+      setMessage('拖拽创建子骨骼；点击方向箭头选择父级；Ctrl+点击控件可附着')
+    }
+    function commitBoneLength(id, value) {
+      const directionArrowLength = Math.round(Math.max(0, Math.min(MAX_BONE_ARROW_LENGTH, Number(value))) * 100) / 100
+      if (!Number.isFinite(directionArrowLength)) return Promise.reject(new Error('骨骼长度必须是有限数字'))
+      const sourceVersion = snap.version
+      return transact('调整骨骼长度', {
+        guard: current => {
+          if (current.version !== sourceVersion || current.asset?.type !== 'client-control-template') throw new Error('工程已变化，请重新选择骨骼')
+          if (!current.tree.some(item => item.id === id && item.kind === 'container')) throw new Error('骨骼已删除，请重新选择')
+          if (current.editorLocks?.[id]) throw new Error('骨骼已锁定，不能调整长度')
+        },
+        prepare: current => ({ state: updateBoneDirectionState(current.look2, id, directionArrowLength), ops: [] }),
+      }).catch(reason => { setError(String(reason.message || reason)); throw reason })
+    }
+    function createBone(parentId, start, end) {
+      if (!clientTemplates || inlinePlaying) return Promise.resolve(null)
+      const sourceVersion = snap.version
+      const id = uid('bone')
+      return transact('创建骨骼', {
+        blockOnFailure: false,
+        guard: current => {
+          if (current.version !== sourceVersion || current.asset?.type !== 'client-control-template') throw new Error('工程已变化，请重新创建骨骼')
+          if (!current.tree.some(item => item.id === parentId && item.kind === 'container')) throw new Error('骨骼父级已删除，请重新选择')
+          if (current.editorLocks?.[parentId]) throw new Error('父级已锁定，不能创建骨骼')
+        },
+        prepare: current => {
+          if (current.tree.some(item => item.id === id)) throw new Error('骨骼标识重复，请重试')
+          const geometry = buildBoneTransformMap(current.root, { parentId, start, end,
+            currentCanvas: current.canvas, currentPlatform: inspectorPlatform })
+          const usedNames = new Set(current.tree.map(item => item.name))
+          let index = 1
+          while (usedNames.has(`骨骼_${index}`)) index++
+          const state = updateBoneDirectionState(current.look2, id, geometry.directionArrowLength, parentId)
+          return { ops: [{ op: 'add', id, kind: 'container', parentId, name: `骨骼_${index}`,
+            transformByPlatform: geometry.transformByPlatform, syncAllDevices: false }], state }
+        },
+      }).then(result => {
+        if (result?.tree?.some(item => item.id === id)) { setBoneParentId(id); setBoneView(true); setMessage(`已创建骨骼 ${result.tree.find(item => item.id === id)?.name || ''}`) }
+        return result
+      }).catch(reason => { setError(String(reason.message || reason)); return null })
+    }
+    function attachControlToBone(id) {
+      if (!clientTemplates || inlinePlaying) return Promise.resolve(null)
+      const parentId = boneParentId
+      const sourceVersion = snap.version
+      return transact('附着控件到骨骼', {
+        blockOnFailure: false,
+        guard: current => {
+          if (current.version !== sourceVersion || current.asset?.type !== 'client-control-template') throw new Error('工程已变化，请重新选择控件和骨骼')
+        },
+        prepare: current => {
+          const lockedIds = Object.keys(current.editorLocks || {}).filter(nodeId => current.editorLocks[nodeId])
+          const plan = buildBoneAttachmentPlan(current.root, id, parentId, {
+            currentCanvas: current.canvas, currentPlatform: inspectorPlatform, previewBoxes, lockedIds,
+          })
+          const transforms = { ...plan.transforms }
+          transforms[inspectorPlatform] = preserveUntrackedAttachmentPose(
+            transforms[inspectorPlatform], current.look2, id, current.look2.activeAnimationId, plan.previewTransform)
+          const ops = [{ op: 'reparent', id, parentId },
+            ...Object.entries(transforms).map(([platform, transform]) => ({ op: 'setPlatformTransform', id, platform, transform })),
+            { op: 'set', id, key: 'syncAllDevices', value: false }]
+          const state = preserveAttachmentAnimationState(current.look2, id, current.look2.activeAnimationId,
+            plan.previewTransform, playhead, kind => uid(kind))
+          return { ops, state: state || undefined }
+        },
+      }).then(result => { setMessage(`已将 ${treeRowById.get(id)?.name || '控件'} 附着到骨骼`); return result })
+        .catch(reason => { setError(String(reason.message || reason)); return null })
+    }
+    function cancelBonePointer() { bonePointerRef.current?.cleanup?.() }
+    function startBonePointer(event, targetId = '') {
+      if (!boneCreateMode || event.button !== 0 || !clientTemplates || inlinePlaying) return
+      event.preventDefault(); event.stopPropagation()
+      cancelBonePointer()
+      const stage = stageWrapRef.current?.querySelector('.look2-stage')
+      const rect = stage?.getBoundingClientRect()
+      if (!rect || !rect.width || !rect.height) return
+      const start = stageWorldPoint(event)
+      const parentId = boneParentId
+      const pointerId = event.pointerId, ctrlKey = event.ctrlKey
+      let moved = false
+      const initialClient = { x: event.clientX, y: event.clientY }
+      const cleanup = () => {
+        window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', finish)
+        window.removeEventListener('pointercancel', cancel); window.removeEventListener('blur', cleanup)
+        if (bonePointerRef.current?.cleanup === cleanup) bonePointerRef.current = null
+        setBoneDraft(null)
+      }
+      const move = next => {
+        if (next.pointerId !== pointerId) return
+        moved ||= Math.hypot(next.clientX - initialClient.x, next.clientY - initialClient.y) >= 4
+        const end = stageWorldPoint(next)
+        if (moved && !ctrlKey) setBoneDraft({ start, end })
+      }
+      const finish = next => {
+        if (next.pointerId !== pointerId) return
+        const end = stageWorldPoint(next)
+        cleanup()
+        if (ctrlKey) { if (!moved && targetId) void attachControlToBone(targetId); return }
+        if (moved || Math.hypot(next.clientX - initialClient.x, next.clientY - initialClient.y) >= 4) {
+          void createBone(parentId, start, end); return
+        }
+        if (targetId && treeRowById.get(targetId)?.kind === 'container') setBoneParent(targetId)
+      }
+      const cancel = next => { if (next.pointerId === pointerId) cleanup() }
+      bonePointerRef.current = { cleanup }
+      window.addEventListener('pointermove', move); window.addEventListener('pointerup', finish)
+      window.addEventListener('pointercancel', cancel); window.addEventListener('blur', cleanup)
+    }
+    function startBoneLengthDrag(event, id, worldMatrix, initialLength) {
+      if (event.button !== 0 || snap.editorLocks?.[id]) return
+      event.preventDefault(); event.stopPropagation(); cancelBonePointer()
+      const start = stageWorldPoint(event), pointerId = event.pointerId
+      let length = initialLength
+      const axisLengthSquared = worldMatrix.a * worldMatrix.a + worldMatrix.b * worldMatrix.b
+      if (axisLengthSquared < 1e-8) return
+      const nextLength = point => Math.round(Math.max(0, Math.min(MAX_BONE_ARROW_LENGTH,
+        initialLength + ((point.x - start.x) * worldMatrix.a + (point.y - start.y) * worldMatrix.b) / axisLengthSquared)) * 100) / 100
+      const cleanup = () => {
+        window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', finish)
+        window.removeEventListener('pointercancel', cancel); window.removeEventListener('blur', cleanup)
+        if (bonePointerRef.current?.cleanup === cleanup) bonePointerRef.current = null
+        setBoneLengthDraft(null)
+      }
+      const move = next => {
+        if (next.pointerId !== pointerId) return
+        length = nextLength(stageWorldPoint(next)); setBoneLengthDraft({ id, length })
+      }
+      const finish = next => {
+        if (next.pointerId !== pointerId) return
+        length = nextLength(stageWorldPoint(next)); cleanup()
+        if (Math.abs(length - initialLength) >= 0.01) void commitBoneLength(id, length)
+      }
+      const cancel = next => { if (next.pointerId === pointerId) cleanup() }
+      bonePointerRef.current = { cleanup }
+      window.addEventListener('pointermove', move); window.addEventListener('pointerup', finish)
+      window.addEventListener('pointercancel', cancel); window.addEventListener('blur', cleanup)
     }
     function parentMatrixFor(id) {
       const item = snap.tree.find(control => control.id === id)
@@ -1667,7 +1850,6 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
       const item = snap.tree.find(control => control.id === box.id)
       if (snap.editorLocks?.[box.id]) return
       if (inspectorPlatform.startsWith('CONTROLLER_')) { void selectControl(box.id); return }
-      if (snap.canvas.platform !== inspectorPlatform) { setMessage('Switching preview device; wait for the canvas to update before dragging.'); return }
       const world = stageWorldPoint(event)
       const parentInverse = invertMatrix(parentMatrixFor(box.id)) || identityMatrix()
       const parentLocal = applyMatrix(parentInverse, world.x, world.y)
@@ -1688,7 +1870,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
       const drag = dragRef.current; dragRef.current = null
       if (!drag || !snapRef.current) return
       const currentSnap = snapRef.current
-      if (currentSnap.canvas?.platform !== drag.platform) return
+      if (inspectorPlatform !== drag.platform) return
       const projectNode = findProjectNode(currentSnap.root, drag.id)
       const sourceTransform = projectNode?.transformByPlatform?.[drag.platform]
       if (!sourceTransform) return
@@ -1769,6 +1951,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
       setStagePointer(current => current?.x === x && current?.y === y ? current : { x, y })
     }
     function startPan(event) {
+      if (boneCreateMode && event.button === 0) { startBonePointer(event); return }
       if (event.button !== 1 && !(event.button === 0 && editMode === 'hand')) {
         if (event.button === 0 && (event.target === event.currentTarget || event.target.classList?.contains('look2-stage'))) {
           void selectControl('', '取消选中控件')
@@ -1901,11 +2084,13 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
     }
     function stageBoxContent(box, children = []) {
       if (box.kind === 'textbox' || box.kind === 'textwindow') {
-        const fontSize = Math.max(1, Number(box.fontSize || 12) * stageScale)
+        const layout = textLayout(box, box.width, box.height)
+        const fontSize = Math.max(1, layout.fontSize * stageScale)
         const horizontal = box.horizontalAlignment === 'Right' ? 'flex-end' : box.horizontalAlignment === 'Middle' ? 'center' : 'flex-start'
         const vertical = box.verticalAlignment === 'Bottom' ? 'flex-end' : box.verticalAlignment === 'Middle' ? 'center' : 'flex-start'
         const outline = box.enableOutline ? `${Math.max(1, fontSize * .12)}px ${rgbaCss(box.outlineColor)}` : 'none'
-        return h('div', { className: 'look2-stage-text', style: { color: rgbaCss(box.fontColor), background: rgbaCss(box.bgColor), fontFamily: box.fontFamily || box.fontName || 'Inter, "Microsoft YaHei UI", "Microsoft YaHei", sans-serif', fontSize: `${fontSize}px`, lineHeight: `${fontSize * 1.2}px`, justifyContent: horizontal, alignItems: vertical, WebkitTextStroke: outline, paintOrder: 'stroke fill' } }, String(box.text ?? ''))
+        return h('div', { className: 'look2-stage-text', style: { color: rgbaCss(box.fontColor), background: rgbaCss(box.bgColor), fontFamily, fontSize: `${fontSize}px`, lineHeight: `${layout.lineHeight * stageScale}px`, justifyContent: horizontal, alignItems: vertical, WebkitTextStroke: outline, paintOrder: 'stroke fill' } },
+          h('span', { style: { flex: '0 0 auto', width: `${layout.textWidth * stageScale}px`, whiteSpace: 'pre', textAlign: box.horizontalAlignment === 'Right' ? 'right' : box.horizontalAlignment === 'Middle' ? 'center' : 'left' } }, layout.lines.join('\n')))
       }
       if (box.kind === 'image') {
         const { src, borderUrl, original, fitContain } = stageImageSource(box)
@@ -1940,7 +2125,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
         ? h('div', { className: `look2-mask-guides${box.reverseMaskArea ? ' reverse' : ''}`, style: { opacity: stageBoxAlpha(box) }, 'data-label': box.reverseMaskArea ? 'MASK ↺' : 'MASK' }) : null
       return h('div', { key: box.id, className: `look2-box ${box.kind}${box.id === snap.selectedId ? ' sel' : ''}`,
         style: parent ? stageNestedBoxStyle(box, parent) : stageBoxStyle(box),
-        onPointerDown: event => beginStageGesture(event, box, editMode === 'combined' ? 'move' : editMode),
+        onPointerDown: event => boneCreateMode ? startBonePointer(event, box.id) : beginStageGesture(event, box, editMode === 'combined' ? 'move' : editMode),
         onPointerUp: finishStageGesture,
         onDoubleClick: () => void selectControl(box.id) },
       h('div', { className: `look2-box-backdrop ${box.kind}`, style: { opacity: stageBoxAlpha(box) } }),
@@ -1959,13 +2144,51 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
       return [h('line', { key: `bone-${box.id}`, className: 'look2-bone', x1: a.x, y1: snap.canvas.height - a.y, x2: b.x, y2: snap.canvas.height - b.y }),
         h('circle', { key: `joint-${box.id}`, className: 'look2-bone', cx: b.x, cy: snap.canvas.height - b.y, r: 3 })]
     }) : null
-    const gizmo = selectedPreview && !controllerPlatform && snap.canvas.platform === inspectorPlatform && !isNodeHidden(selectedPreview.id) && !selectedLocked ? h('div', { className: 'look2-gizmo', style: stageBoxStyle(selectedPreview) },
+    const boneGuides = boneView && clientTemplates ? previewBoxes.flatMap(box => {
+      if (box.kind !== 'container' || !box.visible || isNodeHidden(box.id)) return []
+      const matrix = box.matrix || identityMatrix()
+      const pivotX = box.left + box.width * (box.pivotX ?? 0.5)
+      const pivotY = box.bottom + box.height * (box.pivotY ?? 0.5)
+      const origin = applyMatrix(matrix, pivotX, pivotY)
+      const storedLength = clientSiteNodes[box.id]?.editor?.directionArrowLength
+      const length = boneLengthDraft?.id === box.id ? boneLengthDraft.length
+        : typeof storedLength === 'number' && Number.isFinite(storedLength)
+          ? Math.max(0, Math.min(MAX_BONE_ARROW_LENGTH, storedLength)) : DEFAULT_BONE_ARROW_LENGTH
+      const tip = { x: origin.x + matrix.a * length, y: origin.y + matrix.b * length }
+      const svgOrigin = { x: origin.x, y: snap.canvas.height - origin.y }
+      const svgTip = { x: tip.x, y: snap.canvas.height - tip.y }
+      const dx = svgTip.x - svgOrigin.x, dy = svgTip.y - svgOrigin.y
+      const magnitude = Math.hypot(dx, dy) || 1
+      const ux = dx / magnitude, uy = dy / magnitude
+      const base = { x: svgTip.x - ux * 8, y: svgTip.y - uy * 8 }
+      const px = -uy * 4, py = ux * 4
+      const selected = box.id === boneParentId
+      const color = selected ? '#7fc4ff' : '#e5bc62'
+      return [h('g', { key: `bone-guide-${box.id}`, onPointerDown: event => { event.stopPropagation(); setBoneParent(box.id) } },
+        h('line', { className: 'look2-bone', x1: svgOrigin.x, y1: svgOrigin.y, x2: svgTip.x, y2: svgTip.y,
+          style: { stroke: color, strokeWidth: selected ? 2 : 1.4, opacity: 0.9, pointerEvents: 'stroke' } }),
+        h('path', { d: `M ${svgTip.x} ${svgTip.y} L ${base.x + px} ${base.y + py} L ${base.x - px} ${base.y - py} Z`,
+          style: { fill: color, stroke: color, pointerEvents: 'none' } }),
+        h('circle', { cx: svgOrigin.x, cy: svgOrigin.y, r: 3.2,
+          style: { fill: selected ? '#7fc4ff' : '#e5bc62', stroke: '#17212b', strokeWidth: 1, pointerEvents: 'stroke' } }),
+        selected && !snap.editorLocks?.[box.id] ? h('circle', { cx: svgTip.x, cy: svgTip.y, r: 5.5,
+          'data-bone-length-handle': box.id, 'aria-label': `调整 ${box.name} 骨骼长度`,
+          style: { fill: '#f3d58d', stroke: '#17212b', strokeWidth: 1.5, cursor: 'ew-resize', pointerEvents: 'all' },
+          onPointerDown: event => startBoneLengthDrag(event, box.id, matrix, length) }) : null)]
+    }) : null
+    const boneDraftGuide = boneDraft ? h('line', { className: 'look2-bone', x1: boneDraft.start.x, y1: snap.canvas.height - boneDraft.start.y,
+      x2: boneDraft.end.x, y2: snap.canvas.height - boneDraft.end.y,
+      style: { stroke: '#7fc4ff', strokeWidth: 2, strokeDasharray: '6 4', opacity: 0.95 } }) : null
+    const gizmo = selectedPreview && !boneCreateMode && !controllerPlatform && !isNodeHidden(selectedPreview.id) && !selectedLocked ? h('div', { className: 'look2-gizmo', style: stageBoxStyle(selectedPreview) },
       ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'].map(handle => h('span', { key: handle, className: `look2-handle ${handle}`, onPointerDown: event => beginStageGesture(event, selectedPreview, 'resize', handle), onPointerUp: finishStageGesture })),
       h('span', { className: 'look2-gizmo-line' }), h('span', { className: 'look2-rotate-handle', onPointerDown: event => beginStageGesture(event, selectedPreview, 'rotate'), onPointerUp: finishStageGesture })) : null
+    const previewPlatformLabel = PLATFORM_OPTIONS.find(option => option.id === inspectorPlatform)?.label || inspectorPlatform
     const stage = h('div', { className: 'look2-stage-column' },
       h('div', { className: 'look2-stage-heading', inert: interactionLocked }, icon('scene'), h('strong', null, '场景画布'),
-        h('button', { className: boneView ? 'active' : '', onClick: () => setBoneView(!boneView), title: '骨骼视图' }, '以骨骼模式使用'),
-        h('span', { className: 'look2-stage-hint' }, '拖动控件 · 滚轮缩放 · 中键平移'),
+        h('button', { className: boneView ? 'active' : '', onClick: () => { setBoneView(!boneView); if (boneView) { bonePointerRef.current?.cleanup?.(); setBoneCreateMode(false); setBoneDraft(null) } }, title: '显示容器方向与层级骨骼' }, '骨骼视图'),
+        clientTemplates ? h('button', { className: boneCreateMode ? 'active' : '', 'aria-pressed': boneCreateMode, disabled: interactionLocked, onClick: toggleBoneCreateMode,
+          title: '拖拽创建子骨骼；点击方向箭头选择父级；Ctrl+点击控件附着' }, boneCreateMode ? '退出骨骼编辑' : '创建/附着骨骼') : null,
+        h('span', { className: 'look2-stage-hint' }, boneCreateMode ? `父级：${treeRowById.get(boneParentId)?.name || '未选择'} · 拖拽创建，Ctrl+点击附着` : '拖动控件 · 滚轮缩放 · 中键平移'),
         h('span', { className: 'look2-canvas-ratio' }, `${snap.canvas.width / snap.canvas.height === 16 / 9 ? '16:9' : `${snap.canvas.width}:${snap.canvas.height}`}`)),
       h('div', { className: 'look2-stage-wrap', ref: stageWrapRef,
         inert: playStarting,
@@ -1979,9 +2202,10 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
           onStopped: finishInlinePlay,
         }) : h('div', { className: 'look2-stage', style: { width: `${stageCssWidth}px`, height: `${stageCssHeight}px`, '--pan-x': `${pan.x}px`, '--pan-y': `${pan.y}px`, backgroundColor: '#1b2631', backgroundImage: stageBackground, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }, 'aria-label': '场景画布' },
           stageRoots.map(box => renderStageNode(box)),
-          boneView ? h('svg', { className: 'look2-stage-bones', viewBox: `0 0 ${snap.canvas.width} ${snap.canvas.height}`, preserveAspectRatio: 'none' }, bones) : null,
+          boneView ? h('svg', { className: 'look2-stage-bones', viewBox: `0 0 ${snap.canvas.width} ${snap.canvas.height}`, preserveAspectRatio: 'none' }, bones, boneGuides, boneDraftGuide) : null,
           gizmo),
-        !inlinePlaying ? h('div', { className: 'look2-stage-status' }, `${snap.canvas.label}  ${snap.canvas.width} × ${snap.canvas.height}  X ${stagePointer?.x ?? 0}  Y ${stagePointer?.y ?? 0}`) : null),
+        !inlinePlaying ? h('div', { className: 'look2-stage-status', 'data-preview-platform': inspectorPlatform },
+          `${snap.canvas.label}  ${snap.canvas.width} × ${snap.canvas.height}  · 作者预览：${previewPlatformLabel}${controllerPlatform ? '（控制器槽位预览，不代表手柄运行时）' : ''}  X ${stagePointer?.x ?? 0}  Y ${stagePointer?.y ?? 0}`) : null),
       !inlinePlaying ? h('div', { className: 'look2-stage-tools' },
         h('button', { className: editMode === 'combined' ? 'active' : '', onClick: () => setEditMode('combined'), title: '三合一：拖动移动、顶部手柄旋转、边角调整尺寸' }, icon('transform'), '三合一'),
         h('button', { className: editMode === 'move' ? 'active' : '', onClick: () => setEditMode('move'), title: '移动控件' }, icon('move'), '移动'),
@@ -2092,11 +2316,8 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
     const runtimeFields = selectedFields.filter(field => !basicFieldKeys.has(field.key))
     function selectInspectorPlatform(platform) {
       setInspectorPlatform(platform)
-      if (platform === snap.canvas.platform) return
-      const preset = snap.canvas.presets?.find(item => item.platform === platform)
-      if (preset && preset.id !== snap.canvasId) void patch({ op: 'setCanvas', canvasId: preset.id }, 'Switch preview device')
     }
-    const platformPicker = h('div', { key: 'transform-device', className: 'look2-platform-picker', role: 'group', 'aria-label': 'Transform device' }, PLATFORM_OPTIONS.map(option => h('button', {
+    const platformPicker = h('div', { key: 'transform-device', className: 'look2-platform-picker', role: 'group', 'aria-label': '作者预览平台' }, PLATFORM_OPTIONS.map(option => h('button', {
       key: option.id, type: 'button', className: inspectorPlatform === option.id ? 'selected' : '', title: option.label, 'aria-label': option.label,
       onClick: () => selectInspectorPlatform(option.id),
     }, icon(option.id === 'KEYBOARD' ? 'monitor' : option.id === 'TOUCHSCREEN' ? 'phone' : 'gamepad', 22), h('small', null, option.label))))
@@ -2190,7 +2411,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
             onDragOver: event => { event.preventDefault(); setTreeDragOver(item.id) }, onDragLeave: () => setTreeDragOver(''), onDrop: event => treeDrop(event, item),
             onContextMenu: event => contextFor(event, 'node', item.id) },
             h('button', { className: 'tree-action', title: item.childCount ? '折叠或展开子级' : '无子级', onClick: () => item.childCount && setCollapsedTree(current => ({ ...current, [item.id]: !current[item.id] })) }, item.childCount ? collapsedTree[item.id] ? '›' : '⌄' : ''),
-            h('button', { className: 'tree-name', title: `${item.kind} · ${item.name}`, onClick: () => selectControl(item.id) }, icon(['image', 'primitive'].includes(item.kind) ? 'image' : ['textbox', 'textwindow'].includes(item.kind) ? 'text' : item.kind === 'animation' ? 'sliders' : 'container', 15), `${item.name}`),
+            h('button', { className: 'tree-name', title: `${item.kind} · ${item.name}`, onClick: () => { if (boneCreateMode && item.kind === 'container') setBoneParent(item.id); return selectControl(item.id) } }, icon(['image', 'primitive'].includes(item.kind) ? 'image' : ['textbox', 'textwindow'].includes(item.kind) ? 'text' : item.kind === 'animation' ? 'sliders' : 'container', 15), `${item.name}`),
             h('button', { className: 'tree-action', title: hidden ? '在画布显示' : '在画布隐藏', onClick: () => setNodeHidden(item.id) }, icon(hidden ? 'eye-off' : 'eye', 14)),
             h('button', { className: 'tree-action tree-lock', title: locked ? '解锁' : '锁定', onClick: () => setNodeLocked(item.id, !locked) }, icon('lock', 13)))
         })),
@@ -2605,7 +2826,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
           h('button', { onClick: () => setPendingArchiveDelete('') }, '取消'),
           h('button', { className: 'primary', onClick: () => void confirmArchiveDelete() }, '确认删除')))) : null
     const draftRow = draft ? h('div', { className: 'look2-sub', inert: interactionLocked }, h('span', null, '发现 IndexedDB 自动草稿'), h('button', { onClick: () => void recoverDraft() }, '恢复草稿'), h('button', { onClick: () => void ignoreDraft() }, '忽略')) : null
-    return h('div', { ref: editorRootRef, className: `look2${inlinePlaying ? ' playing' : playStarting ? ' starting' : ''}`, onPointerMove: movePointer, onPointerUp: endPointer, onPointerCancel: cancelPointer,
+    return h('div', { ref: editorRootRef, className: `look2${inlinePlaying ? ' playing' : playStarting ? ' starting' : ''}`, 'data-qxsim-session-id': sessionId, onPointerMove: movePointer, onPointerUp: endPointer, onPointerCancel: cancelPointer,
       onContextMenu: event => { if (!inlinePlaying && event.target === event.currentTarget) contextFor(event, 'stage', null) },
       style: { '--tree-width': `${hiddenPanels.tree ? 28 : panelWidths.tree}px`, '--anim-width': `${hiddenPanels.animator ? 28 : panelWidths.animator}px`, '--inspector-width': `${hiddenPanels.inspector ? 28 : panelWidths.inspector}px` } },
       masthead, topBar, workspaceRow, draftRow,

@@ -167,6 +167,8 @@ test('real Web health keeps the loaded backend hash after its entry is replaced 
   for (const specifier of ['./lib/session.js', './lib/editor-sessions.js', '../studio/host/image-source.js']) {
     source = source.replace(`'${specifier}'`, JSON.stringify(new URL(specifier, new URL('../server.js', import.meta.url)).href))
   }
+  // A relocated source entry must resolve the same workspace-package imports.
+  source = source.replace(/'qxqy-studio\/([^']+)'/g, (_, path) => JSON.stringify(import.meta.resolve(`qxqy-studio/${path}`)))
   writeFileSync(entry, source)
   const loadedHash = sha(entry)
   const { createWebServer } = await import(pathToFileURL(entry).href)
