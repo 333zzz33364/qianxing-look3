@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { SimulatorController } from 'qxqy-studio/host/controller'
 import { resolveWorkspaceFile, resolveWorkspaceOutput } from 'qxqy-studio/host/workspace'
-import { remapArchivePath } from '../../studio/host/archive-management.js'
+import { archivePathKey, remapArchivePath } from '../../studio/host/archive-management.js'
 
 const ACTIONS = new Set(['get', 'patch', 'look2', 'transaction', 'history', 'template', 'image-url', 'import', 'export', 'archives', 'archive-manage', 'load-archive', 'delete-archive', 'reveal-archive', 'save', 'play', 'script-sync', 'script-sync-apply', 'image-refresh'])
 const stamp = path => createHash('sha256').update(readFileSync(path)).digest('hex')
@@ -39,6 +39,7 @@ export class EditorSessions {
     const result = row.controller.loadArchive(path)
     row.path = String(path).replaceAll('\\', '/')
     row.fileStamp = stamp(absolute)
+    row.relocatedPaths?.clear()
     return { ...result, snapshot: this.snapshot(row) }
   }
 
@@ -63,8 +64,9 @@ export class EditorSessions {
           sibling.controller.remapStorage(result)
           if (previous !== sibling.path) {
             sibling.relocatedPaths ||= new Set()
-            sibling.relocatedPaths.add(previous)
+            sibling.relocatedPaths.add(archivePathKey(previous))
           }
+          sibling.relocatedPaths?.delete(archivePathKey(sibling.path))
         }
         return { ...result, snapshot: this.snapshot(row) }
       }
@@ -94,17 +96,22 @@ export class EditorSessions {
         if (action === 'load-archive') return this.load(row, body.path)
         const result = controller.studio.importData(body.format, body.data, body.filename, { mode: body.mode })
         controller.archivePath = ''; controller.archiveStamp = ''; controller.savedArchive = ''
+        controller.archiveRelocations.clear()
         row.path = ''
         row.fileStamp = ''
+        row.relocatedPaths?.clear()
         return { ...result, snapshot: this.snapshot(row) }
       }
       if (action === 'save') {
         if (body.expectedRevision !== controller.get().version) throw new Error('revision conflict: reload before saving')
-        if (row.relocatedPaths?.has(String(body.path || '').replaceAll('\\', '/'))) throw new Error('存档已改名，请刷新存档路径后保存')
+        if (row.relocatedPaths?.has(archivePathKey(body.path))) throw new Error('存档已改名，请刷新存档路径后保存')
         const absolute = resolveWorkspaceOutput(this.workspace, body.path)
+        const original = row.path ? resolveWorkspaceOutput(this.workspace, row.path) : ''
+        if (row.fileStamp && archivePathKey(absolute) === archivePathKey(original) && !existsSync(absolute)) {
+          throw new Error('存档文件已移动或删除，请重新加载或另存为新路径')
+        }
         if (existsSync(absolute)) {
-          const original = row.path ? resolveWorkspaceOutput(this.workspace, row.path) : ''
-          if (absolute !== original || stamp(absolute) !== row.fileStamp) {
+          if (archivePathKey(absolute) !== archivePathKey(original) || stamp(absolute) !== row.fileStamp) {
             throw new Error('File changed or already exists; load it again or save under a new path')
           }
         }

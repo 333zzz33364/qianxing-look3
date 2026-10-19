@@ -10,7 +10,7 @@ import { ScriptSync, contentHash, discoverScriptDirectories } from './script-syn
 import { sharedImageAssets } from './image-assets.js'
 import { ControlGuidSync } from './control-guid-sync.js'
 import { localFont } from './local-font.js'
-import { createArchiveWorkspace, listArchiveWorkspaces, remapArchivePath, renameArchiveWorkspace, renameWorkspaceArchive } from './archive-management.js'
+import { archivePathKey, createArchiveWorkspace, listArchiveWorkspaces, remapArchivePath, renameArchiveWorkspace, renameWorkspaceArchive } from './archive-management.js'
 
 // Keep the interactive default short, but allow project replay runners to raise
 // it for control-heavy pixel-art scenes and long deterministic golden cases.
@@ -101,11 +101,14 @@ export class SimulatorController {
 
   saveForScriptSync(path, expectedRevision) {
     if (expectedRevision !== this.get().version) throw new Error('revision conflict: reload before saving')
-    if (this.archiveRelocations.has(String(path || '').replaceAll('\\', '/'))) throw new Error('存档已改名，请刷新存档路径后保存')
+    if (this.archiveRelocations.has(archivePathKey(path))) throw new Error('存档已改名，请刷新存档路径后保存')
     const absolute = resolveWorkspaceOutput(this.activeWorkspacePath(), path)
+    const original = this.archivePath ? resolveWorkspaceOutput(this.activeWorkspacePath(), this.archivePath) : ''
+    if (this.archiveStamp && archivePathKey(absolute) === archivePathKey(original) && !existsSync(absolute)) {
+      throw new Error('存档文件已移动或删除，请重新加载或另存为新路径')
+    }
     if (existsSync(absolute)) {
-      const original = this.archivePath ? resolveWorkspaceOutput(this.activeWorkspacePath(), this.archivePath) : ''
-      if (absolute !== original || contentHash(readFileSync(absolute)) !== this.archiveStamp) throw new Error('File changed or already exists; load it again or save under a new path')
+      if (archivePathKey(absolute) !== archivePathKey(original) || contentHash(readFileSync(absolute)) !== this.archiveStamp) throw new Error('File changed or already exists; load it again or save under a new path')
     }
     return this.saveArchive(path)
   }
@@ -140,7 +143,8 @@ export class SimulatorController {
   remapStorage(result) {
     const previous = this.archivePath
     this.archivePath = remapArchivePath(previous, result)
-    if (previous !== this.archivePath) this.archiveRelocations.add(previous)
+    if (previous !== this.archivePath) this.archiveRelocations.add(archivePathKey(previous))
+    this.archiveRelocations.delete(archivePathKey(this.archivePath))
   }
 
   loadArchive(path) {

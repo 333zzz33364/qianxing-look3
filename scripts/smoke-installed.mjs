@@ -95,8 +95,21 @@ try {
   const saved = await edit('save', { path: 'editor.save.json', expectedRevision: snapshot.version })
   assert.equal(saved.ok, true, JSON.stringify(saved))
   assert.equal((await edit('play', { action: 'start', args: { view: true } })).value.scene.format, 'tree-v1')
+  const managed = await edit('archive-manage', { operation: 'create-workspace', name: '安装验证', expectedRevision: (await edit('get')).value.version })
+  assert.equal(managed.ok, true, JSON.stringify(managed))
+  const originalPath = '工作区/安装验证/初始.save.json'
+  assert.equal((await edit('save', { path: originalPath, expectedRevision: (await edit('get')).value.version })).ok, true)
+  const onDisk = await readFile(join(workspace, originalPath))
+  await edit('patch', { op: { op: 'renameSave', name: '安装验证未保存稿', expectedRevision: (await edit('get')).value.version } })
+  const renamed = await edit('archive-manage', { operation: 'rename-workspace', path: '工作区/安装验证', name: '安装验证改名', expectedRevision: (await edit('get')).value.version })
+  assert.equal(renamed.ok, true, JSON.stringify(renamed))
+  assert.deepEqual(await readFile(join(workspace, '工作区/安装验证改名/初始.save.json')), onDisk)
+  assert.equal((await edit('get')).value.save.name, '安装验证未保存稿')
+  assert.equal((await edit('save', { path: originalPath, expectedRevision: (await edit('get')).value.version })).ok, false)
+  assert.equal((await edit('save', { path: `./${originalPath}`, expectedRevision: (await edit('get')).value.version })).ok, false)
+  assert.equal(await stat(join(workspace, originalPath)).catch(error => { if (error.code === 'ENOENT') return null; throw error }), null)
 } finally { await app.close() }
-console.log('PASS installed Web: HTTP, editor save, static resources, PNG and Worker')
+console.log('PASS installed Web: HTTP, editor save, static resources, PNG, Worker and managed workspace rename without implicit draft save')
 
 // Exercise the installed Web bundle and installed MCP executable together.
 // Starting on a different file makes accidental process-local "opens" visible.
@@ -195,6 +208,32 @@ try {
   assert.ok(!played.result.isError, JSON.stringify(played))
   const screenshot = await request('tools/call', { name: 'look3_studio_play_screenshot', arguments: { handle } })
   assert.ok(screenshot.result.content.some(item => item.type === 'image'))
+
+  const second = (await callTool('look3_project_open', { path: saved.path })).handle
+  const beforeRename = await callTool('look3_studio_get', { handle: second })
+  await callTool('look3_studio_patch', { handle: second, op: { op: 'renameSave', name: '安装包另一会话草稿', expectedRevision: beforeRename.version } })
+  const diskBeforeRename = await readFile(savePath)
+  await callTool('look3_studio_load', { handle, operation: 'rename-archive', path: saved.path, name: 'installed-renamed.save.json', expectedRevision: (await callTool('look3_studio_get', { handle })).version })
+  const remapped = await callTool('look3_studio_get', { handle: second })
+  assert.equal(remapped.storage.path, 'installed-renamed.save.json')
+  assert.equal(remapped.save.name, '安装包另一会话草稿')
+  assert.deepEqual(await readFile(join(workspace, remapped.storage.path)), diskBeforeRename)
+  const staleSave = await request('tools/call', { name: 'look3_project_save', arguments: { handle: second, path: saved.path } })
+  assert.equal(staleSave.result.isError, true)
+  const aliasSave = await request('tools/call', { name: 'look3_project_save', arguments: { handle: second, path: process.platform === 'win32' ? saved.path.toUpperCase() : `./${saved.path}` } })
+  assert.equal(aliasSave.result.isError, true)
+  assert.equal(await stat(savePath).catch(error => { if (error.code === 'ENOENT') return null; throw error }), null)
+  await callTool('look3_project_save', { handle: second })
+  assert.equal(JSON.parse(await readFile(join(workspace, remapped.storage.path), 'utf8')).meta.name, '安装包另一会话草稿')
+  const externalEdit = async (action, body = {}) => (await (await fetch(`${previewApp.url}/editor/api/${action}`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sessionId: 'rename-peer', ...body }),
+  })).json())
+  assert.equal((await externalEdit('load-archive', { path: remapped.storage.path })).ok, true)
+  const peerSnapshot = (await externalEdit('get')).value
+  assert.equal((await externalEdit('archive-manage', { operation: 'rename-archive', path: remapped.storage.path, name: 'externally-renamed.save.json', expectedRevision: peerSnapshot.version })).ok, true)
+  const movedSave = await request('tools/call', { name: 'look3_project_save', arguments: { handle: second } })
+  assert.equal(movedSave.result.isError, true, 'a separate Web process rename must invalidate the old MCP save binding')
+  assert.equal(await stat(join(workspace, remapped.storage.path)).catch(error => { if (error.code === 'ENOENT') return null; throw error }), null)
 } finally {
   try {
     if (child.exitCode === null && child.signalCode === null) {
@@ -204,4 +243,4 @@ try {
     }
   } finally { await previewApp.close() }
 }
-console.log('PASS installed MCP + Web: package versions, default save path, explicit preview without rewriting, Worker and image response')
+console.log('PASS installed MCP + Web: package versions, default save path, explicit preview without rewriting, Worker, image response, cross-handle rename and cross-process moved-file protection')

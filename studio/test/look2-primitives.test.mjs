@@ -236,6 +236,80 @@ end`
   assert.equal(root.children.length, 1)
 })
 
+test('PrimitiveImageLib retains failed destroys for retry and rolls back a failed replacement', () => {
+  const runtime = createRuntime()
+  const root = runtime.addRoot({ name: 'PrimitiveRetryRoot', kind: 'container', active: true, sizeDeltaX: 200, sizeDeltaY: 100 })
+  runtime.registerTemplate(17, { name: '图元图片模板', kind: 'image', active: true, sizeDeltaX: 1, sizeDeltaY: 1 })
+  const destroyControl = runtime.destroyControl.bind(runtime)
+  let destroyCalls = 0
+  runtime.destroyControl = (control) => {
+    destroyCalls += 1
+    if (destroyCalls === 1 || destroyCalls === 3) throw new Error(`injected destroy failure ${destroyCalls}`)
+    return destroyControl(control)
+  }
+  const source = `local PrimitiveImageLib = (function()\n${exportPrimitiveLibrary()}\nend)()
+local data = { v = 3, groups = { { path = "", elements = { { 0, 0, 0, 0, 10, 10, 0, 255, 255, 255, 255 } } } } }
+function OnStart()
+  local first, firstFailure = PrimitiveImageLib.create(script.object, data, 17)
+  if not first then error("first create failed: " .. tostring(firstFailure)) end
+  local firstImage = first[1]
+  local firstOk = pcall(function() first:destroy() end)
+  if firstOk or not firstImage.alive or #first ~= 1 then error("failed collection destroy did not retain its failed control") end
+  local rootOk = pcall(function() PrimitiveImageLib.destroy(script.object) end)
+  if not rootOk or firstImage.alive then error("root destroy did not retry the registered collection") end
+
+  local current = PrimitiveImageLib.create(script.object, data, 17)
+  local oldImage = current[1]
+  local replacementOk = pcall(function() PrimitiveImageLib.create(script.object, data, 17) end)
+  if replacementOk or not oldImage.alive or #current ~= 1 then error("failed replacement lost the prior collection") end
+  if #script.object:GetChildren() ~= 1 then error("failed replacement left an unregistered candidate") end
+  local finalOk = pcall(function() current:destroy() end)
+  if not finalOk or oldImage.alive or #script.object:GetChildren() ~= 0 then error("retained collection could not be destroyed after replacement failure") end
+end`
+  runtime.mountScript({ path: 'PrimitiveDestroyRetryTest', control: root, source })
+  assert.equal(runtime.mountErrors.length, 0, JSON.stringify(runtime.mountErrors))
+  assert.equal(destroyCalls, 5)
+  assert.equal(root.children.length, 0)
+})
+
+test('PrimitiveImageLib retains both collections when replacement and candidate cleanup both fail', () => {
+  const runtime = createRuntime()
+  const root = runtime.addRoot({ name: 'PrimitiveDoubleFailureRoot', kind: 'container', active: true, sizeDeltaX: 200, sizeDeltaY: 100 })
+  runtime.registerTemplate(17, { name: '图元图片模板', kind: 'image', active: true, sizeDeltaX: 1, sizeDeltaY: 1 })
+  const destroyControl = runtime.destroyControl.bind(runtime)
+  let destroyCalls = 0
+  runtime.destroyControl = (control) => {
+    destroyCalls += 1
+    if (destroyCalls === 1 || destroyCalls === 2) throw new Error(`injected destroy failure ${destroyCalls}`)
+    return destroyControl(control)
+  }
+  const source = `local PrimitiveImageLib = (function()\n${exportPrimitiveLibrary()}\nend)()
+local data = { v = 3, groups = { { path = "", elements = { { 0, 0, 0, 0, 10, 10, 0, 255, 255, 255, 255 } } } } }
+function OnStart()
+  local current, createFailure = PrimitiveImageLib.create(script.object, data, 17)
+  if not current then error("initial create failed: " .. tostring(createFailure)) end
+  local oldImage = current[1]
+  local replaceOk, replaceFailure = pcall(function() PrimitiveImageLib.create(script.object, data, 17) end)
+  local _, cleanupErrorCount = string.gsub(tostring(replaceFailure), "图片清理失败", "")
+  if replaceOk or cleanupErrorCount ~= 2 then
+    error("replacement did not report both cleanup failures: " .. tostring(replaceFailure))
+  end
+  local children = script.object:GetChildren()
+  if #children ~= 2 or not oldImage.alive then error("replacement failure did not retain both live controls") end
+  local candidate
+  for _, child in ipairs(children) do if child ~= oldImage then candidate = child end end
+  if not candidate or not candidate.alive then error("failed candidate is missing from the root") end
+  local cleanupOk = pcall(function() current:destroy() end)
+  if not cleanupOk or oldImage.alive or candidate.alive or #script.object:GetChildren() ~= 0 then
+    error("registered old handle could not retry cleanup for both collections")
+  end
+end`
+  runtime.mountScript({ path: 'PrimitiveDoubleFailureTest', control: root, source })
+  assert.equal(runtime.mountErrors.length, 0, JSON.stringify(runtime.mountErrors))
+  assert.equal(destroyCalls, 4)
+  assert.equal(root.children.length, 0)
+})
+
 test('worker fit options honor quantity/resolution limits and hardware worker caps', () => {
   const options = normalizeFitOptions({ count: 5000, resolution: 300, workers: 16, shapes: ['ellipse', 'triangle'], transparent: false }, 6)
   assert.deepEqual(options, { count: 1000, resolution: 512, workers: 16, actualWorkers: 6, shapes: ['ellipse', 'triangle'], transparent: false })

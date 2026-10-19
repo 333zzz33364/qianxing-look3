@@ -94,3 +94,62 @@ test('concurrent rename and save cannot recreate a renamed archive', async t => 
   assert.equal(existsSync(join(workspace, 'b.json')), true)
   assert.equal((await call('b', 'get')).value.storage.path, 'b.json')
 })
+
+test('renamed aliases cannot recreate old files while rename-back and explicit reload can save', async t => {
+  const workspace = mkdtempSync(join(tmpdir(), 'look3-web-rename-alias-'))
+  const app = await createWebServer({ workspace, port: 0 })
+  t.after(async () => { await app.close(); rmSync(workspace, { recursive: true, force: true }) })
+  const call = async (action, body = {}) => (await fetch(`${app.url}/editor/api/${action}`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sessionId: 'a', ...body }),
+  })).json()
+  const revision = async () => (await call('get')).value.version
+  const rename = async (path, name) => {
+    const result = await call('archive-manage', { operation: 'rename-archive', path, name, expectedRevision: await revision() })
+    assert.equal(result.ok, true, JSON.stringify(result))
+  }
+  await call('save', { path: 'original.json', expectedRevision: await revision() })
+  await call('load-archive', { path: './original.json' })
+  await rename('original.json', 'renamed.json')
+  assert.equal((await call('get')).value.storage.path, 'renamed.json')
+  const aliases = ['./original.json', 'unused/../original.json', 'original.json/']
+  if (process.platform === 'win32') aliases.push('ORIGINAL.JSON')
+  for (const path of aliases) {
+    const result = await call('save', { path, expectedRevision: await revision() })
+    assert.equal(result.ok, false, path)
+    assert.match(result.error, /已改名/)
+  }
+  assert.equal(existsSync(join(workspace, 'original.json')), false)
+  await rename('renamed.json', 'original.json')
+  assert.equal((await call('save', { path: './original.json', expectedRevision: await revision() })).ok, true)
+  await rename('original.json', 'renamed.json')
+  writeFileSync(join(workspace, 'original.json'), readFileSync(join(workspace, 'renamed.json')))
+  assert.equal((await call('load-archive', { path: 'original.json' })).ok, true)
+  await call('patch', { op: { op: 'renameSave', name: '重新载入', expectedRevision: await revision() } })
+  assert.equal((await call('save', { path: 'original.json', expectedRevision: await revision() })).ok, true)
+  assert.equal(JSON.parse(readFileSync(join(workspace, 'original.json'), 'utf8')).meta.name, '重新载入')
+})
+
+test('independent Web instances reject saving a moved binding while retaining the dirty draft for Save As', async t => {
+  const workspace = mkdtempSync(join(tmpdir(), 'look3-web-independent-'))
+  const first = await createWebServer({ workspace, port: 0 })
+  const second = await createWebServer({ workspace, port: 0 })
+  t.after(async () => { await first.close(); await second.close(); rmSync(workspace, { recursive: true, force: true }) })
+  const call = async (app, action, body = {}) => (await fetch(`${app.url}/editor/api/${action}`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sessionId: 'a', ...body }),
+  })).json()
+  const revision = async app => (await call(app, 'get')).value.version
+  await call(first, 'save', { path: 'original.json', expectedRevision: await revision(first) })
+  await call(second, 'load-archive', { path: 'original.json' })
+  await call(second, 'patch', { op: { op: 'renameSave', name: '独立服务草稿', expectedRevision: await revision(second) } })
+  const renamed = await call(first, 'archive-manage', { operation: 'rename-archive', path: 'original.json', name: 'moved.json', expectedRevision: await revision(first) })
+  assert.equal(renamed.ok, true, JSON.stringify(renamed))
+  const movedBytes = readFileSync(join(workspace, 'moved.json'))
+  const stale = await call(second, 'save', { path: './original.json', expectedRevision: await revision(second) })
+  assert.equal(stale.ok, false)
+  assert.match(stale.error, /已移动或删除/)
+  assert.equal(existsSync(join(workspace, 'original.json')), false)
+  assert.deepEqual(readFileSync(join(workspace, 'moved.json')), movedBytes)
+  assert.equal((await call(second, 'get')).value.save.name, '独立服务草稿')
+  assert.equal((await call(second, 'save', { path: 'explicit-copy.json', expectedRevision: await revision(second) })).ok, true)
+  assert.equal(JSON.parse(readFileSync(join(workspace, 'explicit-copy.json'), 'utf8')).meta.name, '独立服务草稿')
+})

@@ -1,11 +1,20 @@
 import { existsSync, linkSync, lstatSync, mkdirSync, readFileSync, readdirSync, renameSync, rmdirSync, unlinkSync, writeFileSync } from 'node:fs'
-import { basename, dirname, join, relative, resolve } from 'node:path'
+import { basename, dirname, join, posix, relative, resolve } from 'node:path'
 import { resolveWorkspaceFile, resolveWorkspaceOutput, resolveWorkspaceRoot } from './workspace.js'
 
 const DIRECTORY = '工作区'
 const MARKER = '.look3-workspace.json'
 const FORMAT = 'look3-workspace'
 const portable = value => String(value || '').trim().replaceAll('\\', '/')
+
+// Match the filesystem identity of lexical path aliases before checking rename
+// tombstones. Boundary and symlink validation still belong to workspace.js.
+export function archivePathKey(path) {
+  const value = portable(path)
+  if (!value) return ''
+  const normalized = posix.normalize(value).replace(/\/$/, '')
+  return process.platform === 'win32' ? normalized.toLowerCase() : normalized
+}
 
 function validName(value) {
   if (typeof value !== 'string') throw new Error('名称必须是文字')
@@ -96,8 +105,9 @@ export function renameWorkspaceArchive(workspaceRoot, requestedPath, requestedNa
 }
 
 export function remapArchivePath(path, result) {
-  const value = portable(path), previous = portable(result.previousPath)
-  const equal = (a, b) => process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b
+  const value = portable(path) ? posix.normalize(portable(path)).replace(/\/$/, '') : ''
+  const previous = portable(result.previousPath) ? posix.normalize(portable(result.previousPath)).replace(/\/$/, '') : ''
+  const equal = (a, b) => archivePathKey(a) === archivePathKey(b)
   if (!previous) return value
   if (equal(value, previous)) return result.path
   if (result.operation === 'rename-workspace' && equal(value.slice(0, previous.length + 1), previous + '/')) return result.path + value.slice(previous.length)

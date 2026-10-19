@@ -13,7 +13,7 @@
       "paths": [
         "."
       ],
-      "status": "paused-integration"
+      "status": "local-reviewed-pending-acceptance"
     },
     {
       "id": "ui-editor",
@@ -31,7 +31,7 @@
         "src/views/DSFGStudio/components/QuestEditor/workspaceSaveQueue.ts",
         "vendor/genshin-impact-ugc-file-converter-web"
       ],
-      "status": "paused-integration"
+      "status": "local-reviewed-pending-acceptance"
     }
   ]
 }

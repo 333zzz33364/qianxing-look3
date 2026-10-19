@@ -55,6 +55,7 @@ export class SimulatorController extends SharedSimulatorController {
     this.touch()
     const result = this.studio.importData(format, data, filename, options)
     this.archivePath = ''; this.archiveStamp = ''; this.savedArchive = ''
+    this.archiveRelocations.clear()
     return { ...result, snapshot: this.get() }
   }
 

@@ -765,26 +765,78 @@ end
 
 local function destroyList(list, keepTargets)
   if not list then return end
-  for i = #list.controls, 1, -1 do
-    local control = list.controls[i]
-    if control and control.alive then game.DestroyClientUIControl(control) end
+  local errors = {}
+  for i = #list.pendingControls, 1, -1 do
+    local control = list.pendingControls[i]
+    local ok, failure = pcall(function()
+      if control and control.alive then
+        control:SetVisible(false)
+        game.DestroyClientUIControl(control)
+      end
+    end)
+    if ok then
+      table.remove(list.pendingControls, i)
+    else
+      errors[#errors + 1] = tostring(failure)
+    end
   end
   for i = #list.targets, 1, -1 do
     local target = list.targets[i]
-    if target and target.control and target.control.alive and not (keepTargets and keepTargets[target.id]) then
-      target.control:SetVisible(target.visible)
-      target.control.canControllerFocus = target.focus
+    if not target then
+      table.remove(list.targets, i)
+    elseif not (keepTargets and keepTargets[target.id]) then
+      local ok, failure = pcall(function()
+        if target.control and target.control.alive then
+          target.control:SetVisible(target.visible)
+          target.control.canControllerFocus = target.focus
+        end
+      end)
+      if ok then
+        table.remove(list.targets, i)
+      else
+        errors[#errors + 1] = tostring(failure)
+      end
     end
   end
+  if #errors > 0 then error("[PrimitiveImageLib] 图片清理失败：" .. table.concat(errors, "; "), 0) end
+end
+
+local function clearOwnership(list)
+  if list.root and owned[list.root] == list then owned[list.root] = nil end
+  if list.rootId and ownedById[list.rootId] == list then ownedById[list.rootId] = nil end
+end
+
+local function attachDestroyHandle(list)
+  list.controls.destroy = function(self)
+    if self ~= list.controls or owned[list.root] ~= list or ownedById[list.rootId] ~= list then return false end
+    destroyList(list)
+    clearOwnership(list)
+    return true
+  end
+end
+
+local function rollbackList(list)
+  for _, target in ipairs(list.targets) do
+    target.visible = target.currentVisible
+    target.focus = target.currentFocus
+  end
+  destroyList(list)
+end
+
+local function retainRetryCleanup(owner, pending)
+  for _, control in ipairs(pending.pendingControls) do
+    owner.pendingControls[#owner.pendingControls + 1] = control
+    owner.controls[#owner.controls + 1] = control
+  end
+  for _, target in ipairs(pending.targets) do owner.targets[#owner.targets + 1] = target end
 end
 
 function PrimitiveImageLib.destroy(root)
   local rootId = root and root.Id
   local list = (root and owned[root]) or (rootId and ownedById[rootId])
   if not list then return end
-  if root then owned[root] = nil end
-  if rootId then ownedById[rootId] = nil end
   destroyList(list)
+  clearOwnership(list)
 end
 
 function PrimitiveImageLib.create(root, data, imagePrefabIndex)
@@ -800,7 +852,7 @@ function PrimitiveImageLib.create(root, data, imagePrefabIndex)
   if previous then
     for _, target in ipairs(previous.targets) do previousTargets[target.id] = target end
   end
-  local list = { controls = {}, targets = {}, targetIds = {}, warnings = {} }
+  local list = { controls = {}, pendingControls = {}, targets = {}, targetIds = {}, warnings = {} }
   local ok, failure = pcall(function()
     for _, group in ipairs(groups) do
       local target = group.target
@@ -811,6 +863,7 @@ function PrimitiveImageLib.create(root, data, imagePrefabIndex)
         local image = game.InstantiateClientUIControl(imagePrefabIndex, target)
         if not image then error("could not instantiate primitive image " .. tostring(i)) end
         list.controls[#list.controls + 1] = image
+        list.pendingControls[#list.pendingControls + 1] = image
         image.name = "图元_" .. string.format("%03d", i)
         image:SetAnchorMin(0.5, 0.5)
         image:SetAnchorMax(0.5, 0.5)
@@ -859,28 +912,35 @@ function PrimitiveImageLib.create(root, data, imagePrefabIndex)
     end
   end)
   if not ok then
-    for _, target in ipairs(list.targets) do
-      if target.control and target.control.alive then
-        pcall(function()
-          target.control:SetVisible(target.currentVisible)
-          target.control.canControllerFocus = target.currentFocus
-        end)
+    local cleaned, cleanupFailure = pcall(function() rollbackList(list) end)
+    if not cleaned then
+      if previous then
+        retainRetryCleanup(previous, list)
+      else
+        list.root = root
+        list.rootId = rootId
+        owned[root] = list
+        ownedById[rootId] = list
+        attachDestroyHandle(list)
       end
     end
-    destroyList(list, list.targetIds)
-    return nil, tostring(failure)
+    return nil, tostring(failure) .. (cleaned and "" or "; " .. tostring(cleanupFailure))
   end
   local keepTargets = list.targetIds
-  destroyList(previous, keepTargets)
+  if previous then
+    local cleaned, cleanupFailure = pcall(function() destroyList(previous, keepTargets) end)
+    if not cleaned then
+      local rollbackOk, rollbackFailure = pcall(function() rollbackList(list) end)
+      if not rollbackOk then retainRetryCleanup(previous, list) end
+      error(tostring(cleanupFailure) .. (rollbackOk and "" or "; " .. tostring(rollbackFailure)), 0)
+    end
+    clearOwnership(previous)
+  end
+  list.root = root
+  list.rootId = rootId
   owned[root] = list
   ownedById[rootId] = list
-  list.controls.destroy = function(self)
-    if self ~= list.controls or owned[root] ~= list or ownedById[rootId] ~= list then return false end
-    owned[root] = nil
-    ownedById[rootId] = nil
-    destroyList(list)
-    return true
-  end
+  attachDestroyHandle(list)
   return list.controls, list.warnings
 end
 
