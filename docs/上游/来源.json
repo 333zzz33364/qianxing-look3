@@ -5,6 +5,7 @@
   "sources": [
     {
       "id": "look",
+      "repositoryNumber": 1,
       "repository": "https://github.com/1475505/miliastra-beyond-simulator.git",
       "branch": "master",
       "commit": "b173569d73b4b9a07f5cd630ea5f3bcd055eb751",
@@ -17,6 +18,7 @@
     },
     {
       "id": "ui-editor",
+      "repositoryNumber": 2,
       "repository": "https://github.com/xiaomoL444/ugc-tool.git",
       "branch": "main",
       "commit": "513b2d5a77feeef696417cf36beba59da32077b4",

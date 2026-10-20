@@ -54,6 +54,21 @@ test('groupWorkspaceArchives separates root saves from nested workspace files', 
   assert.deepEqual(groupWorkspaceArchives(), { root: [], other: [] })
 })
 
+test('Look2 exposes font settings from the active editor shell', () => {
+  const view = makeView(createStudio(createDefaultClientTemplateProject()))
+  const root = view.find(node => node.props['data-qxqy-font-ui'] === true)[0]
+  assert.ok(root, 'the active Look2 root marks the UI-font scope')
+  const trigger = view.find(node => node.props['aria-label'] === '字体设置')[0]
+  assert.ok(trigger, 'the active top bar exposes font settings')
+  trigger.props.onClick()
+  view.render()
+  const panel = view.find(node => node.type?.name === 'FontSettings')[0]
+  assert.ok(panel, 'the top-bar action mounts the font settings component')
+  panel.props.onClose()
+  view.render()
+  assert.equal(view.find(node => node.type?.name === 'FontSettings').length, 0, 'the panel closes from its supplied action')
+})
+
 test('the workspace panel shows a collapsible usage guide and a grouped archive dropdown', () => {
   const view = makeView(createStudio(createDefaultClientTemplateProject()))
   assert.equal(view.find(node => node.props.className === 'look2-workspace').length, 0, 'the panel starts closed')

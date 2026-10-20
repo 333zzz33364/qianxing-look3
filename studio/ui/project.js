@@ -435,6 +435,10 @@ function applyPatchMutating(project, op) {
     let key = op.key
     if (key === 'reverseMask') key = 'reverseMaskArea'
     let value = op.value
+    if (node.kind === 'reference' && ['referencedPrefabId', 'giaRaw.templateRefSlot'].includes(key)
+      && (node.giaRaw.templateRefSlotBase64 || node.giaRaw.templateRefOuterBase64)) {
+      throw new Error('该模板引用含尚未解析的原始配置，暂不能改写目标索引；请在官方编辑器修改后重新导入')
+    }
     if (key.startsWith('giaRaw.')) {
       const rawKey = key.slice('giaRaw.'.length)
       if (!rawKey || rawKey.includes('.')) throw new Error('invalid raw GIA field path')

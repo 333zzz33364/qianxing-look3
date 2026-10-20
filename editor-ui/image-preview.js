@@ -1,7 +1,7 @@
 import { loadBrowserImageAsset, loadBrowserImageMetadata, subscribeImageRefresh } from '../studio/assets/browser.js'
 import { tintedImage } from '../studio/assets/raster.js'
 import { rasterizeSlices, resolveImageType, supportsImageStretch } from '../studio/assets/image-stretch.js'
-import { imageFillRect } from '../studio/play/image-fill.js'
+import { clipImageFill, imageFillSpec } from '../studio/play/image-fill.js'
 import { imageAssetKey, imageSourceName } from '../studio/assets/catalog.js'
 
 function canvas(width, height) {
@@ -34,11 +34,19 @@ export function createImagePreview(React) {
       const image = tintedImage(raster, item.imageColor, canvas)
       el.width = image.width; el.height = image.height
       const ctx = el.getContext('2d')
-      const fill = item.enableFill ? imageFillRect(item, el.width, el.height) : null
-      if (fill) { ctx.beginPath(); ctx.rect(fill.x + el.width / 2, fill.y + el.height / 2, fill.width, fill.height); ctx.clip() }
+      const controlWidth = Math.max(0, Number.isFinite(Number(item.width)) ? Number(item.width) : el.width)
+      const controlHeight = Math.max(0, Number.isFinite(Number(item.height)) ? Number(item.height) : el.height)
+      ctx.save()
+      ctx.translate(el.width / 2, el.height / 2)
+      const fill = item.enableFill ? imageFillSpec(item, controlWidth, controlHeight) : null
+      clipImageFill(ctx, fill, controlWidth ? el.width / controlWidth : 1, controlHeight ? el.height / controlHeight : 1)
+      ctx.translate(-el.width / 2, -el.height / 2)
       ctx.globalAlpha = ((Number(item.imageColor ?? 0xffffffff) >>> 24) & 255) / 255
       ctx.drawImage(image, 0, 0)
-    }, [state.image, state.meta, item.imageType, item.width, item.height, item.imageColor, item.enableFill, item.fillType, item.fillHorizontalType, item.fillVerticalType, item.fillAmount])
+      ctx.restore()
+    }, [state.image, state.meta, item.imageType, item.width, item.height, item.imageColor,
+      item.enableFill, item.fillType, item.fillHorizontalType, item.fillVerticalType,
+      item.fillRadial90Type, item.fillRadialType, item.fillClockwise, item.fillAmount])
     if (!state.image) return e('span', { className: 'qxsim-box-label', title: state.error, role: state.error ? 'status' : undefined }, state.error ? `图片 ${item.imageId} 加载失败` : `加载图片 ${item.imageId}…`)
     return e('canvas', { ref, title: state.error, 'data-image-id': item.imageId, 'data-image-source': imageSourceName(item.imageSource), 'data-image-type': resolveImageType(state.meta, item.imageType), 'aria-label': `图片 ${item.imageId}`, style: { display: 'block', position: 'absolute', inset: 0, width: '100%', height: '100%' } })
   }

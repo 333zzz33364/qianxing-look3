@@ -19,6 +19,7 @@ import { normalizeImageMeta, rasterizeSlices, supportsImageStretch } from '../st
 import { loadBrowserFont } from '../studio/play/browser-font.js'
 import { textLayout } from '../studio/play/text-layout.js'
 import { DEFAULT_FONT } from '../studio/fonts.js'
+import { createFontSettings } from './font-settings.js'
 import { imageAssetKey, imageAssetUrl, imageSourceName, isRemoteImage } from '../studio/assets/catalog.js'
 import { loadBrowserImageAsset, loadBrowserImageMetadata, refreshBrowserImage, subscribeImageRefresh } from '../studio/assets/browser.js'
 
@@ -121,6 +122,7 @@ import {
 export function createAnimationView(React, { api, playUrl, InlinePlay, usePlayLauncher, WorkspaceInspector, WorkspaceDock }) {
   const h = React.createElement
   const icon = (name, size) => editorIcon(h, name, size)
+  const FontSettings = createFontSettings(React)
   function DraftInput({ value, type = 'text', rows, min, max, step, disabled, ariaLabel, title, onCommit, onDiscardError, readCommitted, inputStyle, wrapperStyle }) {
     const initial = value == null ? '' : String(value)
     const [draft, setDraft] = React.useState(initial)
@@ -267,6 +269,13 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
   .look2-anim-row>button:first-child>span,.look2-anim-row>button:first-child>small{display:block;overflow:hidden;text-overflow:ellipsis}
   .look2-animations .look2-anim-row>.mini{width:24px;flex:0 0 24px}
   ` + REFERENCE_THEME + ERROR_LOG_CSS
+  const FONT_SETTINGS_CSS = `
+.look2-font-modal{width:min(620px,94vw);height:auto;max-height:90vh}
+.look2-font-settings-form{min-height:0;overflow:auto}
+.look2-font-settings-form .look2-field{align-items:flex-start;flex-direction:column}
+.look2-font-settings-form .look2-field select,.look2-font-settings-form .look2-field input[type=text]{width:100%;max-width:none}
+.look2-font-settings-form footer{display:flex;justify-content:flex-end;gap:6px;margin-top:12px}
+`
   const TRACK_FIELDS = TWEENABLE_FIELDS.map(field => [field.fieldKey, field.label])
   const PLATFORM_OPTIONS = [
     { id: 'KEYBOARD', symbol: '⌨', label: '\u952e\u9f20' },
@@ -314,7 +323,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
   }
   function ensureStyle() {
     if (document.getElementById(STYLE_ID)) return
-    const style = document.createElement('style'); style.id = STYLE_ID; style.textContent = CSS; document.head.append(style)
+    const style = document.createElement('style'); style.id = STYLE_ID; style.textContent = `${CSS}\n${FONT_SETTINGS_CSS}`; document.head.append(style)
   }
   const primitivePreviewSource = createPrimitivePreviewSource()
   function StageImage({ src, tint, imageType = 'Basic', borderUrl = '', sharedImage = null, fitContain = false, maskBox = {}, contentOpacity = 1, label = '', children }) {
@@ -479,6 +488,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
     const [showResources, setShowResources] = React.useState(false)
     const [showTemplates, setShowTemplates] = React.useState(false)
     const [showPlayHelp, setShowPlayHelp] = React.useState(false)
+    const [showFontSettings, setShowFontSettings] = React.useState(false)
     const [selectedArchive, setSelectedArchive] = React.useState('')
     const [pendingArchiveDelete, setPendingArchiveDelete] = React.useState('')
     const [showTestArchives, setShowTestArchives] = React.useState(false)
@@ -2863,7 +2873,9 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
         h('button', { title: '缩小', onClick: () => setZoom(value => Math.max(.15, value / 1.15)) }, '−'),
         h('span', { title: '画布实际缩放比例' }, `${Math.round(stageScale * 100)}%`),
         h('button', { title: '放大', onClick: () => setZoom(value => Math.min(6, value * 1.15)) }, '+')),
-      h('button', { title: '适应画布', disabled: interactionLocked, onClick: () => { setZoom(1); setPan({ x: 0, y: 0 }) } }, icon('fit', 20)), importControl)
+      h('button', { title: '适应画布', disabled: interactionLocked, onClick: () => { setZoom(1); setPan({ x: 0, y: 0 }) } }, icon('fit', 20)),
+      h('button', { type: 'button', title: '字体设置', 'aria-label': '字体设置', onClick: () => setShowFontSettings(true) }, '字体设置'), importControl)
+    const fontSettingsModal = showFontSettings ? h(FontSettings, { onClose: () => setShowFontSettings(false) }) : null
     const historyModal = showHistory ? h('div', { className: 'look2-modal-backdrop', onClick: () => setShowHistory(false) }, h('div', { className: 'look2-modal', role: 'dialog', 'aria-label': '历史记录', onClick: event => event.stopPropagation() },
       h('header', null, h('strong', null, `历史记录 ${snap.history?.entries?.length || 0}`), h('span', { className: 'spacer' }), h('button', { onClick: () => setShowHistory(false) }, '关闭')),
       h('div', { className: 'look2-history-list' }, (snap.history?.entries || []).slice().reverse().map(entry => h('div', { className: 'look2-history-row', key: entry.index },
@@ -2981,12 +2993,12 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
           h('button', { onClick: () => setPendingArchiveDelete('') }, '取消'),
           h('button', { className: 'primary', onClick: () => void confirmArchiveDelete() }, '确认删除')))) : null
     const draftRow = draft ? h('div', { className: 'look2-sub', inert: interactionLocked }, h('span', null, '发现 IndexedDB 自动草稿'), h('button', { onClick: () => void recoverDraft() }, '恢复草稿'), h('button', { onClick: () => void ignoreDraft() }, '忽略')) : null
-    return h('div', { ref: editorRootRef, className: `look2${inlinePlaying ? ' playing' : playStarting ? ' starting' : ''}`, 'data-qxsim-session-id': sessionId, onPointerMove: movePointer, onPointerUp: endPointer, onPointerCancel: cancelPointer,
+    return h('div', { ref: editorRootRef, className: `look2${inlinePlaying ? ' playing' : playStarting ? ' starting' : ''}`, 'data-qxsim-session-id': sessionId, 'data-qxqy-font-ui': true, onPointerMove: movePointer, onPointerUp: endPointer, onPointerCancel: cancelPointer,
       onContextMenu: event => { if (!inlinePlaying && event.target === event.currentTarget) contextFor(event, 'stage', null) },
       style: { '--tree-width': `${hiddenPanels.tree ? 28 : panelWidths.tree}px`, '--anim-width': `${hiddenPanels.animator ? 28 : panelWidths.animator}px`, '--inspector-width': `${hiddenPanels.inspector ? 28 : panelWidths.inspector}px` } },
       masthead, topBar, workspaceRow, draftRow,
       h('div', { className: paneClasses }, treePane, stage, animatorPane, inspectorPane), dock,
-       resourcePanel, historyModal, templateModal, timelineImportModal, archiveDeleteModal, archiveManageModal, contextMenuView, errorHistoryDialog,
+       resourcePanel, historyModal, templateModal, timelineImportModal, archiveDeleteModal, archiveManageModal, contextMenuView, errorHistoryDialog, fontSettingsModal,
        playLauncher?.overlay)
   }
   return { AnimationView, ensureStyle }

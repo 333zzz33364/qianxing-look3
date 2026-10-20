@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { Container, Matrix } from 'pixi.js'
+import { Container, Matrix, Text } from 'pixi.js'
 import { PixiPlayRenderer } from '../play/pixi-renderer.js'
 
 function harness(t) {
@@ -60,4 +60,53 @@ test('replacing or removing an image releases its owned shape and mask contexts'
   const remaining = root.__visual.children[0].context
   renderer.clearVisual(root)
   assert.equal(remaining.destroyed, true)
+})
+
+test('HUD text, style and scroll-offset updates reuse owned visuals; geometry changes release them', t => {
+  const { renderer, root, item } = harness(t)
+  const label = { ...item, kind: 'textbox', text: 'Score 1', sourceWidth: 240, sourceHeight: 60,
+    fontSize: 24, fontColor: 0xffffffff, bgColor: 0, enableOutline: false,
+    horizontalAlignment: 'Left', verticalAlignment: 'Top' }
+  renderer.updateNode(root, label)
+  const visual = root.__visual, text = visual.children.find(child => child instanceof Text)
+  const mask = text.mask, style = text.style
+  for (let i = 2; i <= 40; i++) renderer.updateNode(root, { ...label, text: `Score ${i}` })
+  assert.equal(root.__visual, visual)
+  assert.equal(text.text, 'Score 40')
+  assert.equal(text.mask, mask)
+  assert.equal(text.style, style)
+  renderer.updateNode(root, { ...label, text: 'A\nB', horizontalAlignment: 'Right', verticalAlignment: 'Bottom',
+    textLayout: { fontSize: 13, lineHeight: 15.6, lines: ['A', 'B'] }, enableOutline: true, outlineColor: 0x33333333 })
+  assert.equal(root.__visual, visual)
+  assert.equal(text.style.fontSize, 13)
+  assert.equal(text.style.wordWrap, false)
+  assert.equal(text.style.stroke.alpha, 0.2)
+  assert.deepEqual([text.anchor.x, text.anchor.y, text.x, text.y], [1, 1, 118, 30])
+  renderer.updateNode(root, { ...label, sourceWidth: 260 })
+  assert.notEqual(root.__visual, visual)
+  assert.equal(text.destroyed, true)
+  assert.equal(mask.context, null, 'old clipping geometry is released')
+  const scroll = { lines: ['A', 'B', 'C', 'D'], lineHeight: 24, textWidth: 236, offset: 0,
+    max: 100, contentLength: 160, showBar: false }
+  renderer.updateNode(root, { ...label, kind: 'textwindow', scroll })
+  const windowVisual = root.__visual, windowText = windowVisual.children.find(child => child instanceof Text)
+  renderer.updateNode(root, { ...label, kind: 'textwindow', scroll: { ...scroll, offset: 48 } })
+  assert.equal(root.__visual, windowVisual)
+  assert.equal(windowText.style.wordWrap, false)
+  assert.equal(windowText.y, -54)
+  renderer.updateNode(root, { ...label, kind: 'textwindow', scroll: { ...scroll, showBar: true } })
+  const bar = windowVisual.__scrollBar, background = windowVisual.children[0], scrollMask = windowText.mask
+  assert.ok(bar)
+  const barKey = windowVisual.__scrollBarKey
+  renderer.updateNode(root, { ...label, kind: 'textwindow', scroll: { ...scroll, showBar: true, offset: 48 } })
+  assert.equal(root.__visual, windowVisual, 'visible scrollbars must not force text/background/clip rebuild')
+  assert.equal(windowVisual.__scrollBar, bar)
+  assert.notEqual(windowVisual.__scrollBarKey, barKey, 'thumb follows the new offset')
+  assert.equal(windowVisual.children[0], background)
+  assert.equal(windowText.mask, scrollMask)
+  renderer.updateNode(root, { ...label, kind: 'textwindow', scroll: { ...scroll, showBar: false } })
+  assert.equal(root.__visual, windowVisual)
+  assert.equal(bar.destroyed, true, 'hiding the bar releases only its owned geometry')
+  renderer.clearVisual(root)
+  assert.equal(windowText.destroyed, true)
 })

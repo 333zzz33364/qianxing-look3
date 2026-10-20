@@ -17,7 +17,7 @@ function unitId(bytes) {
 
 function describeUnit(bytes, field) {
   const reader = protobuf.Reader.create(bytes)
-  const unit = { field, bytes, id: 0, relatedIds: [], name: '', which: 0 }
+  const unit = { field, bytes, id: 0, relatedIds: [], name: '', which: 0, hasUi: false }
   while (reader.pos < reader.len) {
     const tag = reader.uint32()
     const key = tag >>> 3
@@ -25,6 +25,7 @@ function describeUnit(bytes, field) {
     if (wire === 2 && key === 1) unit.id = unitId(reader.bytes())
     else if (wire === 2 && key === 2) unit.relatedIds.push(unitId(reader.bytes()))
     else if (wire === 2 && key === 3) unit.name = Buffer.from(reader.bytes()).toString('utf8')
+    else if (wire === 2 && key === 19) { reader.bytes(); unit.hasUi = true }
     else if (wire === 0 && key === 5) unit.which = reader.int32()
     else reader.skipType(wire)
   }
@@ -60,11 +61,17 @@ export function extractSupportedUiGia(input) {
   const graphs = units.filter((unit) => unit.field === 1)
   const groups = graphs.filter((unit) => unit.which === 21)
   const templates = graphs.filter((unit) => unit.which === 70)
+  const isUiUnit = unit => unit.hasUi && [15, 21, 70].includes(unit.which)
+  const skippedUnsupportedUiCount = units.filter(unit => unit.which === 61).length
+  const skippedNonUiCount = units.filter(unit => !isUiUnit(unit) && unit.which !== 69 && unit.which !== 61).length
   const mixed = groups.length > 1 || graphs.some((unit) => ![21, 69, 70].includes(unit.which))
-  if (!mixed) return { buffer, mixed: false }
+  if (!mixed) return { buffer, mixed: false, skippedNonUiCount, skippedUnsupportedUiCount }
 
   const group = groups.find((unit) => unit.name === '客户端控件容器')
   if (!group && !templates.length) {
+    if (graphs.some(unit => unit.which === 61)) {
+      throw new Error('Look3 尚未支持导入图元素材组（which=61）；目前仅支持客户端 UI 控件容器（which=21）和客户端模板（which=70）')
+    }
     throw new Error('混合 GIA 中未找到 Look 支持的客户端控件容器或客户端模板')
   }
   const selectedGraphs = [...(group ? [group] : []), ...templates, ...graphs.filter((unit) => unit.which === 69)]
@@ -81,7 +88,8 @@ export function extractSupportedUiGia(input) {
     }
   }
   const writer = protobuf.Writer.create()
-  for (const unit of [...selectedGraphs, ...selectedAccessories]) {
+  const scriptAccessories = units.filter(unit => unit.field === 2 && unit.which === 69)
+  for (const unit of [...selectedGraphs, ...selectedAccessories, ...scriptAccessories]) {
     writer.uint32((unit.field << 3) | 2).bytes(unit.bytes)
   }
   for (const entry of metadata) writer.uint32((entry.field << 3) | 2).bytes(entry.bytes)
@@ -99,5 +107,7 @@ export function extractSupportedUiGia(input) {
     selectedGroup: group?.name || '',
     templateCount: templates.length,
     skippedGroupCount: groups.length - (group ? 1 : 0),
+    skippedNonUiCount,
+    skippedUnsupportedUiCount,
   }
 }

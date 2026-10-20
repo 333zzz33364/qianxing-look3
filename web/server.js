@@ -156,7 +156,7 @@ export async function createWebServer(options = {}) {
       }
       if (await serveImageAsset(request, response, options.imageAssets)) return
       if (await serveAudioAsset(request, response, options.audioAssets)) return
-      if (serveLocalFont(request, response)) return
+      if (await serveLocalFont(request, response, { settingsEnabled: loopback })) return
       if (request.method === 'GET' && staticFiles.has(requestUrl.pathname)) {
         const filename = staticFiles.get(requestUrl.pathname)
         const data = readFileSync(resolve(publicDir, filename))

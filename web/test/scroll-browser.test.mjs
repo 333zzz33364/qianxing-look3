@@ -96,13 +96,22 @@ test('browser wheel, real mouse drag, scrollbar and touch scroll both viewport t
     await waitOffset(name, n => n >= 45)
     await browser.send('Emulation.setTouchEmulationEnabled', { enabled: false }, browser.sessionId)
   }
-  const screenshot = await browser.send('Page.captureScreenshot', { format: 'png' }, browser.sessionId)
-  const image = await loadImage(Buffer.from(screenshot.data, 'base64'))
-  const context = createCanvas(image.width, image.height).getContext('2d')
-  context.drawImage(image, 0, 0)
-  const pixel = (x, y) => { const p = point(x, y); return [...context.getImageData(Math.round(p.x), Math.round(p.y), 1, 1).data].slice(0, 3) }
-  assert.deepEqual(pixel(1095, 500), [54, 85, 112], 'GPU shows the scrolled item inside the viewport')
-  assert.notDeepEqual(pixel(1095, 350), [54, 85, 112], 'GPU clips list items below the viewport')
+  // Worker offset changes precede the next browser polling/render frame.
+  // Keep the pixel assertions, but await the actual presented frame as we do
+  // for DOM state, rather than sampling immediately after the backend changed.
+  let inside, outside
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const screenshot = await browser.send('Page.captureScreenshot', { format: 'png' }, browser.sessionId)
+    const image = await loadImage(Buffer.from(screenshot.data, 'base64'))
+    const context = createCanvas(image.width, image.height).getContext('2d')
+    context.drawImage(image, 0, 0)
+    const pixel = (x, y) => { const p = point(x, y); return [...context.getImageData(Math.round(p.x), Math.round(p.y), 1, 1).data].slice(0, 3) }
+    inside = pixel(1095, 500); outside = pixel(1095, 350)
+    if (inside.join(',') === '54,85,112' && outside.join(',') !== '54,85,112') break
+    await new Promise(resolve => setTimeout(resolve, 100))
+  }
+  assert.deepEqual(inside, [54, 85, 112], 'GPU shows the scrolled item inside the viewport')
+  assert.notDeepEqual(outside, [54, 85, 112], 'GPU clips list items below the viewport')
   const state = await h.api('get')
   assert.equal(state.logs.some(row => row.level === 'lua-error'), false)
   await h.api('stop')

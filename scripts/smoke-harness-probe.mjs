@@ -23,7 +23,7 @@ export function apply(ctx, config) {
     try {
       const require = createRequire(import.meta.url)
       const manifest = JSON.parse(await readFile(require.resolve('look3-dsh-plugin/package.json'), 'utf8'))
-      for (const version of ['0.1.0-rc.6', '0.1.7-rc.2', '0.2.0-rc.1', '0.2.0-rc.2']) {
+      for (const version of ['0.1.0-rc.6', '0.1.7-rc.2', '0.2.0-rc.1', '0.2.0-rc.2', '0.2.1-rc.2']) {
         assert.equal(evaluatePluginCompatibility(manifest, {}, version), undefined, version)
       }
       assert.ok(evaluatePluginCompatibility(manifest, {}, '0.3.0-rc.1'), 'Do not silently admit a future minor API')
@@ -47,6 +47,39 @@ export function apply(ctx, config) {
       assert.ok((await call('look3_studio_play_screenshot')).content.some(block => block.type === 'image'))
       await call('look3_studio_play', { action: 'stop' })
       const url = `http://127.0.0.1:${ctx.webServer.port}`
+      const api = async (action, body) => {
+        const response = await fetch(`${url}/look3-simulator/api/${action}`, {
+          method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ sessionId, ...body }), signal: AbortSignal.timeout(10_000),
+        })
+        const envelope = await response.json()
+        assert.equal(response.status, 200, JSON.stringify(envelope))
+        assert.equal(envelope.ok, true, JSON.stringify(envelope))
+        return envelope.value
+      }
+      const gia = await api('export', { format: 'combined' })
+      assert.ok(gia.data.length > 0)
+      const restored = await api('import', { format: 'gia', data: gia.data, filename: 'harness-roundtrip.gia' })
+      assert.ok(restored.snapshot.tree.length > 0)
+      // This starts the installed bundle's actual Worker after a GIA import.
+      assert.equal((await call('look3_studio_play', { action: 'start' })).value.running, true)
+      assert.ok((await call('look3_studio_play_screenshot')).content.some(block => block.type === 'image'))
+      await call('look3_studio_play', { action: 'stop' })
+      const beforeFontSettings = await api('get', {})
+      const settingsUrl = `${url}/qxqy-font/settings`
+      const settingsResponse = await fetch(settingsUrl, { signal: AbortSignal.timeout(5_000) })
+      assert.equal(settingsResponse.status, 200)
+      const settings = await settingsResponse.json()
+      const savedFontResponse = await fetch(settingsUrl, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(settings.environmentPath ? { scope: 'game' } : { mode: 'system', path: '', scope: 'game' }),
+        signal: AbortSignal.timeout(5_000),
+      })
+      assert.equal(savedFontResponse.status, 200)
+      const savedFont = await savedFontResponse.json()
+      assert.equal(savedFont.scope, 'game')
+      assert.equal(savedFont.restartRequired, true)
+      assert.equal((await api('get', {})).version, beforeFontSettings.version, 'font settings must not edit the project')
       for (const path of ['/look3-simulator/play', '/look3-simulator/play-renderer.js']) {
         assert.equal((await fetch(url + path, { signal: AbortSignal.timeout(5_000) })).status, 200, path)
       }

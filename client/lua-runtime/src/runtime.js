@@ -938,6 +938,7 @@ export class LuaRuntime {
   }
 
   mtControl(L) {
+    const setVisible = this.method((o, v) => o.SetVisible(v))
     const methods = {
       GetChildren: this.method((o) => {
         const a = o.GetChildren()
@@ -947,7 +948,16 @@ export class LuaRuntime {
       GetChild: this.method((o, name) => o.GetChild(name)),
       FindChild: this.method((o, path) => o.FindChild(path)),
       SetActive: this.method((o, v) => o.SetActive(v)),
-      SetVisible: this.method((o, v) => o.SetVisible(v)),
+      SetVisible: (LL) => {
+        // Validate the Lua value before converting it to JavaScript: invalid
+        // values must not be silently coerced to visibility booleans.
+        if (!lua.lua_isboolean(LL, 2)) {
+          return lauxlib.luaL_error(LL,
+            sl("bad argument #2 to 'SetVisible' (boolean expected, got %s)"),
+            lauxlib.luaL_typename(LL, 2))
+        }
+        return setVisible(LL)
+      },
       GetSiblingIndex: this.method((o) => o.GetSiblingIndex()),
       SetSiblingIndex: this.method((o, i) => o.SetSiblingIndex(i)),
       SetAsFirstSibling: this.method((o) => o.SetAsFirstSibling()),

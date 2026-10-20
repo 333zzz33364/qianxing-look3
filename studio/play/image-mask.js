@@ -1,55 +1,60 @@
 /**
- * Rectangle image masks for play rendering.
+ * Shared rectangle image-mask geometry for play rendering.
  *
  * Device evidence (MASK v1, PC, 2026-10-11, scale 1, asset 100001): enableMask
  * clips descendants, not siblings; imageColor alpha does not disable the mask
  * or hide children; pixel feather fades inward from both edges of that axis and
  * does not reveal content outside the rectangle. Width 0 stays a hard edge.
  *
- * Simulator policy, not additional device proof: the falloff is linear; percentage
- * mode uses width as a percent of that side and ignores the range fields; the
- * mask shape is the control rectangle, not the texture contour; reverseMaskArea
- * is not applied. Nested masks multiply coverage.
+ * Simulator policy, not additional device proof: the falloff is linear and
+ * percentage mode derives edge width from horizontal/vertical soft ranges.
+ * Runtime geometry uses the control rectangle; texture-alpha contours remain
+ * available only to the author preview. Reverse masks promote every nonzero
+ * covered sample to zero and reveal the area outside the rectangle. Nested
+ * masks multiply coverage.
  */
 import { applyMatrix, invertMatrix } from '../ui/layout.js'
+import { imageFillSpec, imageMaskBaseCoverage, imageMaskCoverage } from './image-geometry.js'
+
+export { imageMaskBaseCoverage, imageMaskCoverage }
 
 const nonnegative = value => Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : 0
+const normalized = value => String(value?.Name ?? value?.name ?? value ?? '').toLowerCase()
+const clampRange = value => Math.max(0, Math.min(100, Number.isFinite(Number(value)) ? Number(value) : 85))
 
 export function imageMaskSpec(item, matrix) {
   if (!item || item.kind !== 'image' || item.enableMask !== true || !matrix) return null
   const width = nonnegative(item.sourceWidth ?? item.width)
   const height = nonnegative(item.sourceHeight ?? item.height)
   const soft = item.enableSoftEdge === true
-  const percent = item.softEdgeMode !== 'Pixel'
-  const rawX = soft ? nonnegative(item.softEdgeWidthX) : 0
-  const rawY = soft ? nonnegative(item.softEdgeWidthY) : 0
+  const percent = normalized(item.softEdgeMode) !== 'pixel'
+  const rawX = soft ? nonnegative(item.softEdgeWidthX ?? 8) : 0
+  const rawY = soft ? nonnegative(item.softEdgeWidthY ?? 8) : 0
+  const rangeX = clampRange(item.horizontalSoftRange)
+  const rangeY = clampRange(item.verticalSoftRange)
+  const fill = imageFillSpec({ ...item, enableFill: item.enableFill !== false }, width, height)
   return {
     id: item.id,
     matrix,
     width,
     height,
-    featherX: percent ? width * rawX / 100 : rawX,
-    featherY: percent ? height * rawY / 100 : rawY,
+    enableSoftEdge: soft,
+    softEdgeMode: percent ? 'Percentage' : 'Pixel',
+    softEdgeWidthX: rawX,
+    softEdgeWidthY: rawY,
+    horizontalSoftRange: rangeX,
+    verticalSoftRange: rangeY,
+    featherX: !soft ? 0 : percent ? width * (100 - rangeX) / 200 : rawX,
+    featherY: !soft ? 0 : percent ? height * (100 - rangeY) / 200 : rawY,
+    composition: percent ? 'multiply' : 'min',
+    reverse: item.reverseMaskArea === true || item.reverseMask === true,
+    fill,
   }
 }
 
 export function centerMaskMatrix(matrix, centerX, centerY) {
   const center = applyMatrix(matrix, centerX, centerY)
   return { a: matrix.a, b: matrix.b, c: matrix.c, d: matrix.d, tx: center.x, ty: center.y }
-}
-
-export function imageMaskCoverage(localX, localY, mask) {
-  const fade = (distance, feather) => {
-    if (distance <= 0) return 0
-    if (!(feather > 0) || distance >= feather) return 1
-    return distance / feather
-  }
-  return Math.min(
-    fade(localX + mask.width / 2, mask.featherX),
-    fade(mask.width / 2 - localX, mask.featherX),
-    fade(localY + mask.height / 2, mask.featherY),
-    fade(mask.height / 2 - localY, mask.featherY),
-  )
 }
 
 // A flattened paint list retains mask identity. Consecutive items under the same
@@ -61,7 +66,10 @@ export function groupMaskedPaint(items) {
   for (const item of items || []) {
     if (!item || item.id == null) continue
     const masks = item.masks || []
-    const nextKeys = masks.map(mask => JSON.stringify([mask.id, mask.matrix, mask.width, mask.height, mask.featherX, mask.featherY]))
+    const nextKeys = masks.map(mask => JSON.stringify([
+      mask.id, mask.matrix, mask.width, mask.height, mask.featherX, mask.featherY,
+      mask.composition, mask.reverse, mask.fill,
+    ]))
     let common = 0
     while (common < keys.length && common < nextKeys.length && keys[common] === nextKeys[common]) common++
     stack.length = common + 1
@@ -98,10 +106,19 @@ export function maskedPaintScene(items) {
       const z = entries.length - 1 - index
       if (entry.mask) {
         const mask = entry.mask
+        const fill = mask.fill
+        const soft = mask.enableSoftEdge === true ||
+          (mask.enableSoftEdge == null && (mask.featherX > 0 || mask.featherY > 0))
         nodes.push({ id, parent, z, group: false, kind: 'image', primitive: 'rect', imageColor: 0,
           sourceWidth: mask.width, sourceHeight: mask.height, matrix: relativeMatrix(parentWorld, mask.matrix),
-          enableMask: true, enableSoftEdge: true, softEdgeMode: 'Pixel',
-          softEdgeWidthX: mask.featherX, softEdgeWidthY: mask.featherY })
+          enableMask: true, enableSoftEdge: soft, softEdgeMode: mask.softEdgeMode,
+          softEdgeWidthX: mask.softEdgeWidthX, softEdgeWidthY: mask.softEdgeWidthY,
+          horizontalSoftRange: mask.horizontalSoftRange, verticalSoftRange: mask.verticalSoftRange,
+          reverseMaskArea: mask.reverse,
+          enableFill: Boolean(fill), fillType: fill?.type || 'Unused', fillAmount: fill?.amount ?? 1,
+          fillHorizontalType: fill?.horizontalType || 'left', fillVerticalType: fill?.verticalType || 'bottom',
+          fillRadial90Type: fill?.radial90Type || 'bottomleft', fillRadialType: fill?.radialType || 'bottom',
+          fillClockwise: fill?.clockwise !== false })
         visit(entry.children, id, mask.matrix)
       } else {
         const item = entry.item

@@ -1,0 +1,226 @@
+{
+  "schemaVersion": 1,
+  "readingState": "未读",
+  "project": "千星look3",
+  "date": "2026-10-20",
+  "candidateVersion": "3.1.0",
+  "sourceBaseline": "1676ea6c7325eba3313571a98e1cd5e74dec7381",
+  "sourceCandidates": {
+    "1": "12bde4213bbe98e71a0a0f2b66cf3a1049b82d8f",
+    "2": "513b2d5a77feeef696417cf36beba59da32077b4"
+  },
+  "scope": "本轮增量单列，不增加或重计原62项正式接受数量",
+  "increments": [
+    {
+      "id": "I01",
+      "readingState": "未读",
+      "name": "GIA引用字节、依赖分类与附件挂载",
+      "planSection": "2.1",
+      "targetPaths": [
+        "studio/gia/codec.js",
+        "studio/gia/raw-fields.js",
+        "studio/gia/mixed-ui.js",
+        "studio/index.js",
+        "studio/ui/project.js"
+      ],
+      "tests": [
+        "studio/test/gia-reference.test.mjs"
+      ],
+      "localStatus": "implemented-targeted-verified-final-regression-pending",
+      "formalAcceptance": "pending",
+      "externalAcceptance": "pending",
+      "boundaries": [
+        "未知字段不解析；仅保留原字节，既有数字/索引文本采用兼容识别策略",
+        "which61图元素材组仍不支持；被跳过资源不随GIA导出"
+      ]
+    },
+    {
+      "id": "I02",
+      "readingState": "未读",
+      "name": "SetVisible严格布尔参数",
+      "planSection": "2.2",
+      "targetPaths": [
+        "client/lua-runtime/src/runtime.js"
+      ],
+      "tests": [
+        "client/lua-runtime/test/children-reference.test.mjs",
+        "studio/test/look2-player.test.mjs",
+        "studio/test/look2-primitives.test.mjs"
+      ],
+      "localStatus": "implemented-targeted-verified-final-regression-pending",
+      "formalAcceptance": "pending",
+      "externalAcceptance": "pending",
+      "boundaries": [
+        "只保证本地Lua桥接和调用方回归；千星实机另验"
+      ]
+    },
+    {
+      "id": "I03",
+      "readingState": "未读",
+      "name": "DSH内置protobuf解析器与0.2.1宿主",
+      "planSection": "2.3",
+      "targetPaths": [
+        "scripts/build.mjs",
+        "scripts/smoke-harness.mjs",
+        "scripts/smoke-harness-probe.mjs",
+        "package.json"
+      ],
+      "tests": [
+        "dsh-plugin/test/protobuf-bundle.test.mjs"
+      ],
+      "localStatus": "implemented-intermediate-package-verified-latest-source-pending",
+      "formalAcceptance": "pending",
+      "externalAcceptance": "pending",
+      "boundaries": [
+        "隔离官方CLI/工具验证不等于用户Desktop、PTY或账号模型验收"
+      ]
+    },
+    {
+      "id": "I04",
+      "readingState": "未读",
+      "name": "高频文字、样式与滚动条资源复用",
+      "planSection": "2.4",
+      "targetPaths": [
+        "studio/play/pixi-renderer.js"
+      ],
+      "tests": [
+        "studio/test/pixi-cache.test.mjs",
+        "web/test/text-churn-browser.test.mjs",
+        "web/test/scroll-browser.test.mjs"
+      ],
+      "localStatus": "implemented-targeted-verified-final-regression-pending",
+      "formalAcceptance": "pending",
+      "externalAcceptance": "pending",
+      "boundaries": [
+        "依赖固定Pixi8.20内部缓存结构；资源趋势限于所列负载，不承诺解决所有OOM"
+      ]
+    },
+    {
+      "id": "I05",
+      "readingState": "未读",
+      "name": "径向填充几何与方向",
+      "planSection": "3.1",
+      "targetPaths": [
+        "studio/play/image-geometry.js",
+        "studio/play/image-fill.js",
+        "studio/play/compile.js",
+        "studio/play/session.js",
+        "client/lua-runtime/src/scene.js",
+        "studio/play/pixi-renderer.js",
+        "studio/host-png.js",
+        "editor-ui/image-preview.js"
+      ],
+      "tests": [
+        "studio/test/image-fill.test.mjs",
+        "web/test/image-mask-browser.test.mjs"
+      ],
+      "localStatus": "implemented-targeted-verified-final-regression-pending",
+      "formalAcceptance": "pending",
+      "externalAcceptance": "pending",
+      "boundaries": [
+        "本地几何与像素样本不等于千星五画布/所有设备验收"
+      ]
+    },
+    {
+      "id": "I06",
+      "readingState": "未读",
+      "name": "矩形反转遮罩、百分比软边与平面回退",
+      "planSection": "3.2–3.5",
+      "targetPaths": [
+        "studio/play/image-geometry.js",
+        "studio/play/image-mask.js",
+        "studio/play/pixi-renderer.js",
+        "studio/host-png.js",
+        "editor-ui/stage-image-mask.js"
+      ],
+      "tests": [
+        "studio/test/image-mask.test.mjs",
+        "studio/test/editor-image-preview.test.mjs",
+        "web/test/image-mask-browser.test.mjs"
+      ],
+      "localStatus": "implemented-targeted-verified-final-regression-pending",
+      "formalAcceptance": "pending",
+      "externalAcceptance": "pending",
+      "boundaries": [
+        "Pixel双轴保留原Runtime最小值，作者角落由旧乘积调整到该策略",
+        "Percentage双轴按乘积，反转为非零覆盖阈值取反",
+        "作者预览还使用源纹理alpha；播放/PNG仍为矩形几何，该本地差异未闭合"
+      ]
+    },
+    {
+      "id": "I07",
+      "readingState": "未读",
+      "name": "Look2本机字体设置与应用范围",
+      "planSection": "4.1",
+      "targetPaths": [
+        "studio/host/font-config.js",
+        "studio/host/local-font.js",
+        "studio/play/browser-font.js",
+        "editor-ui/font-settings.js",
+        "editor-ui/look2.js",
+        "web/server.js"
+      ],
+      "tests": [
+        "studio/test/local-font.test.mjs",
+        "web/test/local-font.test.mjs",
+        "web/test/font-scope-restart.test.mjs"
+      ],
+      "localStatus": "implemented-targeted-verified-final-regression-pending",
+      "formalAcceptance": "pending",
+      "externalAcceptance": "pending",
+      "boundaries": [
+        "直接本机访问；保存后重启宿主并刷新页面；字体不进存档和分发包",
+        "远程DSH页面与本机字体的组合未验证"
+      ]
+    },
+    {
+      "id": "I08",
+      "readingState": "未读",
+      "name": "页面关键组合与候选分发",
+      "planSection": "5.1–5.5",
+      "targetPaths": [
+        "scripts/test.mjs",
+        "scripts/pack.mjs",
+        "scripts/smoke-packages.mjs",
+        "scripts/smoke-git-install.mjs"
+      ],
+      "tests": [
+        "web/test/look3-workflow-browser.test.mjs",
+        "web/test/look3-editor-browser.test.mjs",
+        "web/test/look3-bones-browser.test.mjs",
+        "web/test/look3-tree-timeline-browser.test.mjs"
+      ],
+      "localStatus": "partial-validation-paused",
+      "formalAcceptance": "pending",
+      "externalAcceptance": "pending",
+      "boundaries": [
+        "关键路径与风险组合，不声称穷尽所有页面组合或全页像素一致",
+        "树/时间轴草稿首轮因搜索选择器失败，未进入时间轴操作；当前草稿尚未验证"
+      ]
+    }
+  ],
+  "deferred": [
+    {
+      "planSection": "4.2",
+      "name": "多语言",
+      "status": "deferred"
+    },
+    {
+      "planSection": "4.3",
+      "name": "产品与上游检查更新入口",
+      "status": "deferred"
+    },
+    {
+      "planSection": "7",
+      "name": "后续工具链扩展",
+      "status": "deferred"
+    }
+  ],
+  "integrationStageComplete": false,
+  "projectComplete": false,
+  "status": "paused-by-user",
+  "pauseRequest": "完成当前阶段暂停保存",
+  "latestSourceFullRegressionPassed": false,
+  "latestSourceDistributionVerified": false,
+  "localCandidateComplete": false
+}

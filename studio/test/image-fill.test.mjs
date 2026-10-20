@@ -40,13 +40,25 @@ function DirectFields()
   image.fillVerticalType = Enum.ImageFillVerticalType.Bottom
   image.fillAmount = 0.5
 end
+function FillRadial90(direction, amount)
+  image:SetFillRadial90(Enum.ImageFillRadial90Type[direction], amount)
+end
+function FillRadial180(direction, amount)
+  image:SetFillRadial180(Enum.ImageFillRadialType[direction], amount)
+end
+function FillRadial360(direction, amount)
+  image:SetFillRadial360(Enum.ImageFillRadialType[direction], amount)
+end
+function SetClockwise(value) image.fillClockwise = value end
 ` })
   assert.deepEqual(runtime.mountErrors, [])
   const setFill = (axis, direction, amount) => runtime.invokeOn(script.env, 'Fill' + axis, [direction, amount])
   const invoke = name => runtime.invokeOn(script.env, name, [])
+  const setRadial = (type, direction, amount) => runtime.invokeOn(script.env, 'Fill' + type, [direction, amount])
+  const setClockwise = value => runtime.invokeOn(script.env, 'SetClockwise', [value])
   const scene = options => playSnapshot(session, { view: true, ...options }).scene
   const node = () => scene().nodes.find(item => item.name === 'Image')
-  return { runtime, root, control, session, setFill, invoke, scene, node }
+  return { runtime, root, control, session, setFill, setRadial, setClockwise, invoke, scene, node }
 }
 
 async function pixels(png) {
@@ -125,6 +137,38 @@ test('PNG horizontal and vertical fill obey independent quarter pixels for 0, ha
   f.invoke('Unused')
   const at = await pixels(renderScenePng(f.scene(), 240, 160))
   assert.deepEqual(quarterPoints.map(([x, y]) => isWhite(at(x, y))), [true, true, true, true], 'Unused cancels clipping even after amount zero')
+})
+
+test('radial 90/180/360 fill direction and percentage are shared by author geometry and the actual PNG path', async t => {
+  const f = fixture(t)
+  const sample = async (type, direction, amount, clockwise, points) => {
+    f.setRadial(type, direction, amount)
+    f.setClockwise(clockwise)
+    const node = f.node()
+    assert.equal(node.fillClockwise, clockwise)
+    assert.equal(paintList(f.session).find(item => item.name === 'Image').fillClockwise, clockwise)
+    const png = renderScenePng(f.scene(), 240, 160)
+    const flat = renderPaintPng(paintList(f.session), 240, 160)
+    assert.deepEqual(png.data, flat.data, `${type} ${direction} ${amount} clockwise=${clockwise}`)
+    const at = await pixels(png)
+    return points.map(([x, y]) => isWhite(at(x, y)))
+  }
+
+  assert.deepEqual(await sample('Radial90', 'BottomLeft', 0.5, true,
+    [[90, 50], [100, 50], [150, 50], [100, 100]]), [true, true, false, false])
+  assert.deepEqual(await sample('Radial90', 'TopRight', 0.5, true,
+    [[150, 100], [160, 110], [100, 50], [100, 100]]), [true, true, false, false])
+  assert.deepEqual(await sample('Radial180', 'Bottom', 0.5, true,
+    [[100, 70], [140, 70], [100, 100], [140, 100]]), [true, false, true, false])
+  assert.deepEqual(await sample('Radial360', 'Top', 0.25, true,
+    [[120, 50], [150, 50], [145, 105], [120, 110]]), [true, true, false, false])
+  assert.deepEqual(await sample('Radial360', 'Top', 0.25, false,
+    [[120, 50], [90, 50], [95, 105], [120, 110]]), [false, true, false, false])
+
+  const full = await sample('Radial360', 'Left', 1, false, quarterPoints)
+  assert.deepEqual(full, [true, true, true, true])
+  const empty = await sample('Radial360', 'Left', 0, false, quarterPoints)
+  assert.deepEqual(empty, [false, false, false, false])
 })
 
 test('Pixi uses image-local masks for all four half fills, hides zero, and removes masks for Unused', t => {

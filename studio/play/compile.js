@@ -104,6 +104,7 @@ export function compileControl(node, canvasId, scriptsByNode = null) {
     spec.fillVerticalType = node.fillVerticalType
     spec.fillRadial90Type = node.fillRadial90Type
     spec.fillRadialType = node.fillRadialType
+    spec.fillClockwise = node.fillClockwise !== false
     spec.fillAmount = node.fillAmount
     spec.reverseMaskArea = node.reverseMaskArea === true
   }

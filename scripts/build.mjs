@@ -6,6 +6,9 @@ import { root, products, cleanGenerated } from './paths.mjs'
 import { distributable } from './distribution-filter.mjs'
 
 const external = ['@deepseek-ai/*', '@napi-rs/canvas', 'fengari', 'protobufjs']
+// The GIA schema needs the full parser at import time. Isolate DSH bundles
+// from host-side CommonJS cache changes and protobuf dependency interop.
+const dshExternal = external.filter(name => name !== 'protobufjs')
 // Authoring geometry is shared with the browser; native font/canvas services
 // stay in Node while both hosts use the same text-layout algorithm.
 export const browserPlugins = [{
@@ -15,12 +18,12 @@ export const browserPlugins = [{
   },
 }]
 
-async function bundle(entry, outfile, browser = false) {
+async function bundle(entry, outfile, browser = false, dependencies = external) {
   await build({
     absWorkingDir: root, entryPoints: [entry], outfile, bundle: true,
     format: 'esm', platform: browser ? 'browser' : 'node',
     target: browser ? 'es2022' : 'node20', minify: true,
-    external: browser ? [] : external, logLevel: 'warning',
+    external: browser ? [] : dependencies, logLevel: 'warning',
     plugins: browser ? browserPlugins : [],
   })
 }
@@ -70,7 +73,7 @@ export async function buildProduct(product) {
     ].join('\n')
     await writeFile(join(root, 'dsh-plugin/cordis.patch.yml'), patch)
     for (const name of ['index', 'worker', 'skill', 'preset']) {
-      await bundle(`dsh-plugin/lib/${name}.js`, join(output, `${name}.js`))
+      await bundle(`dsh-plugin/lib/${name}.js`, join(output, `${name}.js`), false, dshExternal)
     }
     await bundle('dsh-plugin/lib/play-renderer.js', join(output, 'play-renderer.js'), true)
     for (const worker of ['look2-fit-worker', 'look2-psd-worker']) {

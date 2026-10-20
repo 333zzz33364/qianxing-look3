@@ -37,3 +37,33 @@ end` })
   assert.ok(rt.logs.some(row => row.text === 'children-reference-ok'))
   assert.equal(rt.logs.some(row => row.level === 'lua-error'), false)
 })
+
+test('SetVisible accepts booleans and rejects other Lua value types', t => {
+  const rt = createRuntime()
+  t.after(() => rt.destroy())
+  const root = rt.addRoot({ kind: 'container', name: 'Root', active: true, visible: true })
+  rt.mountScript({ path: 'set-visible-types', control: root, source: `
+function OnStart()
+  local control = script.object
+  control:SetVisible(false)
+  assert(control.visible == false)
+  control:SetVisible(true)
+  assert(control.visible == true)
+
+  local function reject(value, valueType)
+    local visible = control.visible
+    local ok, err = pcall(function() control:SetVisible(value) end)
+    assert(not ok, 'SetVisible accepted ' .. valueType)
+    assert(string.find(tostring(err), "boolean expected, got " .. valueType, 1, true))
+    assert(control.visible == visible, 'rejected SetVisible call changed visibility')
+  end
+
+  reject(nil, 'nil')
+  reject(1, 'number')
+  reject('true', 'string')
+  reject({}, 'table')
+end` })
+  assert.deepEqual(rt.mountErrors, [])
+  assert.equal(root.visible, true)
+  assert.equal(rt.logs.some(row => row.level === 'lua-error'), false)
+})

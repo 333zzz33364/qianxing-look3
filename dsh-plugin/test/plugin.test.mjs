@@ -587,7 +587,7 @@ test('host tool runtime is supplied by Harness instead of bundled twice', () => 
   assert.equal(manifest.dependencies?.['@deepseek-ai/dsh-tools'], undefined)
   const supportedPeerRanges = (manifest.peerDependencies?.['@deepseek-ai/dsh-tools'] || '')
     .split('||').map((range) => range.trim()).filter(Boolean).sort()
-  assert.deepEqual(supportedPeerRanges, ['^0.1.0-rc.6', '^0.2.0-rc.1'].sort())
+  assert.deepEqual(supportedPeerRanges, ['^0.1.0-rc.6', '^0.2.0-rc.1', '^0.2.1-rc.2'].sort())
   assert.equal(manifest.devDependencies?.['@deepseek-ai/dsh-tools'], '0.2.0-rc.2')
   assert.equal(pluginManifest.devDependencies?.['@deepseek-ai/dsh-tools'], '0.2.0-rc.2')
 })

@@ -45,6 +45,20 @@ test('pixel and percentage feather widths retain overlapping fades', () => {
   assert.deepEqual(alphas(applyStageImageMask(image([255, 255, 255, 255]), box(percent))), [64, 191, 191, 64])
 })
 
+test('dual-axis corners preserve legacy Pixel minimum and use Percentage range intersection', () => {
+  const source = image([255, 255, 255, 255], 2)
+  const pixel = applyStageImageMask({ ...source, data: new Uint8ClampedArray(source.data) }, box({
+    width: 4, height: 4, enableSoftEdge: true, softEdgeMode: 'Pixel',
+    softEdgeWidthX: 4, softEdgeWidthY: 8,
+  }))
+  assert.deepEqual(alphas(pixel), [32, 32, 32, 32], 'Pixel retains the previous minimum of the four edge fades')
+  const percentage = applyStageImageMask({ ...source, data: new Uint8ClampedArray(source.data) }, box({
+    width: 4, height: 4, enableSoftEdge: true, softEdgeMode: 'Percentage',
+    horizontalSoftRange: 0, verticalSoftRange: 0,
+  }))
+  assert.deepEqual(alphas(percentage), [64, 64, 64, 64], 'Percentage intersects horizontal and vertical coverage by multiplication')
+})
+
 test('fill directions and radial origins follow the upstream editor preview', () => {
   const fill = { enableFill: true, fillAmount: .5 }
   assert.deepEqual(alphas(applyStageImageMask(image([255, 255, 255, 255]), box({ ...fill, fillType: 'Horizontal', fillHorizontalType: 'Right' }))), [0, 0, 255, 255])

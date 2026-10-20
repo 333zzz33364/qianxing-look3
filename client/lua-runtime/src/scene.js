@@ -40,7 +40,7 @@ const KIND_RW = {
   textbox: ['text', 'fontSize', 'fontColor', 'bgColor', 'enableOutline', 'outlineColor', 'horizontalAlignment', 'verticalAlignment', 'adaptiveFontSize', 'minimumFontSize'],
   textwindow: ['interactable', 'showScrollBar', 'text', 'fontSize', 'fontColor', 'bgColor', 'enableOutline', 'outlineColor', 'horizontalAlignment', 'verticalAlignment', 'adaptiveFontSize', 'minimumFontSize'],
   // imageType is admitted separately by the host's preview capability policy.
-  image: ['imageColor', 'enableMask', 'enableSoftEdge', 'softEdgeMode', 'softEdgeWidthX', 'softEdgeWidthY', 'horizontalSoftRange', 'verticalSoftRange', 'reverseMaskArea', 'fillType', 'fillHorizontalType', 'fillVerticalType', 'fillRadial90Type', 'fillRadialType', 'fillAmount'],
+  image: ['imageColor', 'enableMask', 'enableSoftEdge', 'softEdgeMode', 'softEdgeWidthX', 'softEdgeWidthY', 'horizontalSoftRange', 'verticalSoftRange', 'reverseMaskArea', 'fillType', 'fillHorizontalType', 'fillVerticalType', 'fillRadial90Type', 'fillRadialType', 'fillClockwise', 'fillAmount'],
   button: ['interactable', 'clickAudioId', 'raycastTarget'],
   cursor: ['raycastTarget'],
   grid: ['itemPrefabIndex', 'raycastTarget', 'showScrollBar', 'interactable', 'scrollProgress'],
@@ -133,7 +133,7 @@ const DEFAULTS = {
   container: { isolateNavigation: false, disableKeyEventPassthrough: false, disableCursorEventPassthrough: false, showCursor: false },
   textbox: { text: '', fontSize: 20, fontColor: 0xffffffff, bgColor: 0, enableOutline: false, outlineColor: 0, horizontalAlignment: null, verticalAlignment: null, adaptiveFontSize: false, minimumFontSize: 10 },
   textwindow: { interactable: true, showScrollBar: true, text: '', fontSize: 20, fontColor: 0xffffffff, bgColor: 0, enableOutline: false, outlineColor: 0, horizontalAlignment: null, verticalAlignment: null, adaptiveFontSize: false, minimumFontSize: 10 },
-  image: { imageSource: null, imageId: 0, imageColor: 0xffffffff, imageType: null, enableMask: false, enableSoftEdge: false, softEdgeMode: 'Percentage', softEdgeWidthX: 8, softEdgeWidthY: 8, horizontalSoftRange: 85, verticalSoftRange: 85, enableFill: false, fillType: 'Unused', fillHorizontalType: 'Left', fillVerticalType: 'Bottom', fillRadial90Type: 'BottomLeft', fillRadialType: 'Bottom', reverseMaskArea: false, fillAmount: 1 },
+  image: { imageSource: null, imageId: 0, imageColor: 0xffffffff, imageType: null, enableMask: false, enableSoftEdge: false, softEdgeMode: 'Percentage', softEdgeWidthX: 8, softEdgeWidthY: 8, horizontalSoftRange: 85, verticalSoftRange: 85, enableFill: false, fillType: 'Unused', fillHorizontalType: 'Left', fillVerticalType: 'Bottom', fillRadial90Type: 'BottomLeft', fillRadialType: 'Bottom', fillClockwise: true, reverseMaskArea: false, fillAmount: 1 },
   button: { interactable: true, clickAudioId: 0, raycastTarget: true, unavailableChildId: null, hoverChildId: null, pressedChildId: null, selectedChildId: null, pressed: false },
   cursor: { raycastTarget: true },
   grid: { itemCount: 0, itemPrefabIndex: null, raycastTarget: true, interactable: true, showScrollBar: true, scrollDirection: 'Vertical', layoutConstraint: 'AutoWrap', layoutConstraintFixedCount: null, scrollProgress: 0, cellSizeX: 50, cellSizeY: 50, spacingX: 8, spacingY: 8, padding1X: 20, padding1Y: 20, padding2X: 20, padding2Y: 20, previewCount: 5 },

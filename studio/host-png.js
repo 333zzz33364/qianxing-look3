@@ -1,5 +1,5 @@
 import { createRequire } from 'node:module'
-import { imageFillRect } from './play/image-fill.js'
+import { clipImageFill, imageFillSpec } from './play/image-fill.js'
 import { imageMaskSpec, imageMaskCoverage, groupMaskedPaint } from './play/image-mask.js'
 import { applyMatrix, invertMatrix } from './ui/layout.js'
 import { tintedImage } from './assets/raster.js'
@@ -255,12 +255,7 @@ function drawPaintItem(ctx, item, canvasHeight, assets) {
   if (item.kind === 'textbox' || item.kind === 'textwindow') drawTextItem(ctx, item, width, height)
   else if (item.kind === 'button') drawButtonItem(ctx, item, width, height)
   else if (item.kind !== 'grid') {
-    const clip = imageFillRect(item, width, height)
-    if (clip) {
-      ctx.beginPath()
-      ctx.rect(clip.x, clip.y, clip.width, clip.height)
-      ctx.clip()
-    }
+    clipImageFill(ctx, imageFillSpec(item, width, height))
     drawPrimitive(ctx, item, width, height, assets)
   }
   drawScrollBar(ctx, item, width, height)
@@ -384,6 +379,7 @@ export function renderScenePng(scene, canvasWidth, canvasHeight, options = {}) {
 }
 
 function maskPixelBounds(mask, target, size) {
+  if (mask.reverse) return { x: target.x, y: target.y, width: target.canvas.width, height: target.canvas.height }
   if (!(mask.width > 0 && mask.height > 0) || !invertMatrix(mask.matrix)) return null
   const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([x, y]) => {
     const p = applyMatrix(mask.matrix, x * mask.width / 2, y * mask.height / 2)
@@ -410,9 +406,9 @@ function compositeMaskedGroup(target, layer, mask, size) {
       const i = (y * width + x) * 4
       if (!src[i + 3]) continue
       const worldX = (layer.x + x + 0.5) / size.pixelRatio
-      const localX = inverse.a * worldX + inverse.c * worldY + inverse.tx
-      const localY = inverse.b * worldX + inverse.d * worldY + inverse.ty
-      const coverage = imageMaskCoverage(localX, localY, mask)
+      const localX = inverse ? inverse.a * worldX + inverse.c * worldY + inverse.tx : 0
+      const localY = inverse ? inverse.b * worldX + inverse.d * worldY + inverse.ty : 0
+      const coverage = inverse ? imageMaskCoverage(localX, localY, mask) : mask.reverse ? 1 : 0
       const sa = Math.round(src[i + 3] * coverage) / 255
       if (!sa) continue
       const da = dst[i + 3] / 255, outA = sa + da * (1 - sa)
@@ -504,8 +500,8 @@ function drawEditorItem(ctx, item, canvasHeight, selectedId, assets) {
     // Slice before parent/local scaling: borders are local UI units.
     const width = Math.max(0, finite(item.width, box.width)), height = Math.max(0, finite(item.height, box.height))
     ctx.scale(width ? box.width / width : 1, height ? box.height / height : 1)
-    const fill = item.enableFill ? imageFillRect(item, width, height) : null
-    if (fill) { ctx.beginPath(); ctx.rect(fill.x, fill.y, fill.width, fill.height); ctx.clip() }
+    const fill = item.enableFill ? imageFillSpec(item, width, height) : null
+    clipImageFill(ctx, fill)
     drawPrimitive(ctx, item, width, height, assets)
     ctx.restore()
   } else if (item.kind === 'textbox' || item.kind === 'textwindow') {

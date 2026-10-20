@@ -94,6 +94,11 @@ function controlGuid(value) {
   return Number(value)
 }
 
+function hasOpaqueTemplateReference(node) {
+  return node?.kind === 'reference'
+    && Boolean(node.giaRaw?.templateRefSlotBase64 || node.giaRaw?.templateRefOuterBase64)
+}
+
 function readControlGuidChanges(raw = []) {
   if (!Array.isArray(raw)) throw new Error('controlGuidChanges 必须是数组')
   const ids = new Set()
@@ -708,9 +713,11 @@ export function createStudio(seed, options = {}) {
       }
     }
     for (const entry of nodes) {
-      collectReference(entry.node, 'referencedPrefabId', entry)
+      if (!hasOpaqueTemplateReference(entry.node)) {
+        collectReference(entry.node, 'referencedPrefabId', entry)
+        collectReference(entry.node.giaRaw, 'templateRefSlot', entry)
+      }
       collectReference(entry.node, 'itemPrefabId', entry)
-      collectReference(entry.node.giaRaw, 'templateRefSlot', entry)
     }
     const occurrences = new Map()
     for (const { node } of nodes) occurrences.set(Number(node.guid), (occurrences.get(Number(node.guid)) || 0) + 1)
@@ -1075,7 +1082,9 @@ export function createStudio(seed, options = {}) {
     }
     for (const project of [projects.server, projects.client, ...look2.controlTemplates.map(entry => entry.project).filter(Boolean)]) {
       walk(project.root, node => {
-        if (node.kind === 'reference') { remap(node, 'referencedPrefabId'); remap(node.giaRaw, 'templateRefSlot') }
+        if (node.kind === 'reference' && !hasOpaqueTemplateReference(node)) {
+          remap(node, 'referencedPrefabId'); remap(node.giaRaw, 'templateRefSlot')
+        }
         if (node.kind === 'grid') remap(node, 'itemPrefabId')
       })
     }

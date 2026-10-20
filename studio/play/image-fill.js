@@ -1,29 +1,29 @@
-/**
- * Horizontal/vertical image fill in the renderers' centered, Y-down space.
- * Runtime keeps EnumItems; the scene boundary publishes their names.
- * Radial fill is not implemented by either renderer.
- */
+import { imageFillCoverage, imageFillPolygon, imageFillSpec } from './image-geometry.js'
+
+export { imageFillCoverage, imageFillPolygon, imageFillSpec }
+
+/** Keep the original rectangle API for renderer callers and compatibility tests. */
 export function imageFillRect(item, width, height) {
-  if (item.enableFill === false) return null
-  if (item.fillType !== 'Horizontal' && item.fillType !== 'Vertical') return null
-  const raw = Number(item.fillAmount ?? 1)
-  // Invalid/missing amounts retain the complete proxy; finite progress clamps
-  // to its visible range. This is a simulator rendering policy.
-  const amount = Number.isFinite(raw) ? Math.max(0, Math.min(1, raw)) : 1
-  if (item.fillType === 'Horizontal') {
-    const filledWidth = width * amount
-    return {
-      x: item.fillHorizontalType === 'Right' ? width / 2 - filledWidth : -width / 2,
-      y: -height / 2,
-      width: filledWidth,
-      height,
-    }
+  const spec = imageFillSpec(item, width, height)
+  return spec?.kind === 'rect' ? { x: spec.x, y: spec.y, width: spec.width, height: spec.height } : null
+}
+
+/** Apply a shared rectangle or radial clip to a Canvas 2D context. */
+export function clipImageFill(ctx, spec, scaleX = 1, scaleY = 1) {
+  if (!spec) return false
+  const points = imageFillPolygon(spec)
+  ctx.beginPath()
+  if (points.length) {
+    points.forEach((point, index) => {
+      const x = point.x * scaleX, y = point.y * scaleY
+      if (index) ctx.lineTo(x, y)
+      else ctx.moveTo(x, y)
+    })
+    ctx.closePath()
+  } else {
+    // A zero-area path makes the image invisible at zero progress.
+    ctx.rect(0, 0, 0, 0)
   }
-  const filledHeight = height * amount
-  return {
-    x: -width / 2,
-    y: item.fillVerticalType === 'Top' ? -height / 2 : height / 2 - filledHeight,
-    width,
-    height: filledHeight,
-  }
+  ctx.clip()
+  return true
 }

@@ -4,6 +4,7 @@ import { createCanvas, loadImage } from '@napi-rs/canvas'
 import { Container, DOMAdapter, Matrix } from 'pixi.js'
 import { createRuntime } from '../../client/lua-runtime/src/index.js'
 import { paintList, playSnapshot } from '../play/session.js'
+import { maskedPaintScene } from '../play/image-mask.js'
 import { renderPaintPng, renderScenePng, flattenScenePaint } from '../host-png.js'
 import { PixiPlayRenderer } from '../play/pixi-renderer.js'
 import { maskScenes, maskSamples, maskAlphas } from './fixtures/image-mask.mjs'
@@ -59,6 +60,24 @@ test('hard rectangle mask clips descendants but not siblings, independent of ima
   assert.equal(await alphaPixel(png, 120, 108), 0, 'transparent mask image does not paint its own pixels')
 })
 
+test('disabled Percentage soft edge stays hard in direct and flattened paint PNG paths', async (t) => {
+  const f = fixture(t)
+  Object.assign(f.mask, {
+    enableSoftEdge: false, softEdgeMode: 'Percentage',
+    horizontalSoftRange: 85, verticalSoftRange: 85,
+  })
+  const scene = f.scene()
+  const direct = renderScenePng(scene, 240, 160, { background: 'transparent' })
+  const paint = renderPaintPng(paintList(f.session), 240, 160, { background: 'transparent' })
+  const flatScene = renderScenePng(maskedPaintScene(paintList(f.session)), 240, 160, { background: 'transparent' })
+  assert.deepEqual(direct.data, paint.data)
+  assert.equal(await alphaPixel(direct, 71, 68), 255, 'direct child one pixel inside the hard edge stays opaque')
+  assert.equal(await alphaPixel(direct, 71, 92), 255, 'nested descendant one pixel inside the hard edge stays opaque')
+  assert.equal(await alphaPixel(paint, 71, 68), 255, 'paint-list PNG direct child preserves the hard edge')
+  assert.equal(await alphaPixel(flatScene, 71, 68), 255, 'legacy flattened-scene direct child preserves the hard edge')
+  assert.equal(await alphaPixel(flatScene, 71, 92), 255, 'legacy flattened-scene nested descendant preserves the hard edge')
+})
+
 test('pixel feather fades inward on the selected axis and width zero stays hard', async (t) => {
   const f = fixture(t)
   f.mask.enableSoftEdge = true
@@ -77,6 +96,49 @@ test('pixel feather fades inward on the selected axis and width zero stays hard'
   const vertical = renderScenePng(f.scene(), 240, 160, { background: 'transparent' })
   assert.equal(await alphaPixel(vertical, 120, 58), 108, '8.5 units inside a 20-unit top feather')
   assert.equal(await alphaPixel(vertical, 71, 80), 255, 'X=0 keeps the left edge hard')
+})
+
+test('percentage mask ranges multiply dual-axis coverage in the scene and flat PNG paths', async () => {
+  const scene = structuredClone(maskScenes().single)
+  const mask = scene.nodes.find(node => node.id === 'mask')
+  const red = scene.nodes.find(node => node.id === 'red')
+  Object.assign(mask, { softEdgeMode: 'Percentage', horizontalSoftRange: 80, verticalSoftRange: 60 })
+  Object.assign(red, { sourceWidth: 180, sourceHeight: 120 })
+  const png = renderScenePng(scene, 240, 160, { background: 'transparent' })
+  const flat = renderPaintPng(flattenScenePaint(scene), 240, 160, { background: 'transparent' })
+  assert.deepEqual(png.data, flat.data)
+  assert.equal(await alphaPixel(png, 79, 51), 30, '95% horizontal × 12.5% vertical coverage')
+
+  Object.assign(mask, { softEdgeMode: 'Pixel', softEdgeWidthX: 20, softEdgeWidthY: 20 })
+  const pixel = renderScenePng(scene, 240, 160, { background: 'transparent' })
+  assert.equal(await alphaPixel(pixel, 79, 51), 19, 'legacy Pixel mode keeps the minimum of both axis fades')
+})
+
+test('reverse masks reveal the viewport exterior and compose through rotated nested PNG masks', async () => {
+  const reverse = structuredClone(maskScenes().single)
+  Object.assign(reverse.nodes.find(node => node.id === 'mask'), {
+    enableSoftEdge: false, reverseMaskArea: true,
+  })
+  Object.assign(reverse.nodes.find(node => node.id === 'red'), { sourceWidth: 180, sourceHeight: 120 })
+  const reversePng = renderScenePng(reverse, 240, 160, { background: 'transparent' })
+  assert.deepEqual(reversePng.data,
+    renderPaintPng(flattenScenePaint(reverse), 240, 160, { background: 'transparent' }).data)
+  assert.equal(await alphaPixel(reversePng, 40, 80), 255, 'pixels outside an inverse mask survive')
+  assert.equal(await alphaPixel(reversePng, 120, 80), 0, 'pixels inside an inverse mask are hidden')
+  assert.equal(await alphaPixel(reversePng, 200, 80), 255, 'inverse coverage includes the far viewport side')
+
+  const nested = structuredClone(maskScenes().nested)
+  const inner = nested.nodes.find(node => node.id === 'inner')
+  Object.assign(inner, {
+    sourceWidth: 60, sourceHeight: 20, enableSoftEdge: false, reverseMaskArea: true,
+    matrix: { a: 0, b: 1, c: -1, d: 0, tx: 20, ty: 0 },
+  })
+  const nestedPng = renderScenePng(nested, 240, 160, { background: 'transparent' })
+  assert.deepEqual(nestedPng.data,
+    renderPaintPng(flattenScenePaint(nested), 240, 160, { background: 'transparent' }).data)
+  assert.equal(await alphaPixel(nestedPng, 125, 80), 255, 'outside the rotated inner mask but inside its parent')
+  assert.equal(await alphaPixel(nestedPng, 135, 80), 0, 'inside the rotated inner inverse mask')
+  assert.equal(await alphaPixel(nestedPng, 180, 80), 0, 'outer mask still clips beyond its own boundary')
 })
 
 test('soft masks composite groups once, multiply nested groups, and retain empty coverage', async () => {
