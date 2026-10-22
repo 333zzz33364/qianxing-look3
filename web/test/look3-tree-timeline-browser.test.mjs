@@ -8,7 +8,7 @@ import { createStudio } from '../../studio/index.js'
 import { createWebServer } from '../server.js'
 import { startTestBrowser } from './browser-helper.mjs'
 
-test('Look3 tree search, lock and reorder plus timeline key editing use the active UI', {
+test('Look3 tree and timeline pointer editing, event playback and save reopen use the active UI', {
   skip: !process.env.QXQY_BROWSER, timeout: 90_000,
 }, async t => {
   const directory = mkdtempSync(join(tmpdir(), 'look3-tree-timeline-browser-'))
@@ -156,7 +156,7 @@ test('Look3 tree search, lock and reorder plus timeline key editing use the acti
   await clickButtonText('粘贴', '.look2-key-inspector')
   value = await waitForSnapshot(current => activeTrack(current)?.keyframes?.length === 3, 'UI paste did not create the copied keyframe at the playhead')
   const pastedTrack = activeTrack(value)
-  const savedKeyTimes = pastedTrack.keyframes.map(key => Number(key.time)).sort((a, b) => a - b)
+  let savedKeyTimes = pastedTrack.keyframes.map(key => Number(key.time)).sort((a, b) => a - b)
   assert.ok(savedKeyTimes[2] > savedKeyTimes[1], JSON.stringify(savedKeyTimes))
 
   await clickSelector('button[aria-label="撤销"]')
@@ -167,6 +167,77 @@ test('Look3 tree search, lock and reorder plus timeline key editing use the acti
   value = await waitForSnapshot(current => activeTrack(current)?.keyframes?.length === 3, 'redo should restore the pasted keyframe')
   assert.deepEqual(activeTrack(value).keyframes.map(key => Number(key.time)).sort((a, b) => a - b), savedKeyTimes)
 
+  // Drag the final key with real pointer capture, then verify its transaction
+  // and persistence separately from the existing copy/paste path.
+  const finalKey = activeTrack(value).keyframes.reduce((last, key) => key.time > last.time ? key : last)
+  const finalSelector = '.look2-track .look2-key:last-child'
+  await browser.wait(`document.querySelector(${JSON.stringify(finalSelector)})?.title.startsWith(${JSON.stringify(Number(finalKey.time).toFixed(3))})`)
+  const keyBox = await browser.evaluate(`document.querySelector(${JSON.stringify(finalSelector)}).getBoundingClientRect().toJSON()`)
+  const keyPoint = { x: keyBox.x + keyBox.width / 2, y: keyBox.y + keyBox.height / 2 }
+  assert.equal(await browser.evaluate(`document.querySelector(${JSON.stringify(finalSelector)}).contains(document.elementFromPoint(${keyPoint.x}, ${keyPoint.y}))`),
+    true, 'key drag must begin on the intended key')
+  await browser.send('Input.dispatchMouseEvent', { type: 'mouseMoved', ...keyPoint }, browser.sessionId)
+  await browser.send('Input.dispatchMouseEvent', { type: 'mousePressed', ...keyPoint, button: 'left', buttons: 1, clickCount: 1 }, browser.sessionId)
+  await browser.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: keyPoint.x - 36, y: keyPoint.y, button: 'left', buttons: 1 }, browser.sessionId)
+  await browser.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: keyPoint.x - 36, y: keyPoint.y, button: 'left', buttons: 0, clickCount: 1 }, browser.sessionId)
+  value = await waitForSnapshot(current => activeTrack(current)?.keyframes.find(key => key.id === finalKey.id)?.time < finalKey.time - .1,
+    'pointer dragging the final key must move it earlier')
+  assert.equal(activeTrack(value).keyframes.length, 3, 'dragging a key must preserve key count')
+  const draggedTime = activeTrack(value).keyframes.find(key => key.id === finalKey.id).time
+  assert.ok(Math.abs(draggedTime * value.look2.frameRate - Math.round(draggedTime * value.look2.frameRate)) < .01,
+    'pointer drag must snap to the configured frame rate')
+  await clickSelector('button[aria-label="撤销"]')
+  await waitForSnapshot(current => activeTrack(current)?.keyframes.find(key => key.id === finalKey.id)?.time === finalKey.time,
+    'undo key drag must restore its time')
+  await browser.wait(`document.querySelector('button[aria-label="重做"]')?.disabled === false`)
+  await clickSelector('button[aria-label="重做"]')
+  value = await waitForSnapshot(current => activeTrack(current)?.keyframes.find(key => key.id === finalKey.id)?.time === draggedTime,
+    'redo key drag must restore its moved time')
+  savedKeyTimes = activeTrack(value).keyframes.map(key => Number(key.time)).sort((a, b) => a - b)
+
+  const activeAnimation = current => current.look2.animations.find(animation => animation.id === current.look2.activeAnimationId)
+  await seekAt(.12)
+  // The key at the far end may have horizontally scrolled the timeline;
+  // reveal the event row's label before checking and clicking its hit target.
+  await browser.evaluate(`document.querySelector('button[title="在播放头添加事件"]').scrollIntoView({ block: 'nearest', inline: 'nearest' })`)
+  await clickSelector('button[title="在播放头添加事件"]')
+  value = await waitForSnapshot(current => activeAnimation(current)?.events.length === 1, 'UI must add the event')
+  const eventId = activeAnimation(value).events[0].id
+  await browser.wait(`document.querySelector('.look2-key-inspector h4')?.textContent === '事件'`)
+  const replaceField = async (selector, text) => {
+    await clickSelector(selector)
+    await browser.evaluate(`document.querySelector(${JSON.stringify(selector)}).select()`)
+    await browser.send('Input.insertText', { text }, browser.sessionId)
+    await browser.wait(`document.querySelector(${JSON.stringify(selector)})?.value === ${JSON.stringify(text)}`)
+    await browser.key('Tab', 'Tab')
+  }
+  await replaceField('.look2-key-inspector input[type="text"]', '浏览器事件回读')
+  await waitForSnapshot(current => activeAnimation(current)?.events[0]?.name === '浏览器事件回读', 'event name blur must commit')
+  await replaceField('.look2-key-inspector textarea', '{"source":"pointer","value":7}')
+  value = await waitForSnapshot(current => activeAnimation(current)?.events[0]?.params === '{"source":"pointer","value":7}',
+    'event parameters blur must commit')
+  const savedEvents = structuredClone(activeAnimation(value).events)
+  assert.equal(savedEvents[0].id, eventId)
+  assert.ok(savedEvents[0].time > 0 && savedEvents[0].time < 1, 'event needs to occur shortly after playback begins')
+  await clickSelector('button[title="播放事件日志"]')
+  const pausedSeek = await seekAt(.8)
+  assert.ok(pausedSeek > savedEvents[0].time + .5, 'paused seek must actually cross the event time')
+  assert.equal(await browser.evaluate(`document.querySelectorAll('.look2-event-log > div').length`), 0,
+    'seeking past an event while paused must not dispatch it')
+  await clickSelector('button[title="回到起点"]')
+  await browser.wait(`Number(document.querySelector('input.timeline-seek')?.value) === 0 && !!document.querySelector('button[aria-label="播放动画"]')`)
+  await clickSelector('button[aria-label="播放动画"]')
+  await browser.wait(`document.querySelector('.look2-event-log')?.textContent.includes('浏览器事件回读')`)
+  await clickSelector('button[aria-label="暂停动画"]')
+  await browser.wait(`!!document.querySelector('button[aria-label="播放动画"]')`)
+  assert.equal(await browser.evaluate(`document.querySelectorAll('.look2-event-log > div').length`), 1,
+    'crossing the event during playback must emit exactly once')
+  assert.ok(await browser.evaluate(`document.querySelector('.look2-event-log').textContent.includes('"value":7')`))
+  const seekAfterPlayback = await seekAt(.8)
+  assert.ok(seekAfterPlayback > savedEvents[0].time + .5, 'second paused seek must actually cross the event time')
+  assert.equal(await browser.evaluate(`document.querySelectorAll('.look2-event-log > div').length`), 1,
+    'paused seeking must not duplicate an already emitted event')
+
   await clickSelector('button[title="保存当前存档"]')
   await browser.wait(`document.querySelector('.look2-archive-status')?.textContent.includes('已保存')`)
   const savedArchive = JSON.parse(readFileSync(file, 'utf8'))
@@ -176,6 +247,8 @@ test('Look3 tree search, lock and reorder plus timeline key editing use the acti
     .find(animation => animation.id === savedServerLook2.activeAnimationId)?.keyframeTracks?.find(track => track.nodeId === target.id)
   assert.ok(storedTrack, 'explicit UI save should persist the timeline track to the workspace archive')
   assert.deepEqual(storedTrack.keyframes.map(key => Number(key.time)).sort((a, b) => a - b), savedKeyTimes)
+  assert.deepEqual(savedServerLook2.animations.find(animation => animation.id === savedServerLook2.activeAnimationId).events, savedEvents,
+    'explicit save must persist edited event identity, time, name and parameters')
   assert.deepEqual(savedArchive.assets.server.root.children[0].children.slice(targetIndex, targetIndex + 2).map(node => node.id), [nextSibling.id, target.id], 'explicit UI save should persist the reordered tree')
 
   await clickSelector('.look2-menu-button')
@@ -195,6 +268,7 @@ test('Look3 tree search, lock and reorder plus timeline key editing use the acti
   await browser.wait(`document.querySelector('[role="status"]')?.textContent.includes(${JSON.stringify(`已加载 ${path}`)})`)
   value = await waitForSnapshot(current => activeTrack(current)?.keyframes?.length === 3, 'reopening the saved archive should restore the full UI-edited timeline')
   assert.deepEqual(activeTrack(value).keyframes.map(key => Number(key.time)).sort((a, b) => a - b), savedKeyTimes)
+  assert.deepEqual(activeAnimation(value).events, savedEvents, 'reopening the archive must restore the edited event')
   assert.deepEqual(value.root.children[0].children.slice(targetIndex, targetIndex + 2).map(node => node.id), [nextSibling.id, target.id], 'reopening the archive should restore the reordered tree')
   assert.equal(JSON.parse(readFileSync(file, 'utf8')).meta.name, '树与时间轴浏览器关键路径')
 })
