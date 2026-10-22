@@ -36,10 +36,19 @@ renderer.ready.then(() => window.ready = true);
   await new Promise(resolve => app.listen(0, '127.0.0.1', resolve))
   const directory = mkdtempSync(join(tmpdir(), 'qxqy-mask-'))
   let browser
-  t.after(async () => { await browser?.close(); await new Promise(resolve => app.close(resolve)); rmSync(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }) })
+  t.after(async () => {
+    try { await browser?.close() }
+    finally {
+      app.closeAllConnections()
+      try { await new Promise((resolve, reject) => app.close(error => error ? reject(error) : resolve())) }
+      finally { rmSync(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }) }
+    }
+  })
+  t.diagnostic('mask phase: browser startup')
   browser = await startTestBrowser(directory)
   await browser.navigate(`http://127.0.0.1:${app.address().port}`)
   await browser.wait('window.ready')
+  t.diagnostic('mask phase: renderer ready')
   const check = async (scene, alpha, flat = false) => {
     const gpu = await browser.evaluate(`window.sample(${JSON.stringify(flat ? flattenScenePaint(scene) : scene)},${flat})`)
     const ctx = createCanvas(240, 160).getContext('2d')
@@ -52,6 +61,7 @@ renderer.ready.then(() => window.ready = true);
     })
   }
   for (const [name, scene] of Object.entries(maskScenes())) {
+    t.diagnostic(`mask scene: ${name}`)
     await check(scene, maskAlphas[name])
     await check(scene, maskAlphas[name], true)
   }
@@ -112,6 +122,7 @@ renderer.ready.then(() => window.ready = true);
   })
   extraCases.push(['reverse radial mask',reverseRadial,[[130,70],[110,70],[130,90],[180,80]],[0,255,255,255]])
   for (const [name, scene, points, alpha] of extraCases) {
+    t.diagnostic(`mask case: ${name}`)
     const context = createCanvas(240, 160).getContext('2d')
     context.drawImage(await loadImage(renderScenePng(scene, 240, 160, { background: 'transparent' }).data), 0, 0)
     for (const flat of [false, true]) {
@@ -128,6 +139,7 @@ renderer.ready.then(() => window.ready = true);
   // Changing only an ancestor must move the reverse cutout, including across
   // render groups; neither stale local masks nor viewport-sized local sprites do.
   const moved = structuredClone(reverse)
+  t.diagnostic('mask phase: incremental viewport updates')
   moved.nodes.find(node => node.id === 'root').group = true
   await browser.evaluate(`window.sample(${JSON.stringify(moved)})`)
   const shiftedRoot = { ...moved.nodes[0], matrix: { ...moved.nodes[0].matrix, tx: 150 } }

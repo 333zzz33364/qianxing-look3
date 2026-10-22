@@ -1,7 +1,8 @@
-import { spawn } from 'node:child_process'
+import { execFile, spawn } from 'node:child_process'
 import { once } from 'node:events'
 import { join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
+import { promisify } from 'node:util'
 
 export async function startTestBrowser(directory, extraArgs = []) {
   const child = spawn(process.env.QXQY_BROWSER, [
@@ -9,13 +10,44 @@ export async function startTestBrowser(directory, extraArgs = []) {
     '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--remote-debugging-port=0',
     `--user-data-dir=${join(directory, 'browser')}`, ...extraArgs, 'about:blank',
   ], { stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true })
-  let socket
+  let socket, requestBrowserClose
   const closed = once(child, 'close')
-  const close = async () => {
-    socket?.close()
-    if (child.exitCode === null && child.signalCode === null) child.kill()
-    await closed
+  // On Windows a crash-reporting subprocess may keep this inherited pipe
+  // open after the browser has exited. It must not delay ChildProcess.close.
+  child.once('exit', () => child.stderr.destroy())
+  const waitForClose = async milliseconds => {
+    const deadline = new AbortController()
+    try {
+      return await Promise.race([closed.then(() => true),
+        delay(milliseconds, false, { signal: deadline.signal })])
+    } finally { deadline.abort() }
   }
+  let closing
+  const close = () => closing ??= (async () => {
+    try {
+      // Chromium owns its subprocess lifecycle; prefer its normal shutdown.
+      if (socket?.readyState === WebSocket.OPEN && requestBrowserClose) {
+        requestBrowserClose().catch(() => {})
+        if (await waitForClose(2_000)) return
+      }
+      let terminationError
+      if (child.exitCode === null && child.signalCode === null) {
+        if (process.platform === 'win32') {
+          // Only the isolated browser spawned above is eligible for fallback.
+          // taskkill may report an already-exited descendant even when the
+          // browser exits successfully; check actual exit before failing.
+          await promisify(execFile)('taskkill', ['/PID', String(child.pid), '/T', '/F'],
+            { windowsHide: true, timeout: 5_000 }).catch(error => { terminationError = error })
+        }
+        if (child.exitCode === null && child.signalCode === null) child.kill()
+      }
+      if (!await waitForClose(5_000)) {
+        child.stderr.destroy()
+        child.unref()
+        throw new Error(`Test browser did not close within 5000ms (exitCode=${child.exitCode}, signal=${child.signalCode})`, { cause: terminationError })
+      }
+    } finally { socket?.close() }
+  })()
   try {
     const endpoint = await new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('Browser startup timeout')), 15_000)
@@ -57,6 +89,7 @@ export async function startTestBrowser(directory, extraArgs = []) {
       pending.set(id, { resolve, reject, timer })
       socket.send(JSON.stringify({ id, method, params, ...(sessionId ? { sessionId } : {}) }))
     })
+    requestBrowserClose = () => send('Browser.close')
     const { targetId } = await send('Target.createTarget', { url: 'about:blank' })
     const { sessionId } = await send('Target.attachToTarget', { targetId, flatten: true })
     await send('Page.enable', {}, sessionId)

@@ -23,10 +23,15 @@ test('Web local font authentication, privacy, export boundary and real browser r
   process.env.QXQY_FONT_CONFIG_PATH = configPath
   let app, browser
   t.after(async () => {
-    await browser?.close(); await app?.close()
-    if (previous === undefined) delete process.env.QXQY_FONT_PATH; else process.env.QXQY_FONT_PATH = previous
-    if (previousConfig === undefined) delete process.env.QXQY_FONT_CONFIG_PATH; else process.env.QXQY_FONT_CONFIG_PATH = previousConfig
-    await rm(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 })
+    try { await browser?.close() }
+    finally {
+      try { await app?.close() }
+      finally {
+        if (previous === undefined) delete process.env.QXQY_FONT_PATH; else process.env.QXQY_FONT_PATH = previous
+        if (previousConfig === undefined) delete process.env.QXQY_FONT_CONFIG_PATH; else process.env.QXQY_FONT_CONFIG_PATH = previousConfig
+        await rm(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 })
+      }
+    }
   })
   const recoveryConfigPath = join(directory, 'invalid-path-recovery.json')
   const originalConfig = { mode: 'system', path: '', scope: 'game' }
@@ -91,6 +96,8 @@ test('Web local font authentication, privacy, export boundary and real browser r
     const stateBefore = (await (await fetch(app.url + '/api/state')).json()).value
     await evaluate(`[...document.querySelectorAll('button')].find(button => button.getAttribute('aria-label') === '字体设置')?.click()`)
     await wait(`!!document.querySelector('[role="dialog"][aria-label="字体设置"]')`)
+    // The dialog shell renders before the asynchronous settings request adds its form controls.
+    await wait(`!!document.querySelector('[role="dialog"][aria-label="字体设置"] select[aria-label="应用范围"]')`)
     assert.equal(await evaluate(`document.querySelector('[role="dialog"][aria-label="字体设置"] select[aria-label="应用范围"]').value`), 'game')
     assert.equal(await evaluate(`document.querySelector('[role="dialog"][aria-label="字体设置"] input[aria-label="字体文件路径"]').disabled`), true,
       'QXQY_FONT_PATH locks the selected file while leaving scope configurable')

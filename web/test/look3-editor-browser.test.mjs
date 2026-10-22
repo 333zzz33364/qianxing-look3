@@ -24,16 +24,35 @@ test('Look3 active editor fits multiline text and keeps workspace entries reacha
   const app = await createWebServer({ workspace: directory, initialPath: 'editor.save.json', port: 0 })
   let browser
   t.after(async () => {
-    await browser?.close()
-    await app.close()
-    rmSync(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 })
+    try { await browser?.close() }
+    finally {
+      try { await app.close() }
+      finally { rmSync(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }) }
+    }
   })
   browser = await startTestBrowser(directory)
   await browser.navigate(app.url + '/editor')
   await browser.wait(`!!document.querySelector('.look2-box.textbox .look2-stage-text span')`)
+  await browser.evaluate('document.fonts.ready')
   for (const [width, height] of [[1920, 1080], [1280, 720], [390, 844]]) {
     await browser.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false }, browser.sessionId)
-    await browser.wait(`document.querySelector('.look2').clientWidth === ${width}`)
+    await browser.wait(`window.innerWidth === ${width} && document.querySelector('.look2')?.clientWidth === ${width}`)
+    await browser.wait(`(async () => {
+      const measure = () => {
+        const stage = document.querySelector('.look2-stage'), text = document.querySelector('.look2-box.textbox .look2-stage-text');
+        return {
+          stageCssWidth: stage?.style.width, stageWidth: stage?.getBoundingClientRect().width,
+          fontSize: text?.style.fontSize,
+          tabs: [...document.querySelectorAll('[role=tab]')].map(el => { const box = el.getBoundingClientRect(); return [box.x, box.y, box.width, box.height] }),
+        };
+      };
+      const before = measure();
+      if (!before.stageCssWidth || !before.fontSize || !before.tabs.length) return false;
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const after = measure();
+      return JSON.stringify(before) === JSON.stringify(after)
+        && after.tabs.every(([x, , tabWidth]) => x >= 0 && tabWidth > 0 && x + tabWidth <= ${width});
+    })()`)
     const metrics = await browser.evaluate(`(() => {
       const text = document.querySelector('.look2-box.textbox .look2-stage-text'), stage = document.querySelector('.look2-stage');
       const scale = parseFloat(stage.style.width) / 1600;

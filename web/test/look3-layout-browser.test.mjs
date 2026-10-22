@@ -2,20 +2,18 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { join, resolve } from 'node:path'
 import { createWebServer } from '../server.js'
 import { createStudio } from '../../studio/index.js'
 import { createNode } from '../../studio/ui/authoring.js'
 import { startTestBrowser } from './browser-helper.mjs'
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
-const screenshotDirectory = join(repoRoot, 'look3-workspace', '整合', '20261022-恢复')
-
 test('Look3 active Look2 shell keeps its layout and visual contracts at desktop and narrow sizes', {
   skip: !process.env.QXQY_BROWSER, timeout: 90_000,
 }, async t => {
   const directory = mkdtempSync(join(tmpdir(), 'look3-layout-browser-'))
+  const screenshotDirectory = process.env.QXQY_TEST_EVIDENCE_DIR
+    ? resolve(process.env.QXQY_TEST_EVIDENCE_DIR) : join(directory, 'screenshots')
   const archive = createStudio().archiveData()
   const selected = createNode('textbox', { name: '布局选中项', text: '同一合成工程' })
   const unselected = createNode('textbox', { name: '布局普通项', text: '对照项目' })
@@ -26,9 +24,11 @@ test('Look3 active Look2 shell keeps its layout and visual contracts at desktop 
   const app = await createWebServer({ workspace: directory, initialPath: 'layout.save.json', port: 0 })
   let browser
   t.after(async () => {
-    await browser?.close()
-    await app.close()
-    rmSync(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 })
+    try { await browser?.close() }
+    finally {
+      try { await app.close() }
+      finally { rmSync(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }) }
+    }
   })
 
   browser = await startTestBrowser(directory)
