@@ -1,3 +1,4 @@
+import product from '../package.json' with { type: 'json' }
 import { importPsd, importSpine } from './look2-assets.js'
 import { sampleTrack, EASE_TYPES, TWEENABLE_FIELDS } from '../studio/look2/sampling.js'
 import { copiedAnimationName, newAnimationName, validateAnimationName } from '../studio/look2/animation-names.js'
@@ -2825,7 +2826,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
       h('input', { hidden: true, ref: templateFileRef, type: 'file', accept: '.gia', onChange: event => { void importTemplate(event.target.files?.[0]); event.target.value = '' } }))
     const masthead = h('header', { className: 'look2-masthead' },
       h('button', { className: 'look2-menu-button', title: '工作区存档', 'aria-label': '工作区存档', disabled: interactionLocked, onClick: () => setShowWorkspace(!showWorkspace) }, icon('menu', 30)),
-      h('div', { className: 'look2-brand' }, h('span', { className: 'look2-brand-mark', 'aria-hidden': true }, '✦'), h('strong', null, '客户端 UI 动画编辑器'), h('small', null, 'look2.0'),
+      h('div', { className: 'look2-brand' }, h('strong', null, '客户端 UI 动画编辑器'), h('small', null, product.displayName),
         h('span', { className: 'look2-brand-credit' }, '幻萌（emo）致谢：晓末L444，嘟嘟可')),
       h('div', { className: 'look2-look-tools', 'aria-label': 'Look 工具' },
         h('div', { className: 'look2-asset-switch', role: 'group', 'aria-label': '编辑资产', inert: interactionLocked },

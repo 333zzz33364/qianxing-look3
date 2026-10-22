@@ -195,6 +195,11 @@ test('Pixi image and viewport masks update independently and release their resou
   const viewport = root.__viewportClip, texture = root.__imageMask.texture
   const item = scene.nodes.find(n => n.id === 'mask')
   const update = extra => renderer.applyScene({ format: 'tree-v1', reset: false, changed: [{ ...item, ...extra }] }, 240, 160)
+  const textureAlpha = (x, y) => texture.source.resource.getContext('2d').getImageData(x, y, 1, 1).data[3]
+  await update({ softEdgeWidthY: 20 })
+  assert.equal(textureAlpha(5, 5), 70, 'Pixel mode keeps the minimum of both axis fades')
+  await update({ softEdgeMode: 'Percentage', horizontalSoftRange: 80, verticalSoftRange: 60 })
+  assert.equal(textureAlpha(5, 5), 64, 'Percentage mode multiplies horizontal and vertical coverage')
   await update({ softEdgeWidthX: 40 })
   assert.equal(root.mask, viewport, 'width change must not overwrite viewport clip')
   assert.equal(root.__imageMask.texture, texture, 'width animation reuses the texture')

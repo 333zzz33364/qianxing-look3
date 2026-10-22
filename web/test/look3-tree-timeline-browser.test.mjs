@@ -8,15 +8,19 @@ import { createStudio } from '../../studio/index.js'
 import { createWebServer } from '../server.js'
 import { startTestBrowser } from './browser-helper.mjs'
 
-test('Look3 tree search, lock toggle, timeline copy/paste, undo/redo and save/reopen use the active UI', {
+test('Look3 tree search, lock and reorder plus timeline key editing use the active UI', {
   skip: !process.env.QXQY_BROWSER, timeout: 90_000,
 }, async t => {
   const directory = mkdtempSync(join(tmpdir(), 'look3-tree-timeline-browser-'))
   const path = 'tree-timeline.save.json'
   const file = join(directory, path)
   const archive = createStudio().archiveData()
-  const target = archive.assets.server.root.children[0].children.find(node => node.kind === 'textbox')
+  const targetParent = archive.assets.server.root.children[0]
+  const target = targetParent.children.find(node => node.kind === 'textbox')
   assert.ok(target, 'fixture needs a textbox in the active server UI tree')
+  const targetIndex = targetParent.children.indexOf(target)
+  const nextSibling = targetParent.children[targetIndex + 1]
+  assert.ok(nextSibling, 'fixture needs a following sibling for tree reorder')
   target.name = '树搜索目标文本'
   archive.meta.name = '树与时间轴浏览器关键路径'
   writeFileSync(file, JSON.stringify(archive))
@@ -37,7 +41,7 @@ test('Look3 tree search, lock toggle, timeline copy/paste, undo/redo and save/re
     width: 1600, height: 1050, deviceScaleFactor: 1, mobile: false,
   }, browser.sessionId)
   await browser.navigate(app.url + '/editor')
-  await browser.wait(`!!document.querySelector('.look2-tree-list [aria-label="搜索控件"]')`)
+  await browser.wait(`!!document.querySelector('.look2-tree-tools [aria-label="搜索控件"]')`)
   await browser.wait(`!!document.querySelector('[aria-label="关键帧时间轴"] input.timeline-seek')`)
 
   const clickBox = async box => {
@@ -49,12 +53,24 @@ test('Look3 tree search, lock toggle, timeline copy/paste, undo/redo and save/re
   }
   const clickSelector = async (selector, scopeSelector = '') => {
     const scope = scopeSelector ? `document.querySelector(${JSON.stringify(scopeSelector)})` : 'document'
-    const box = await browser.evaluate(`(() => { const scope = ${scope}; const el = scope?.querySelector(${JSON.stringify(selector)}); if (!el || el.disabled) return null; const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; })()`)
+    const box = await browser.evaluate(`(() => { const scope = ${scope}; const el = scope?.querySelector(${JSON.stringify(selector)}); if (!el || el.disabled) return null; let r = el.getBoundingClientRect(); if (r.left < 0 || r.top < 0 || r.right > innerWidth || r.bottom > innerHeight) { el.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'nearest' }); r = el.getBoundingClientRect(); } const x = r.x + r.width / 2, y = r.y + r.height / 2, hit = document.elementFromPoint(x, y); return { x: r.x, y: r.y, width: r.width, height: r.height, hitTarget: Boolean(hit && (hit === el || el.contains(hit))), hitDescription: hit && { tag: hit.tagName, className: typeof hit.className === 'string' ? hit.className : '', title: hit.getAttribute('title') } }; })()`)
+    assert.ok(box?.hitTarget, `真实点击中心未命中目标 ${selector}: ${JSON.stringify(box)}`)
     await clickBox(box)
   }
   const clickButtonText = async (text, scopeSelector) => {
-    const box = await browser.evaluate(`(() => { const scope = document.querySelector(${JSON.stringify(scopeSelector)}); const el = [...(scope?.querySelectorAll('button') || [])].find(item => item.textContent.trim() === ${JSON.stringify(text)} && !item.disabled); if (!el) return null; const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; })()`)
+    const box = await browser.evaluate(`(() => { const scope = document.querySelector(${JSON.stringify(scopeSelector)}); const el = [...(scope?.querySelectorAll('button') || [])].find(item => item.textContent.trim() === ${JSON.stringify(text)} && !item.disabled); if (!el) return null; let r = el.getBoundingClientRect(); if (r.left < 0 || r.top < 0 || r.right > innerWidth || r.bottom > innerHeight) { el.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'nearest' }); r = el.getBoundingClientRect(); } const x = r.x + r.width / 2, y = r.y + r.height / 2, hit = document.elementFromPoint(x, y); return { x: r.x, y: r.y, width: r.width, height: r.height, hitTarget: Boolean(hit && (hit === el || el.contains(hit))), hitDescription: hit && { tag: hit.tagName, className: typeof hit.className === 'string' ? hit.className : '', title: hit.getAttribute('title') } }; })()`)
+    assert.ok(box?.hitTarget, `真实点击中心未命中按钮 ${text}: ${JSON.stringify(box)}`)
     await clickBox(box)
+  }
+  const rightClickSelector = async (selector, scopeSelector = '') => {
+    const scope = scopeSelector ? `document.querySelector(${JSON.stringify(scopeSelector)})` : 'document'
+    const box = await browser.evaluate(`(() => { const scope = ${scope}; const el = scope?.querySelector(${JSON.stringify(selector)}); if (!el) return null; let r = el.getBoundingClientRect(); if (r.left < 0 || r.top < 0 || r.right > innerWidth || r.bottom > innerHeight) { el.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'nearest' }); r = el.getBoundingClientRect(); } const x = r.x + r.width / 2, y = r.y + r.height / 2, hit = document.elementFromPoint(x, y); return { x: r.x, y: r.y, width: r.width, height: r.height, hitTarget: Boolean(hit && (hit === el || el.contains(hit))), hitDescription: hit && { tag: hit.tagName, className: typeof hit.className === 'string' ? hit.className : '', title: hit.getAttribute('title') } }; })()`)
+    assert.ok(box && box.width > 0 && box.height > 0, `不可右键目标：${JSON.stringify(box)}`)
+    assert.ok(box.hitTarget, `真实右键中心未命中目标 ${selector}: ${JSON.stringify(box)}`)
+    const x = box.x + box.width / 2, y = box.y + box.height / 2
+    await browser.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y }, browser.sessionId)
+    await browser.send('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'right', buttons: 2, clickCount: 1 }, browser.sessionId)
+    await browser.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button: 'right', buttons: 0, clickCount: 1 }, browser.sessionId)
   }
   const sessionId = await browser.evaluate(`document.querySelector('.look2')?.dataset.qxsimSessionId || ''`)
   assert.ok(sessionId, 'active Look2 session id should be present in the real editor DOM')
@@ -87,6 +103,7 @@ test('Look3 tree search, lock toggle, timeline copy/paste, undo/redo and save/re
   }
 
   const search = '树搜索目标文本'
+  let value
   await clickSelector('[aria-label="搜索控件"]')
   await browser.send('Input.insertText', { text: search }, browser.sessionId)
   await browser.wait(`document.querySelector('[aria-label="搜索控件"]')?.value === ${JSON.stringify(search)}`)
@@ -104,15 +121,28 @@ test('Look3 tree search, lock toggle, timeline copy/paste, undo/redo and save/re
   await browser.wait(`!document.querySelector('.look2-tree-row')?.classList.contains('locked-node')`)
   await waitForSnapshot(value => value.editorLocks?.[target.id] !== true, 'tree unlock click did not unlock the selected node')
 
+  await rightClickSelector('.look2-tree-row')
+  await browser.wait(`!![...document.querySelectorAll('.look2-context-menu button')].find(button => button.textContent.trim() === '下移层级' && !button.disabled)`)
+  await clickButtonText('下移层级', '.look2-context-menu')
+  value = await waitForSnapshot(current => current.root?.children?.[0]?.children?.[targetIndex + 1]?.id === target.id, 'tree context action did not move the textbox below its sibling')
+  assert.deepEqual(value.root.children[0].children.slice(targetIndex, targetIndex + 2).map(node => node.id), [nextSibling.id, target.id])
+
   await clickSelector('button[title="添加当前控件的轨道"]')
-  let value = await waitForSnapshot(current => activeTrack(current)?.keyframes?.length === 1, 'UI did not add the selected textbox property track')
+  value = await waitForSnapshot(current => activeTrack(current)?.keyframes?.length === 1, 'UI did not add the selected textbox property track')
   assert.equal(activeTrack(value).fieldKey, 'anchoredPositionX')
+  await browser.wait(`document.querySelectorAll('.look2-track .look2-key').length === 1`)
   assert.ok(await browser.evaluate(`document.querySelector('.look2-track .look2-key') !== null`), 'new track should render its initial key in the timeline')
 
   const secondTime = await seekAt(.28)
   assert.ok(secondTime > .1, `pointer input should move the playback head: ${secondTime}`)
   await clickSelector('button[title="在播放头添加关键帧"]', '.look2-track')
-  value = await waitForSnapshot(current => activeTrack(current)?.keyframes?.length === 2, 'UI did not add a keyframe at the moved playhead')
+  try {
+    value = await waitForSnapshot(current => activeTrack(current)?.keyframes?.length === 2, `UI did not add a keyframe at the moved playhead (${secondTime}s)`)
+  } catch (reason) {
+    const uiState = await browser.evaluate(`(() => { const button = document.querySelector('.look2-track button[title="在播放头添加关键帧"]'); const rect = button?.getBoundingClientRect(); const status = document.querySelector('[aria-label="查看错误历史"]'); return { readout: document.querySelector('.look2-time-readout')?.textContent, seekValue: document.querySelector('input.timeline-seek')?.value, addButton: button && { disabled: button.disabled, bounds: rect && { x: rect.x, y: rect.y, width: rect.width, height: rect.height } }, status: status?.textContent, statusTitle: status?.title, statusClass: status?.className } })()`)
+    assert.fail(`${reason.message}\nUI state: ${JSON.stringify(uiState)}`)
+  }
+  await browser.wait(`document.querySelectorAll('.look2-track .look2-key').length === 2`)
   const track = activeTrack(value)
   const times = track.keyframes.map(key => Number(key.time)).sort((a, b) => a - b)
   assert.ok(times[0] < times[1], JSON.stringify(times))
@@ -132,6 +162,7 @@ test('Look3 tree search, lock toggle, timeline copy/paste, undo/redo and save/re
   await clickSelector('button[aria-label="撤销"]')
   value = await waitForSnapshot(current => activeTrack(current)?.keyframes?.length === 2, 'undo should remove the pasted keyframe')
   assert.equal(activeTrack(value).keyframes.length, 2)
+  await browser.wait(`document.querySelector('button[aria-label="重做"]')?.disabled === false`)
   await clickSelector('button[aria-label="重做"]')
   value = await waitForSnapshot(current => activeTrack(current)?.keyframes?.length === 3, 'redo should restore the pasted keyframe')
   assert.deepEqual(activeTrack(value).keyframes.map(key => Number(key.time)).sort((a, b) => a - b), savedKeyTimes)
@@ -139,10 +170,13 @@ test('Look3 tree search, lock toggle, timeline copy/paste, undo/redo and save/re
   await clickSelector('button[title="保存当前存档"]')
   await browser.wait(`document.querySelector('.look2-archive-status')?.textContent.includes('已保存')`)
   const savedArchive = JSON.parse(readFileSync(file, 'utf8'))
-  const storedTrack = savedArchive.look2.animations
-    .find(animation => animation.id === savedArchive.look2.activeAnimationId)?.keyframeTracks?.find(track => track.nodeId === target.id)
+  const savedServerLook2 = savedArchive.look2ByAsset?.server
+  assert.ok(savedServerLook2, 'explicit UI save should persist the active server timeline state')
+  const storedTrack = savedServerLook2.animations
+    .find(animation => animation.id === savedServerLook2.activeAnimationId)?.keyframeTracks?.find(track => track.nodeId === target.id)
   assert.ok(storedTrack, 'explicit UI save should persist the timeline track to the workspace archive')
   assert.deepEqual(storedTrack.keyframes.map(key => Number(key.time)).sort((a, b) => a - b), savedKeyTimes)
+  assert.deepEqual(savedArchive.assets.server.root.children[0].children.slice(targetIndex, targetIndex + 2).map(node => node.id), [nextSibling.id, target.id], 'explicit UI save should persist the reordered tree')
 
   await clickSelector('.look2-menu-button')
   await browser.wait(`!!document.querySelector('.look2-workspace select[aria-label="工作区存档列表"]')`)
@@ -161,5 +195,6 @@ test('Look3 tree search, lock toggle, timeline copy/paste, undo/redo and save/re
   await browser.wait(`document.querySelector('[role="status"]')?.textContent.includes(${JSON.stringify(`已加载 ${path}`)})`)
   value = await waitForSnapshot(current => activeTrack(current)?.keyframes?.length === 3, 'reopening the saved archive should restore the full UI-edited timeline')
   assert.deepEqual(activeTrack(value).keyframes.map(key => Number(key.time)).sort((a, b) => a - b), savedKeyTimes)
+  assert.deepEqual(value.root.children[0].children.slice(targetIndex, targetIndex + 2).map(node => node.id), [nextSibling.id, target.id], 'reopening the archive should restore the reordered tree')
   assert.equal(JSON.parse(readFileSync(file, 'utf8')).meta.name, '树与时间轴浏览器关键路径')
 })

@@ -1,6 +1,7 @@
 // Test-only plugin copied into the disposable Harness profile by smoke-harness.
 // HTTP is queried only after startup settles, so preset audits cannot deadlock boot.
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { join } from 'node:path'
@@ -15,6 +16,7 @@ export function apply(ctx, config) {
     const session = ctx.sessions.get(sessionId) || ctx.sessions.create(sessionId, { meta: { cwd: config.workspace } })
     const agent = { id: sessionId, session }
     let callId = 0
+    const checks = []
     const call = async (name, args = {}) => {
       const result = await ctx.tools.execute({ callId: `smoke-${++callId}`, name, arguments: args, agent, signal: AbortSignal.timeout(10_000) })
       assert.equal(result.isError, false, JSON.stringify(result))
@@ -38,6 +40,7 @@ export function apply(ctx, config) {
         assert.match(await readFile(join(skill.resourceBase.path, 'references/workflow.md'), 'utf8'), /PREFLIGHT/)
       } finally { await lease[Symbol.asyncDispose]() }
       assert.ok(await ctx.skills.get('look3-simulator'))
+      checks.push('compatibility-preset-skill')
       assert.equal(ctx.tools.schemas().filter(tool => tool.name.startsWith('look3_')).length, 12)
       const before = (await call('look3_studio_get')).value
       assert.equal(before.workspace.path, config.workspace)
@@ -46,6 +49,7 @@ export function apply(ctx, config) {
       assert.equal((await call('look3_studio_play', { action: 'start' })).value.running, true)
       assert.ok((await call('look3_studio_play_screenshot')).content.some(block => block.type === 'image'))
       await call('look3_studio_play', { action: 'stop' })
+      checks.push('tools-worker-png')
       const url = `http://127.0.0.1:${ctx.webServer.port}`
       const api = async (action, body) => {
         const response = await fetch(`${url}/look3-simulator/api/${action}`, {
@@ -65,6 +69,7 @@ export function apply(ctx, config) {
       assert.equal((await call('look3_studio_play', { action: 'start' })).value.running, true)
       assert.ok((await call('look3_studio_play_screenshot')).content.some(block => block.type === 'image'))
       await call('look3_studio_play', { action: 'stop' })
+      checks.push('http-gia-roundtrip-installed-worker')
       const beforeFontSettings = await api('get', {})
       const settingsUrl = `${url}/qxqy-font/settings`
       const settingsResponse = await fetch(settingsUrl, { signal: AbortSignal.timeout(5_000) })
@@ -79,7 +84,10 @@ export function apply(ctx, config) {
       const savedFont = await savedFontResponse.json()
       assert.equal(savedFont.scope, 'game')
       assert.equal(savedFont.restartRequired, true)
+      assert.ok(process.env.QXQY_FONT_CONFIG_PATH, 'Smoke font configuration must be isolated')
+      assert.equal(JSON.parse(await readFile(process.env.QXQY_FONT_CONFIG_PATH, 'utf8')).scope, 'game')
       assert.equal((await api('get', {})).version, beforeFontSettings.version, 'font settings must not edit the project')
+      checks.push('font-settings-persistence-without-project-edit')
       for (const path of ['/look3-simulator/play', '/look3-simulator/play-renderer.js']) {
         assert.equal((await fetch(url + path, { signal: AbortSignal.timeout(5_000) })).status, 200, path)
       }
@@ -109,7 +117,9 @@ export function apply(ctx, config) {
           assert.equal((await fetch(url + path, { signal: AbortSignal.timeout(5_000) })).status, 200, path)
         }
       }
-      response.end(JSON.stringify({ ok: true }))
+      checks.push('http-assets-plugin-restart')
+      response.end(JSON.stringify({ ok: true, pluginVersion: manifest.version,
+        probeSha256: createHash('sha256').update(await readFile(new URL(import.meta.url))).digest('hex'), checks }))
     } catch (error) {
       response.statusCode = 500
       response.end(JSON.stringify({ ok: false, error: error.stack || String(error) }))

@@ -1,6 +1,7 @@
 // Boot the current 0.2 CLI with a release tarball in a disposable profile.
 // An optional CLI path reuses an existing installation; DSH_HOME stays isolated.
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import { copyFile, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -31,6 +32,9 @@ try {
   assert.match(harness.version, /^0\.2\./, 'test:harness expects a 0.2 CLI')
   const { artifacts } = JSON.parse(await readFile(join(root, 'release/manifest.json'), 'utf8'))
   const artifact = artifacts.find(entry => entry.product === 'dsh-plugin')
+  assert.ok(artifact, 'Release manifest must include the DSH plugin')
+  const artifactSha256 = createHash('sha256').update(await readFile(join(root, 'release', artifact.filename))).digest('hex')
+  assert.equal(artifactSha256, artifact.sha256, 'Release tarball must match its manifest')
   execFileSync(process.execPath, [cli, 'plugin', '--profile', 'web', 'add', join(root, 'release', artifact.filename)], {
     cwd: temporary, env, stdio: 'inherit', windowsHide: true, timeout: 180_000,
   })
@@ -62,6 +66,12 @@ try {
   const report = await response.json()
   assert.equal(response.status, 200, JSON.stringify(report))
   assert.equal(report.ok, true, JSON.stringify(report))
+  assert.equal(report.pluginVersion, artifact.version)
+  const probeSha256 = createHash('sha256').update(await readFile(join(root, 'scripts/smoke-harness-probe.mjs'))).digest('hex')
+  assert.equal(report.probeSha256, probeSha256, 'Host must execute the current probe')
+  assert.deepEqual(report.checks, ['compatibility-preset-skill', 'tools-worker-png',
+    'http-gia-roundtrip-installed-worker', 'font-settings-persistence-without-project-edit', 'http-assets-plugin-restart'])
+  console.log(JSON.stringify({ harnessVersion: harness.version, artifact: artifact.filename, artifactSha256, ...report }))
   console.log(`PASS Harness ${harness.version}: CLI tarball admission, full Web boot, preset/Skill discovery, real tool calls, attachments, HTTP play and plugin restart lifecycle`)
 } catch (error) {
   // Do not print the launch URL's temporary authentication token.

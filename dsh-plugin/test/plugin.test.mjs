@@ -169,7 +169,7 @@ test('controller edits business fields and preserves their GIA values across imp
   const target = new SimulatorController()
   try {
     source.patch({ op: 'set', id: 'n10', key: 'animationId', value: 'controller-effect-index' })
-    source.patch({ op: 'set', id: 'n4', key: 'referencedPrefabId', value: 'controller-template-index' })
+    source.patch({ op: 'set', id: 'n4', key: 'referencedPrefabId', value: '2008' })
     source.patch({ op: 'set', id: 'n9', key: 'fillType', value: 'Radial90' })
     const exported = source.exportData('gia')
     const imported = target.importData('gia', exported.data, exported.filename).snapshot
@@ -182,8 +182,18 @@ test('controller edits business fields and preserves their GIA values across imp
       return null
     }
     assert.equal(findKind(imported.root, 'animation').animationId, 'controller-effect-index')
-    assert.equal(findKind(imported.root, 'reference').referencedPrefabId, 'controller-template-index')
+    assert.equal(findKind(imported.root, 'reference').referencedPrefabId, '2008')
     assert.equal(findKind(imported.root, 'image').giaRaw.imageFillType, 3)
+    const opaque = 'controller-template-index'
+    source.patch({ op: 'set', id: 'n4', key: 'referencedPrefabId', value: opaque })
+    const unknown = source.exportData('gia')
+    const opaqueImport = target.importData('gia', unknown.data, unknown.filename).snapshot
+    const reference = findKind(opaqueImport.root, 'reference')
+    assert.equal(reference.referencedPrefabId, '')
+    assert.equal(reference.giaRaw.templateRefSlotBase64, Buffer.from(opaque).toString('base64'))
+    const preserved = target.exportData('gia')
+    const reopened = target.importData('gia', preserved.data, preserved.filename).snapshot
+    assert.equal(findKind(reopened.root, 'reference').giaRaw.templateRefSlotBase64, reference.giaRaw.templateRefSlotBase64)
   } finally {
     await Promise.all([source.dispose(), target.dispose()])
   }
