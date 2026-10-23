@@ -15,6 +15,70 @@ const document = nodes => ({ version: 12, name: 'fixed-upstream', timelineModelV
 const keys = (from, to) => [{ id: 'a', time: 0, value: from, easeType: 'Linear', interpolation: 'tween' },
   { id: 'b', time: 1, value: to, easeType: 'Linear', interpolation: 'tween' }]
 
+test('site JSON emits explicit root event targets and resolves legacy paths without mutating the source', () => {
+  const input = document([node('label', 'text')])
+  input.animationModelVersion = 1
+  input.animations = [{ id: 'animation-events', name: 'Events', duration: 1, keyframeTracks: [], events: [
+    { id: 'root-event', time: 0, name: 'footstep', target: '', params: '{"volume":1}', vendor: { keep: true } },
+    { id: 'path-event', time: .25, name: 'child', target: '/root/label/', params: '' },
+    { id: 'id-event', time: .5, name: 'byId', nodeId: 'label', params: 'opaque' },
+    { id: 'null-event', time: .75, name: 'root', nodeId: null, target: 'root/label', params: '' },
+  ] }]
+  const original = structuredClone(input)
+  const { project, look2 } = importSiteJson(input)
+  const beforeExport = structuredClone(look2)
+  const exported = exportSiteJson(project, look2)
+  assert.deepEqual(exported.animations[0].events.map(event => event.nodeId), [null, 'label', 'label', null])
+  for (const [index, event] of input.animations[0].events.entries()) {
+    for (const [key, value] of Object.entries(event)) assert.deepEqual(exported.animations[0].events[index][key], value)
+  }
+  const roundTrip = importSiteJson(exported)
+  assert.deepEqual(roundTrip.look2.animations[0].events, exported.animations[0].events)
+  assert.deepEqual(input, original)
+  assert.deepEqual(look2, beforeExport)
+})
+
+test('site JSON refuses missing and ambiguous event paths instead of dropping or retargeting events', () => {
+  const input = document([node('one', 'text'), node('two', 'text')])
+  input.nodes[1].name = input.nodes[2].name = 'duplicate'
+  input.animationModelVersion = 1
+  input.animations = [{ id: 'animation-events', name: 'Events', duration: 1, keyframeTracks: [],
+    events: [{ id: 'event', time: .5, name: 'event', target: 'duplicate', params: '' }] }]
+  let imported = importSiteJson(input)
+  assert.throws(() => exportSiteJson(imported.project, imported.look2), /事件目标路径重名/)
+  input.animations[0].events[0].target = 'missing'
+  imported = importSiteJson(input)
+  assert.throws(() => exportSiteJson(imported.project, imported.look2), /事件目标控件不存在/)
+  input.animations[0].events[0].target = ''
+  for (const invalidId of ['missing-id', 0, false]) {
+    input.animations[0].events[0].nodeId = invalidId
+    imported = importSiteJson(input)
+    assert.throws(() => exportSiteJson(imported.project, imported.look2), /事件目标控件不存在/)
+  }
+})
+
+test('site JSON rejects slash-name aliases and duplicate root names while explicit IDs remain precise', () => {
+  const input = document([node('slash', 'text'), node('parent', 'container'), node('nested', 'text')])
+  input.nodes[1].name = 'A/B'
+  input.nodes[2].name = 'A'
+  input.nodes[3].name = 'B'; input.nodes[3].parentId = 'parent'
+  input.animationModelVersion = 1
+  input.animations = [{ id: 'animation-events', name: 'Events', duration: 1, keyframeTracks: [],
+    events: [{ id: 'event', time: .5, name: 'event', target: 'root/A/B', params: '' }] }]
+  let imported = importSiteJson(input)
+  assert.throws(() => exportSiteJson(imported.project, imported.look2), /事件目标路径不可表示/)
+  input.animations[0].events[0].nodeId = 'slash'
+  imported = importSiteJson(input)
+  assert.equal(exportSiteJson(imported.project, imported.look2).animations[0].events[0].nodeId, 'slash')
+  const duplicateRoots = document([])
+  duplicateRoots.nodes.push({ ...node('second-root', 'container'), name: 'root', parentId: null })
+  duplicateRoots.animationModelVersion = 1
+  duplicateRoots.animations = [{ id: 'animation-events', name: 'Events', duration: 1, keyframeTracks: [],
+    events: [{ id: 'event', time: .5, name: 'event', target: 'root', params: '' }] }]
+  imported = importSiteJson(duplicateRoots)
+  assert.throws(() => exportSiteJson(imported.project, imported.look2), /事件目标路径重名/)
+})
+
 test('all reference control type names and editable enum values survive save, reopen and site export', () => {
   const input = document([
     node('label', 'text', { text: 'one', horizontalAlignment: 'right', verticalAlignment: 'middle', adaptiveFontSize: true }),

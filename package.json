@@ -1,7 +1,7 @@
 {
   "name": "look3-dsh-plugin",
   "displayName": "千星look3",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "description": "千星look3：保留 Look2 界面的 UI 动画编辑与 Lua 模拟器",
   "private": true,
   "type": "module",

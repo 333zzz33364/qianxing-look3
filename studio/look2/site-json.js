@@ -425,7 +425,7 @@ export function exportSiteJson(project, rawLook2) {
     for (const child of node.children || []) visit(child, node.id, childParentSize)
   }
   for (const root of project.root.children || []) visit(root)
-  const animations = writeSiteAnimations(look2.animations)
+  const animations = writeSiteAnimations(look2.animations, nodes)
   return toJson({
     ...look2.siteExtras,
     version: SITE_JSON_VERSION, hierarchyLayoutVersion: 2,
