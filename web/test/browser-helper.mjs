@@ -71,9 +71,11 @@ export async function startTestBrowser(directory, extraArgs = []) {
       pending.clear()
     })
     const errors = []
+    const eventListeners = new Set()
     let sequence = 0
     socket.addEventListener('message', event => {
       const message = JSON.parse(event.data)
+      if (message.method) for (const listener of eventListeners) listener(message)
       if (message.method === 'Runtime.exceptionThrown') errors.push(message.params.exceptionDetails)
       const request = pending.get(message.id)
       if (!request) return
@@ -118,6 +120,7 @@ export async function startTestBrowser(directory, extraArgs = []) {
       throw new Error(`Browser wait failed: ${expression}${detail}\n${body}\n${JSON.stringify(errors)}`)
     }
     return { send, evaluate, wait, close, sessionId, targetId,
+      onEvent(listener) { eventListeners.add(listener); return () => eventListeners.delete(listener) },
       navigate: url => send('Page.navigate', { url }, sessionId),
       key: async (key, code) => {
         await send('Input.dispatchKeyEvent', { type: 'keyDown', key, code }, sessionId)

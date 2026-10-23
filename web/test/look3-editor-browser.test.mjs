@@ -34,8 +34,7 @@ test('Look3 active editor fits multiline text and keeps workspace entries reacha
   await browser.navigate(app.url + '/editor')
   await browser.wait(`!!document.querySelector('.look2-box.textbox .look2-stage-text span')`)
   await browser.evaluate('document.fonts.ready')
-  for (const [width, height] of [[1920, 1080], [1280, 720], [390, 844]]) {
-    await browser.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false }, browser.sessionId)
+  const waitForLayout = async width => {
     await browser.wait(`window.innerWidth === ${width} && document.querySelector('.look2')?.clientWidth === ${width}`)
     await browser.wait(`(async () => {
       const measure = () => {
@@ -53,6 +52,10 @@ test('Look3 active editor fits multiline text and keeps workspace entries reacha
       return JSON.stringify(before) === JSON.stringify(after)
         && after.tabs.every(([x, , tabWidth]) => x >= 0 && tabWidth > 0 && x + tabWidth <= ${width});
     })()`)
+  }
+  for (const [width, height] of [[1920, 1080], [1280, 720], [390, 844]]) {
+    await browser.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false }, browser.sessionId)
+    await waitForLayout(width)
     const metrics = await browser.evaluate(`(() => {
       const text = document.querySelector('.look2-box.textbox .look2-stage-text'), stage = document.querySelector('.look2-stage');
       const scale = parseFloat(stage.style.width) / 1600;
@@ -71,6 +74,7 @@ test('Look3 active editor fits multiline text and keeps workspace entries reacha
     }
   }
   await browser.send('Emulation.setDeviceMetricsOverride', { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false }, browser.sessionId)
+  await waitForLayout(1920)
   let initialCenter
   for (const [index, platform] of ['键鼠', '触屏', '主机手柄', '手机手柄'].entries()) {
     await browser.evaluate(`document.querySelector('button[aria-label="${platform}"]').click()`)
