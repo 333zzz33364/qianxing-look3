@@ -340,6 +340,9 @@ test('batch fit ignores resource search, uses each image options, and counts fai
 
     assert.equal(summary, '批量拟合完成；成功 2 张，失败 1 张，取消 0 张，未处理 0 张')
     assert.equal(panel.state().primitiveResources.find(row => row.id === 'shown').fitData.elements.length, 3, 'opaque fit contains two fitted elements plus its white base')
+    assert.deepEqual(panel.state().primitiveResources.find(row => row.id === 'shown').fitStats, {
+      version: 1, backend: 'look3-worker', elementCount: 3, residualError: 0, resolution: 64, transparent: false,
+    })
     assert.equal(panel.state().primitiveResources.find(row => row.id === 'hidden-fail').fitData, null)
     assert.equal(panel.state().primitiveResources.find(row => row.id === 'hidden').fitData.elements.length, 3)
     assert.deepEqual(fitWorker.records.map(({ source, resolution, shapes, transparent, commits }) => ({ source, resolution, shapes, transparent, commits })), [

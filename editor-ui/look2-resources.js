@@ -430,12 +430,14 @@ export function createResourcesPanel(React) {
       if (activeJob.current) throw new Error('已有图元拟合任务正在运行')
       options = normalizeFitOptions(options, globalThis.navigator?.hardwareConcurrency || 1)
       setProgress({ id, name: resource.name, completed: 0, total: options.count, percent: 0, error: 1, actualWorkers: options.actualWorkers })
+      let finalProgress = null
       let job
       job = createPrimitiveFitJob({
         source: sourceImageUrl,
         options,
         workerURL,
         onProgress: (value) => {
+          finalProgress = value
           if (!isCancelled() && activeJob.current === job) setProgress({ id, name: resource.name, ...value, actualWorkers: options.actualWorkers })
         },
       })
@@ -449,6 +451,14 @@ export function createResourcesPanel(React) {
             throw new Error('拟合期间图片资源已变化，旧拟合结果保持不变')
           }
           target.fitData = fitData
+          target.fitStats = {
+            version: 1,
+            backend: 'look3-worker',
+            elementCount: fitData.elements.length,
+            residualError: Number.isFinite(Number(finalProgress?.error)) ? Number(finalProgress.error) : null,
+            resolution: options.resolution,
+            transparent: options.transparent,
+          }
           target.fitOptions = { ...options, actualWorkers: options.actualWorkers, defaultsVersion: 1 }
         }, '生成图元拟合')
         if (!isCancelled()) reportMessage(`${resource.name}：已生成 ${fitData.elements.length} 个图元`)
@@ -596,7 +606,10 @@ export function createResourcesPanel(React) {
       if (!selectedResource) throw new Error('请先选择要覆盖拟合结果的资源')
       const text = await readFileAsText(file)
       const fitData = type === 'svg' ? importPrimitiveSvg(text) : importPrimitiveCss(text)
-      await updateResource(selectedResource.id, (resource) => { resource.fitData = fitData }, type === 'svg' ? '导入 Primitive SVG' : '导入 Shaper CSS')
+      await updateResource(selectedResource.id, (resource) => {
+        resource.fitData = fitData
+        delete resource.fitStats
+      }, type === 'svg' ? '导入 Primitive SVG' : '导入 Shaper CSS')
       reportMessage(`${type.toUpperCase()} 已导入；旧结果已由新图元替换`)
     }
 
@@ -669,7 +682,10 @@ export function createResourcesPanel(React) {
                 progress ? h('button', { onClick: cancelFit }, '取消') : null),
               progress ? h('div', { className: 'look2-fit-progress' },
                 h('div', { className: 'look2-fit-progress-track', role: 'progressbar', 'aria-label': '\u56fe\u5143\u62df\u5408\u8fdb\u5ea6', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': Math.max(0, Math.min(100, Number(progress.percent) || 0)) }, h('span', { style: { width: `${Math.max(0, Math.min(100, Number(progress.percent) || 0))}%` } })),
-                h('span', null, `${progress.name || ''} · ${progress.completed}/${progress.total} · ${progress.actualWorkers} Workers · 剩余误差 ${Number(progress.error || 0).toFixed(3)}`)) : null),
+                h('span', null, `${progress.name || ''} · ${progress.completed}/${progress.total} · ${progress.actualWorkers} Workers · 剩余误差 ${Number(progress.error || 0).toFixed(3)}`)) : null,
+              selectedResource?.fitStats?.backend === 'look3-worker'
+                ? h('small', { className: 'look2-fit-quality' }, `质量估算：${selectedResource.fitStats.elementCount} 个图元，剩余误差 ${Number(selectedResource.fitStats.residualError || 0).toFixed(3)}，${selectedResource.fitStats.resolution}px`)
+                : null),
             urlImport,
             h('div', { className: 'look2-resource-actions' },
               h('button', { disabled: referenceCount === 0, onClick: () => void clearRefs(selectedResource.id).catch(reportError) }, '清除全部绑定'),

@@ -14,7 +14,7 @@ function open() {
     version: 1, width: 100, height: 80, elements: [
       { type: 'rectangle', imageId: 100001, x: 0, y: 0, width: 100, height: 80, rotation: 0, color: { r: 255, g: 0, b: 0, a: 1 } },
     ],
-  } }], animations: [{ id: 'a', name: '淡出', duration: 1, keyframeTracks: [
+  }, fitStats: { version: 1, backend: 'look3-worker', elementCount: 1, residualError: .125, resolution: 256, transparent: true } }], animations: [{ id: 'a', name: '淡出', duration: 1, keyframeTracks: [
     { id: 'opacity', nodeId: 'picture', fieldKey: 'groupAlpha', keyframes: [{ time: 0, value: 255 }, { time: 1, value: 0 }] },
   ] }], activeAnimationId: 'a' }))
   return studio
@@ -39,6 +39,9 @@ test('Basic and Stretch image types round trip the observed GIA slot 504 without
 
 test('all new primitive and timeline export formats are usable and preserve editable resources', () => {
   const studio = open(), before = studio.archiveData()
+  assert.deepEqual(studio.get().look2.primitiveResources[0].fitStats, {
+    version: 1, backend: 'look3-worker', elementCount: 1, residualError: .125, resolution: 256, transparent: true,
+  })
   const data = parseTimelineLuaLiteral(decode(studio.exportData('primitive-data', 'root')))
   assert.equal(data.v, 3)
   assert.equal(data.groups[0].path, '图元')
@@ -47,6 +50,7 @@ test('all new primitive and timeline export formats are usable and preserve edit
   assert.match(decode(studio.exportData('primitive-lib')), /InstantiateClientUIControl/)
   assert.match(decode(studio.exportData('timeline-lib')), /TweenSequence/)
   assert.deepEqual(studio.archiveData(), before)
+  assert.deepEqual(createStudio(studio.archiveData()).get().look2.primitiveResources[0].fitStats, before.look2.primitiveResources[0].fitStats)
 })
 
 test('GIA bakes fitted children and mounts opacity playback without mutating authoring', () => {
