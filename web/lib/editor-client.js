@@ -24,6 +24,8 @@ const editor = createEditor(React, {
     return envelope.value
   },
   playUrl: id => `/editor/play#${encodeURIComponent(id)}`,
+  updatePath: '/api/update-check',
+  languagePath: '/api/system-language',
   saveToWorkspace: true,
 })
 editor.ensureStyle()

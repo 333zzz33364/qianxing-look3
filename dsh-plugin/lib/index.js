@@ -8,6 +8,8 @@ import { createImageSource } from '../../studio/host/image-source.js'
 import { serveImageAsset } from 'qxqy-studio/host/image-assets'
 import { serveAudioAsset } from 'qxqy-studio/host/audio-assets'
 import { localFont, serveLocalFont } from 'qxqy-studio/host/local-font'
+import { createUpdateChecker } from '../../studio/host/updates.js'
+import { localLanguageRequest, systemLanguage } from '../../studio/host/system-language.js'
 
 export const name = 'look3-simulator'
 export const inject = ['tools', 'webServer']
@@ -20,6 +22,8 @@ const PLAY_RENDERER_PATH = '/look3-simulator/play-renderer.js'
 const MAX_BODY_BYTES = 64 * 1024 * 1024
 const MAX_SESSIONS = 32
 const SCREENSHOT_TIMEOUT_MS = 60_000
+// Keep the bundled plugin self-contained; bump with the root package version.
+const PRODUCT_VERSION = '3.1.1'
 const imageSource = createImageSource(process.env.LOOK3_ASSET_CACHE || process.env.LOOK2_ASSET_CACHE || join(process.env.DSH_HOME || join(homedir(), '.dsh'), 'look3-image-cache'))
 
 // DSH only adapts session-specific concerns (touch bookkeeping, JSON-string
@@ -536,16 +540,26 @@ function registerTools(ctx, registry) {
 }
 
 function registerApi(ctx, registry) {
+  const checkUpdates = createUpdateChecker({ packageName: 'look3-dsh-plugin', currentVersion: PRODUCT_VERSION })
   registerRoute(ctx, {
     kind: 'prefix',
     path: API_PREFIX,
     async handler(request, response) {
+      const path = new URL(request.url, 'http://localhost').pathname
+      const action = path.slice(API_PREFIX.length).replace(/^\/+/, '')
+      if (request.method === 'GET' && action === 'system-language') {
+        sendJson(response, 200, { ok: true, value: localLanguageRequest(request) ? await systemLanguage() : { language: '', source: 'browser' }, error: null })
+        return
+      }
+      if (request.method === 'GET' && action === 'update-check') {
+        try { sendJson(response, 200, { ok: true, value: await checkUpdates(), error: null }) }
+        catch (error) { sendJson(response, 502, { ok: false, value: null, error: error?.message || String(error) }) }
+        return
+      }
       if (request.method !== 'POST') {
         sendJson(response, 405, { ok: false, value: null, error: 'POST required' })
         return
       }
-      const path = new URL(request.url, 'http://localhost').pathname
-      const action = path.slice(API_PREFIX.length).replace(/^\/+/, '')
       if (action === 'health') {
         sendJson(response, 200, { ok: true, value: { status: 'ok' }, error: null })
         return

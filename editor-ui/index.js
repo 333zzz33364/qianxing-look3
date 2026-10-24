@@ -13,8 +13,9 @@ import { textPreviewStyle } from './text-preview.js'
 import { isRemoteImage, imageAssetKey } from '../studio/assets/catalog.js'
 import { refreshBrowserImage } from '../studio/assets/browser.js'
 import { loadBrowserFont } from '../studio/play/browser-font.js'
+import { createEditorFooter } from './footer.js'
 
-export function createEditor(React, { api, playUrl, saveToWorkspace = false }) {
+export function createEditor(React, { api, playUrl, saveToWorkspace = false, updatePath = '', languagePath = '' }) {
     const e = React.createElement
     const ScriptSyncPanel = createScriptSyncPanel(React)
     const ControlGuidSyncPanel = createControlGuidSyncPanel(React)
@@ -22,6 +23,7 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false }) {
     const ImagePreview = createImagePreview(React)
     const ImageTypeField = createImageTypeField(React)
     const ColorField = createColorField(React)
+    const EditorFooter = createEditorFooter(React, { updatePath, languagePath })
 
     const STYLE_ID = 'qxqy-simulator-style'
     const CSS = `
@@ -33,6 +35,7 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false }) {
 .qxsim[data-theme=light]{--bg:#f5f6f8;--panel:#fff;--panel2:#f4f6f8;--input:#fff;--line:#d6dbe3;--lineSoft:#e7e9ed;--text:#20242a;--muted:#69717d;--hover:#eef1f5;--workspace:#d9dde3;--toolbarA:#fff;--toolbarB:#f3f5f8;--status:#f7f8fa;--button:#f7f8fa;--shadow:#18203318}
 .qxsim *{box-sizing:border-box}.qxsim button,.qxsim input,.qxsim textarea,.qxsim select{font:inherit;color:inherit}.qxsim button{cursor:pointer}.qxsim button:disabled{opacity:.42;cursor:default}
 .qxsim-toolbar{height:50px;flex:0 0 50px;display:grid;grid-template-columns:minmax(190px,1fr) auto minmax(280px,1fr);align-items:center;padding:0 10px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,var(--toolbarA),var(--toolbarB));box-shadow:0 1px 8px var(--shadow);z-index:3}.qxsim-brand,.qxsim-toolbar-center,.qxsim-actions{display:flex;align-items:center}.qxsim-brand{gap:8px;min-width:0}.qxsim-appicon{width:26px;height:26px;display:grid;place-items:center;border:1px solid var(--line);border-radius:5px;font-size:11px;background:var(--input)}.qxsim-brand-text{min-width:0}.qxsim-brand-text strong,.qxsim-brand-text span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.qxsim-brand-text strong{font-size:13px}.qxsim-brand-text span{color:var(--muted);font-size:10px}.qxsim-toolbar-center{gap:6px}.qxsim-actions{justify-content:flex-end;gap:6px}.qxsim-io{display:flex;align-items:center;gap:4px;padding-right:6px;margin-right:2px;border-right:1px solid var(--line)}
+.qxsim-editor-shell{display:flex;flex-direction:column;width:100%;height:100%;min-height:0}.qxsim-editor-shell>.look2{min-height:0;flex:1}.qxsim-footer{display:flex;align-items:center;gap:8px;min-height:30px;padding:4px 10px;border-top:1px solid var(--line);background:var(--status);color:var(--muted);font-size:10px}.qxsim-footer-note{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.qxsim-footer-language{display:flex;align-items:center;gap:4px;white-space:nowrap}.qxsim-footer select{height:24px;padding:0 4px;border:1px solid var(--line);border-radius:4px;background:var(--input);color:var(--text)}
 .qxsim-editor-nav{height:40px;flex:0 0 40px;display:flex;align-items:stretch;padding:0 10px;border-bottom:1px solid var(--line);background:var(--panel)}.qxsim-editor-nav button{min-width:116px;padding:0 18px;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--muted);font-weight:650}.qxsim-editor-nav button.active{border-bottom-color:var(--blue);color:var(--text);background:color-mix(in srgb,var(--blue) 8%,transparent)}.qxsim-editor-nav .save-summary{display:flex;align-items:center;margin-left:auto;color:var(--muted);font-size:10px}
 .qxsim-control,.qxsim-iconbtn,.qxsim-action{height:32px;border:1px solid var(--line);background:var(--input);border-radius:6px}.qxsim-control{min-width:156px;padding:0 28px 0 9px}.qxsim-control.zoom{min-width:78px}.qxsim-iconbtn{width:32px}.qxsim-action{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 11px;white-space:nowrap}.qxsim-action.primary{color:#fff;border-color:#3265d8;background:linear-gradient(#5388fa,#376ad8)}.qxsim-action.danger{color:var(--danger)}.qxsim-action:hover,.qxsim-iconbtn:hover{border-color:var(--blue);background:var(--hover)}
 .qxsim-main{display:grid;grid-template-columns:clamp(220px,17cqi,280px) minmax(360px,1fr) clamp(310px,22cqi,356px);flex:1;min-height:0}.qxsim-tree,.qxsim-inspector{min-height:0;background:var(--panel)}.qxsim-tree{display:flex;flex-direction:column;border-right:1px solid var(--line)}.qxsim-inspector{display:flex;flex-direction:column;border-left:1px solid var(--line)}.qxsim-pane-head{height:44px;flex:0 0 44px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 10px;border-bottom:1px solid var(--lineSoft)}.qxsim-pane-title{font-weight:650;font-size:13px}.qxsim-muted{color:var(--muted);font-size:10px}.qxsim-asset-switch{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin:8px 8px 0;padding:3px;border:1px solid var(--line);border-radius:18px;background:var(--input)}.qxsim-asset-switch button{height:29px;min-width:0;border:0;border-radius:15px;background:transparent;color:var(--muted);font-weight:600;white-space:nowrap}.qxsim-asset-switch button.active{color:#fff;background:linear-gradient(#4f86ff,#3c6ed8);box-shadow:0 2px 7px #1d4b9f55}.qxsim-template-tag{padding:1px 5px;border:1px solid currentColor;border-radius:8px;color:#9cc2ff;font-size:9px}.qxsim-template-id{color:var(--muted);font:9px ui-monospace,Consolas,monospace}.qxsim-palette-head{display:flex;align-items:center;justify-content:space-between;gap:4px;margin:0 0 4px;color:var(--muted);font-size:10px}.qxsim-palette-head>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.qxsim-add-mode{display:flex;flex:0 0 auto;gap:2px;padding:1px;border:1px solid var(--line);border-radius:10px;background:var(--input)}.qxsim-add-mode button{height:18px;padding:0 6px;border:0;border-radius:8px;background:transparent;color:var(--muted);font-size:9px}.qxsim-add-mode button.active{color:var(--text);background:var(--hover)}
@@ -1110,7 +1113,9 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false }) {
   function Look2View({ sessionId, onWorkspaceReady }) {
     const beforeActionRef = React.useRef(null)
     return e(panels.Provider, { beforeActionRef },
-      e(animation.AnimationView, { sessionId, beforeActionRef, onWorkspaceReady }))
+      e('div', { className: 'qxsim-editor-shell' },
+        e(animation.AnimationView, { sessionId, beforeActionRef, onWorkspaceReady }),
+        e(EditorFooter)))
   }
   return {
     SimulatorView: Look2View,

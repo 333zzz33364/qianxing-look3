@@ -15,6 +15,20 @@ import { serveAudioAsset, sharedAudioAssets } from 'qxqy-studio/host/audio-asset
 import { localFont, serveLocalFont } from 'qxqy-studio/host/local-font'
 
 const moduleDir = fileURLToPath(new URL('.', import.meta.url))
+// Keep the bundled/temporary server entry self-contained; bump with the root package version.
+const PRODUCT_VERSION = '3.1.1'
+let updateChecker = null
+async function readSystemLanguage(request) {
+  const { localLanguageRequest, systemLanguage } = await import('../studio/host/system-language.js')
+  return localLanguageRequest(request) ? await systemLanguage() : { language: '', source: 'browser' }
+}
+async function checkProductUpdates() {
+  if (!updateChecker) {
+    const { createUpdateChecker } = await import('../studio/host/updates.js')
+    updateChecker = createUpdateChecker({ packageName: 'look3-web', currentVersion: PRODUCT_VERSION })
+  }
+  return updateChecker()
+}
 // Capture once: rebuilding the file must not relabel an already running process.
 const buildId = createHash('sha256').update(readFileSync(fileURLToPath(import.meta.url))).digest('hex')
 const publicDir = resolve(moduleDir, 'public')
@@ -178,6 +192,14 @@ export async function createWebServer(options = {}) {
       }
       if (request.method === 'GET' && requestUrl.pathname === '/api/preview') {
         sendJson(response, 200, { ok: true, value: session.previewStatus() })
+        return
+      }
+      if (request.method === 'GET' && requestUrl.pathname === '/api/system-language') {
+        sendJson(response, 200, { ok: true, value: await readSystemLanguage(request) })
+        return
+      }
+      if (request.method === 'GET' && requestUrl.pathname === '/api/update-check') {
+        sendJson(response, 200, { ok: true, value: await checkProductUpdates() })
         return
       }
       if (request.method === 'GET' && requestUrl.pathname === '/api/editor.png') {

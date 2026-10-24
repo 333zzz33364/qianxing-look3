@@ -13,6 +13,8 @@ window.__ModuleLoader__.load({
         return envelope.value
       },
       playUrl: sessionId => '/look3-simulator/play#' + encodeURIComponent(sessionId),
+      updatePath: '/look3-simulator/api/update-check',
+      languagePath: '/look3-simulator/api/system-language',
     })
     exports.inject = ['slots']
     exports.apply = ctx => {
