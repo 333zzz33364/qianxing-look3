@@ -389,7 +389,9 @@
       ],
       "tests": [
         "studio/test/image-mask.test.mjs",
-        "studio/test/look2-image-mask.test.mjs"
+        "studio/test/look2-image-mask.test.mjs",
+        "studio/test/image-fill.test.mjs",
+        "studio/test/editor-image-preview.test.mjs"
       ],
       "status": "pending",
       "evidence": [
@@ -399,7 +401,7 @@
       "externalAcceptance": "pending",
       "localReview": {
         "readingState": "未读",
-        "status": "部分实现；已验证本地硬裁剪、软边及资源释放，径向填充、方向反转和softRange差异仍未闭合",
+        "status": "本地行为已验证；覆盖硬裁剪、径向90/180/360填充、顺逆时针、反转遮罩、Percentage softRange及资源释放",
         "report": "docs/上游/Look独立审计-20261019收口.md#l09",
         "evidence": [
           {
@@ -413,6 +415,14 @@
           {
             "kind": "source-or-test-or-log",
             "path": "studio/test/image-mask.test.mjs"
+          },
+          {
+            "kind": "source-or-test-or-log",
+            "path": "studio/test/image-fill.test.mjs"
+          },
+          {
+            "kind": "source-or-test-or-log",
+            "path": "studio/test/editor-image-preview.test.mjs"
           },
           {
             "kind": "source-or-test-or-log",
