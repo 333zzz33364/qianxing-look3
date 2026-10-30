@@ -19,6 +19,7 @@ import { buildPlayLog, canStopInlinePlay, playLogFilename, playTargetGuide } fro
 import { normalizeImageMeta, rasterizeSlices, supportsImageStretch } from '../studio/assets/image-stretch.js'
 import { loadBrowserFont } from '../studio/play/browser-font.js'
 import { textLayout } from '../studio/play/text-layout.js'
+import { paintRichTextCanvas } from '../studio/play/rich-text-paint.js'
 import { DEFAULT_FONT } from '../studio/fonts.js'
 import { createFontSettings } from './font-settings.js'
 import { imageAssetKey, imageAssetUrl, imageSourceName, isRemoteImage } from '../studio/assets/catalog.js'
@@ -2212,9 +2213,22 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
       const alpha = Math.max(0, Math.min(1, Number(color.a ?? 1)))
       return `rgba(${Math.round(color.r)},${Math.round(color.g)},${Math.round(color.b)},${alpha})`
     }
+    function StageRichText({ box, layout, scale, fontFamily }) {
+      const ref = React.useRef(null)
+      const resolution = Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1) * Math.max(0.1, scale || 1)
+      React.useLayoutEffect(() => {
+        if (ref.current) paintRichTextCanvas(ref.current, { ...box, textLayout: layout }, box.width, box.height, fontFamily, resolution)
+      }, [box, layout, resolution, fontFamily])
+      return h('canvas', { ref, className: 'look2-rich-text', role: 'img', 'aria-label': layout.lines.join('\n'),
+        style: { position: 'absolute', inset: 0, width: '100%', height: '100%' } })
+    }
     function stageBoxContent(box, children = []) {
       if (box.kind === 'textbox' || box.kind === 'textwindow') {
         const layout = textLayout(box, box.width, box.height)
+        if (layout.richLines) {
+          return h('div', { className: 'look2-stage-text', style: { position: 'relative', background: rgbaCss(box.bgColor) } },
+            h(StageRichText, { box, layout, scale: stageScale, fontFamily }))
+        }
         const fontSize = Math.max(1, layout.fontSize * stageScale)
         const horizontal = box.horizontalAlignment === 'Right' ? 'flex-end' : box.horizontalAlignment === 'Middle' ? 'center' : 'flex-start'
         const vertical = box.verticalAlignment === 'Bottom' ? 'flex-end' : box.verticalAlignment === 'Middle' ? 'center' : 'flex-start'

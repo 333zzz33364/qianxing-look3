@@ -3052,8 +3052,8 @@
     },
     {
      "scope": "studio",
-     "tests": 623,
-     "pass": 623,
+     "tests": 631,
+     "pass": 631,
      "fail": 0,
      "cancelled": 0,
      "skipped": 0
@@ -3076,22 +3076,22 @@
     },
     {
      "scope": "web",
-     "tests": 73,
+     "tests": 74,
      "pass": 45,
      "fail": 0,
      "cancelled": 0,
-     "skipped": 28
+     "skipped": 29
     }
    ],
    "totals": {
-    "tests": 848,
-    "pass": 820,
+    "tests": 857,
+    "pass": 828,
     "fail": 0,
     "cancelled": 0,
-    "skipped": 28
+    "skipped": 29
    },
    "skips": [
-    "28 项需真实浏览器或未配置 Electron 的平台条件用例"
+    "29 项需真实浏览器或未配置 Electron 的平台条件用例"
    ],
    "log": "look3-workspace/整合/20261030-上游适配与落账/完整回归.log",
    "finalSource": true,
@@ -3103,8 +3103,8 @@
   },
   "browserRegression": {
    "command": "QXQY_BROWSER=<Edge 可执行文件> node --test --test-concurrency=1 test/*.test.mjs",
-   "tests": 73,
-   "pass": 71,
+   "tests": 74,
+   "pass": 72,
    "fail": 0,
    "skipped": 2,
    "skips": [
@@ -3118,7 +3118,8 @@
     "HUD 文本视觉复用",
     "本地字体",
     "树/时间轴指针编辑",
-    "界面动效素材库筛选与选择"
+    "界面动效素材库筛选与选择",
+    "富文本编辑器画布与 WebGL 绘制"
    ],
    "screenshots": "look3-workspace/整合/20261030-上游适配与落账/浏览器截图/look3-ui-vfx-library.png"
   },
@@ -3135,6 +3136,30 @@
     "独立选中层：selectionOnly 分支与遮罩分组分离、层级隐藏控件不进入画布"
    ]
   },
+  "richTextTests": {
+   "source": "上游 Look 7ef398c（release 2.2.1 / 0.5.1）",
+   "command": "node --test studio/test/rich-text.test.mjs web/test/rich-text-browser.test.mjs",
+   "studio": {
+    "tests": 8,
+    "pass": 8,
+    "fail": 0
+   },
+   "browser": {
+    "tests": 1,
+    "pass": 1,
+    "fail": 0
+   },
+   "covers": [
+    "Unity 基础标签嵌套与继承、#RRGGBBAA 解析为 ARGB 控制色",
+    "非法/未闭合/交叉标签保持字面量，不做 HTML 解码",
+    "按 run 换行、<size> 绝对字号、混排自缩小与缓存",
+    "PNG 颜色/透明度、扁平与树一致、Lua 更新保留原始标记",
+    "混排字号滚动按实际行高、裁剪视口重绘",
+    "九种对齐共用基线并保留描边",
+    "JSON/GIA 原样保存标记串，编辑器布局暴露样式行",
+    "Pixi 复用 canvas 纹理、富文本与纯文本互切释放资源"
+   ]
+  },
   "build": {
    "command": "node scripts/build.mjs dsh-plugin",
    "exitCode": 0,
@@ -3148,17 +3173,17 @@
     {
      "product": "dsh-plugin",
      "filename": "look3-dsh-plugin-3.1.1.tgz",
-     "sha256": "53ba1f1dc801c59a63d628604e2d56612a35f99f1a5b3770e8a447fe2bffd2dc"
+     "sha256": "86b4634bfb1bf75a4dbff9e89168d5590fbd531cf8ccd7181448c2ecf03299e3"
     },
     {
      "product": "mcp",
      "filename": "look3-mcp-3.1.1.tgz",
-     "sha256": "eed04ec2451202e5abb0b8b27260c002b44c6fc1ef7fc1c6f981a14f1d33addf"
+     "sha256": "e090369a0a0eed35d8c4d6f93edac9f620e1d91a40e00e38d8b1934ee29f7126"
     },
     {
      "product": "web",
      "filename": "look3-web-3.1.1.tgz",
-     "sha256": "73b942476b61b41c62594b9fefd95d8ee26dddfc4b83e5d8fc6ba194d1015172"
+     "sha256": "c15ddd03b88a1c60e98623e9d6e53614695a4af1785d5de609fc6867172ab89c"
     }
    ]
   },
@@ -3175,7 +3200,7 @@
     "4.0.4",
     "4.0.5"
    ],
-   "result": "三组各 5 项 PASS：工具注册/执行/输出、控制器+Worker+PNG+GIA+Skill+预设、工具管线与会话隔离、Web HTTP/静态资源、MCP+Web 跨进程保护"
+   "result": "富文本适配后重跑，三组各 5 项 PASS：工具注册/执行/输出、控制器+Worker+PNG+GIA+Skill+预设、工具管线与会话隔离、Web HTTP/静态资源、MCP+Web 跨进程保护"
   },
   "auditReports": [
    "look3-workspace/整合/20261030-上游适配与落账/上游核对-20261030.json",

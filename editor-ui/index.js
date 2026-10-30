@@ -10,7 +10,7 @@ import { createColorField } from './color-field.js'
 import { imageMaskFields } from './image-mask-fields.js'
 import { createUIVfxField } from './ui-vfx-field.js'
 import { controlTransformStyle } from './control-transform.js'
-import { textPreviewContent, textPreviewStyle } from './text-preview.js'
+import { createTextPreview } from './text-preview.js'
 import { createMaskedControls } from './mask-preview.js'
 import { GUID_MIN, GUID_MAX, isValidGuid } from '../studio/gia/guid.js'
 import { isRemoteImage, imageAssetKey } from '../studio/assets/catalog.js'
@@ -24,6 +24,7 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false, upd
     const ControlGuidSyncPanel = createControlGuidSyncPanel(React)
     const usePlayLauncher = createPlayLauncher(React)
     const ImagePreview = createImagePreview(React)
+    const TextPreview = createTextPreview(React)
     const ImageTypeField = createImageTypeField(React)
     const ColorField = createColorField(React)
     const UIVfxField = createUIVfxField(React)
@@ -666,7 +667,7 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false, upd
       else if (kind === 'container') style.background = 'transparent'
       const content = kind === 'image' && item.primitive === 'sprite'
         ? e(ImagePreview, { key: imageAssetKey(item.imageId, item.imageSource), item })
-        : textKind ? e('span', { style: textPreviewStyle(item, zoom, fontFamily) }, textPreviewContent(item))
+        : textKind ? e(TextPreview, { key: `text:${item.id}`, item, zoom, fontFamily })
           : kind === 'image' && item.primitive === 'missing' ? e('span', { className: 'qxsim-box-label' }, `缺少图片 ${item.imageId || ''}`)
             : kind !== 'container' && kind !== 'image' ? e('span', { className: 'qxsim-box-label' }, item.name || KIND_META[kind]?.[1] || kind) : null
       return e('div', { key: item.id, 'data-control-id': item.id, className: `qxsim-box ${kind}${item.instantiated ? ' dynamic' : ''}${item.pressed ? ' pressed' : ''}`, style }, content)
