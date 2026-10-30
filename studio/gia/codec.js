@@ -4,7 +4,7 @@ import { assertPlatformNode } from '../ui/transforms.js'
 import { toJson } from '../json.js'
 import { assertNativeKeyCode } from '../ui/keyhint.js'
 import { createNode, walk } from '../ui/authoring.js'
-import { GUID_BASE, collectUsedGuids, isValidGuid, nextFreeGuid } from './guid.js'
+import { GUID_BASE, assertExportGuid, collectUsedGuids, isStoredGuid, isValidGuid, nextFreeGuid } from './guid.js'
 import { extractSupportedUiGia } from './mixed-ui.js'
 import { ensureClientAssetIndices, isValidAssetIndex } from './asset-indices.js'
 import { collectClientNodes } from './client-order.js'
@@ -206,12 +206,14 @@ function guidWalkNodes(project) {
   return nodes
 }
 
-export function assignGuids(project, used = new Set()) {
+export function assignGuids(project, used = new Set(), { preserveLegacy = false } = {}) {
   const map = new Map()
   const pending = []
-  for (const node of guidWalkNodes(project)) {
+  const nodes = guidWalkNodes(project)
+  if (!preserveLegacy) for (const node of nodes) assertExportGuid(node.guid, node.name)
+  for (const node of nodes) {
     const guid = Number(node.guid)
-    if (isValidGuid(guid) && !used.has(guid)) {
+    if ((preserveLegacy ? isStoredGuid(guid) : isValidGuid(guid)) && !used.has(guid)) {
       used.add(guid)
       node.guid = guid
       map.set(node.id, guid)
@@ -726,6 +728,7 @@ function encodeGiaEnvelope(rootObject) {
 function scriptGraphUnits(scripts, used = new Set()) {
   const list = (scripts || []).filter((script) => script.path || script.source).map((script) => ({ ...script }))
   const pending = []
+  for (const script of list) assertExportGuid(script.guid, script.path || script.id)
   for (const script of list) {
     const guid = Number(script.guid)
     if (isValidGuid(guid) && !used.has(guid)) {
@@ -853,7 +856,7 @@ export function validateScriptGiaCompatibility(input) {
       errors.push(`${label}: 缺少 field35 ScriptMappingWrapper`)
       return
     }
-    if (Number(unit.id?.id) <= 0) errors.push(`${label}: GraphUnit.id.id 非法`)
+    if (!isValidGuid(unit.id?.id)) errors.push(`${label}: GraphUnit.id.id 非法（允许 0x40000000–0x403FFFFF）`)
     if (Number(mapping.id) !== Number(unit.id?.id)) errors.push(`${label}: mapping.id 应等于 GraphUnit.id.id`)
     if (String(mapping.name || '') !== String(unit.name || '')) errors.push(`${label}: mapping.name 应等于 GraphUnit.name`)
     if (!String(mapping.filePath || '').trim()) errors.push(`${label}: file_path 为空`)
@@ -1301,7 +1304,7 @@ export function validateGiaCompatibility(input) {
     const kind = detectKind(unit)
     const isTemplate = graphs.includes(unit) && unit.which === 70
     const prefix = `${unit.name || '<unnamed>'}(${guid || '<missing-guid>'})`
-    if (!Number.isSafeInteger(guid) || guid <= 0 || guid > 0x7fffffff) errors.push(`${prefix}: GraphUnit GUID 非法`)
+    if (!isValidGuid(guid)) errors.push(`${prefix}: GraphUnit GUID 非法（允许 0x40000000–0x403FFFFF）`)
     else if (unitByGuid.has(guid)) errors.push(`${prefix}: GUID 与 ${unitByGuid.get(guid).name || '<unnamed>'} 重复`)
     else unitByGuid.set(guid, unit)
     if (unit.id?.class !== 1 || unit.id?.type !== 8) errors.push(`${prefix}: GraphUnit.id 必须为 class=1,type=8`)
@@ -1434,7 +1437,7 @@ export function validateServerGiaCompatibility(input) {
   for (const unit of allUnits) {
     const guid = unit.id?.id || 0
     const prefix = `${unit.name || '<unnamed>'}(${guid || '<missing-guid>'})`
-    if (!Number.isSafeInteger(guid) || guid <= 0 || guid > 0x7fffffff) errors.push(`${prefix}: GraphUnit GUID 非法`)
+    if (!isValidGuid(guid)) errors.push(`${prefix}: GraphUnit GUID 非法（允许 0x40000000–0x403FFFFF）`)
     else if (unitByGuid.has(guid)) errors.push(`${prefix}: GUID 重复`)
     else unitByGuid.set(guid, unit)
     if (unit.id?.class !== 1 || unit.id?.type !== 8) errors.push(`${prefix}: GraphUnit.id 必须为 class=1,type=8`)

@@ -25,7 +25,7 @@ export function apply(ctx, config) {
     try {
       const require = createRequire(import.meta.url)
       const manifest = JSON.parse(await readFile(require.resolve('look3-dsh-plugin/package.json'), 'utf8'))
-      for (const version of ['0.1.0-rc.6', '0.1.7-rc.2', '0.2.0-rc.1', '0.2.0-rc.2', '0.2.1-rc.2']) {
+      for (const version of ['0.1.0-rc.6', '0.1.7-rc.2', '0.2.0-rc.1', '0.2.0-rc.2', '0.2.1-rc.1', '0.2.1-rc.2']) {
         assert.equal(evaluatePluginCompatibility(manifest, {}, version), undefined, version)
       }
       assert.ok(evaluatePluginCompatibility(manifest, {}, '0.3.0-rc.1'), 'Do not silently admit a future minor API')
@@ -33,6 +33,19 @@ export function apply(ctx, config) {
       assert.equal(preset.broken, undefined, JSON.stringify(preset))
       const lease = await ctx.agentPresets.acquireScope(preset.id)
       try {
+        // Newer hosts expose a system-prompt service and no longer register cwd.
+        // Render the mounted preset without a model request to catch variables
+        // an older/newer host would leave unresolved.
+        if (ctx.systemPrompt?.assemble) {
+          const { renderPrompt } = await import('@deepseek-ai/dsh-system-prompt')
+          const assembly = await ctx.systemPrompt.assemble({ scope: lease.key })
+          const prompt = renderPrompt({
+            ...assembly,
+            variables: { ...assembly.variables, provider: 'compat-provider', model: 'compat-model' },
+          })
+          assert.match(prompt, /千星奇域 2D\+Lua game studio director powered by the compat-model model/)
+          assert.doesNotMatch(prompt, /\{\{(?:cwd|model)\}\}/)
+        }
         const skill = await ctx.skills.get('qxqy-game-studio', { scope: lease.key, cwd: config.workspace })
         assert.ok(skill, 'The embedded preset must discover its bundled game-studio Skill')
         assert.match(skill.content, /PREFLIGHT/)

@@ -8,8 +8,11 @@ import { createPlayLauncher } from './play-launcher.js'
 import { createImagePreview, createImageTypeField } from './image-preview.js'
 import { createColorField } from './color-field.js'
 import { imageMaskFields } from './image-mask-fields.js'
+import { createUIVfxField } from './ui-vfx-field.js'
 import { controlTransformStyle } from './control-transform.js'
-import { textPreviewStyle } from './text-preview.js'
+import { textPreviewContent, textPreviewStyle } from './text-preview.js'
+import { createMaskedControls } from './mask-preview.js'
+import { GUID_MIN, GUID_MAX, isValidGuid } from '../studio/gia/guid.js'
 import { isRemoteImage, imageAssetKey } from '../studio/assets/catalog.js'
 import { refreshBrowserImage } from '../studio/assets/browser.js'
 import { loadBrowserFont } from '../studio/play/browser-font.js'
@@ -23,6 +26,8 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false, upd
     const ImagePreview = createImagePreview(React)
     const ImageTypeField = createImageTypeField(React)
     const ColorField = createColorField(React)
+    const UIVfxField = createUIVfxField(React)
+    const MaskedControls = createMaskedControls(React)
     const EditorFooter = createEditorFooter(React, { updatePath, languagePath })
 
     const STYLE_ID = 'qxqy-simulator-style'
@@ -294,7 +299,9 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false, upd
         ? e(NodeReferenceField, { key: field.key, field, commit, createStateChild })
         : field?.key === 'imageType' && inspector.kind === 'image'
           ? e(ImageTypeField, { key: field.key, imageId: f.imageId?.value, imageSource: f.imageSource?.value, value: field.value, commit })
-          : field ? e(DraftField, { key: field.key, field, commit }) : null
+          : field?.key === 'animationId' && (inspector.kind === 'animation' || inspector.kind === 'fullscreen')
+            ? e(UIVfxField, { key: field.key, field, scope: inspector.kind === 'fullscreen' ? 'screen' : 'ui', commit })
+            : field ? e(DraftField, { key: field.key, field, commit }) : null
       const isGroupField = (field) => !!field && !field.readonly && !['N', 'U'].includes(field.evidence)
         && field.type !== 'note' && !Object.hasOwn(field, 'unknownValue')
         && !(typeof field.value === 'string' && field.value.startsWith('__unrecognized:'))
@@ -366,12 +373,12 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false, upd
       const canAutofill = autofill?.count > 1 && autofill.selectedOffset >= 0
       const firstGuid = /^[0-9]+$/.test(draft.trim()) ? Number(draft) - (autofill?.selectedOffset || 0) : NaN
       const lastGuid = firstGuid + (autofill?.count || 0) - 1
-      const validRange = Number.isSafeInteger(firstGuid) && firstGuid >= 1 && lastGuid <= 2147483647
+      const validRange = isValidGuid(firstGuid) && isValidGuid(lastGuid)
       async function submit(event) {
         event.preventDefault()
         const value = draft.trim()
-        if (!/^[0-9]+$/.test(value) || Number(value) < 1 || Number(value) > 2147483647) {
-          setError('请输入 1–2147483647 之间的整数索引。')
+        if (!/^[0-9]+$/.test(value) || !isValidGuid(value)) {
+          setError(`索引范围：${GUID_MIN}–${GUID_MAX}`)
           return
         }
         setBusy(true); setError('')
@@ -640,7 +647,7 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false, upd
       if (selected && selected.kind !== 'server-container') return selected.id
       return parentContainer(root, selectedId)
     }
-    function renderControl(item, snap, canvasWidth, canvasHeight, zoom, dragOffset, fontFamily) {
+    function renderControl(item, snap, canvasWidth, canvasHeight, zoom, dragOffset, fontFamily, selectionOnly = false) {
       const kind = item.kind
       const textKind = kind === 'textbox' || kind === 'textwindow'
       const offset = dragOffset?.id === item.id ? dragOffset : null
@@ -650,16 +657,19 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false, upd
       const rotationZ = item.renderRotationZ ?? item.rotationZ ?? 0
       const style = { left: `${left / canvasWidth * 100}%`, bottom: `${bottom / canvasHeight * 100}%`, width: `${width / canvasWidth * 100}%`, height: `${height / canvasHeight * 100}%`, '--rotation': `${-Number(rotationZ)}deg`, fontSize: `${Math.max(1, Number(item.fontSize || 12) * zoom)}px`, color: textKind ? argb(item.fontColor, 0xffffffff) : '#fff' }
       Object.assign(style, controlTransformStyle(item, canvasWidth, canvasHeight, offset))
+      if (selectionOnly) return e('div', {
+        className: 'qxsim-box selected qxsim-selection', 'data-selection-id': item.id,
+        style: { ...style, border: '1px solid #61b9ff', background: 'transparent', zIndex: 2 },
+      }, kind !== 'container' ? ['tl', 'tr', 'bl', 'br'].map((pos) => e('i', { key: pos, className: `qxsim-handle ${pos}` })) : null)
       if (kind === 'image') Object.assign(style, shape(item.primitive, argb(item.imageColor, 0xffffffff)))
       else if (textKind) { style.background = argb(item.bgColor, 0x00ffffff); style.justifyContent = item.horizontalAlignment === 'Right' ? 'flex-end' : item.horizontalAlignment === 'Middle' ? 'center' : 'flex-start'; style.alignItems = item.verticalAlignment === 'Bottom' ? 'flex-end' : item.verticalAlignment === 'Middle' ? 'center' : 'flex-start'; style.textShadow = item.enableOutline === false ? 'none' : `0 0 2px ${argb(item.outlineColor, 0xff000000)}` }
       else if (kind === 'container') style.background = 'transparent'
-      const selected = item.id === snap.selectedId
       const content = kind === 'image' && item.primitive === 'sprite'
         ? e(ImagePreview, { key: imageAssetKey(item.imageId, item.imageSource), item })
-        : textKind ? e('span', { style: textPreviewStyle(item, zoom, fontFamily) }, item.textLayout?.lines?.join('\n') ?? item.text ?? '')
+        : textKind ? e('span', { style: textPreviewStyle(item, zoom, fontFamily) }, textPreviewContent(item))
           : kind === 'image' && item.primitive === 'missing' ? e('span', { className: 'qxsim-box-label' }, `缺少图片 ${item.imageId || ''}`)
             : kind !== 'container' && kind !== 'image' ? e('span', { className: 'qxsim-box-label' }, item.name || KIND_META[kind]?.[1] || kind) : null
-      return e('div', { key: item.id, 'data-control-id': item.id, className: `qxsim-box ${kind}${selected ? ' selected' : ''}${item.instantiated ? ' dynamic' : ''}${item.pressed ? ' pressed' : ''}`, style }, content, selected && kind !== 'container' ? ['tl', 'tr', 'bl', 'br'].map((pos) => e('i', { key: pos, className: `qxsim-handle ${pos}` })) : null)
+      return e('div', { key: item.id, 'data-control-id': item.id, className: `qxsim-box ${kind}${item.instantiated ? ' dynamic' : ''}${item.pressed ? ' pressed' : ''}`, style }, content)
     }
 
     function SimulatorView({ sessionId }) {
@@ -1019,7 +1029,8 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false, upd
       for (const row of snap.tree || []) {
         if (hiddenCanvasIds[row.id] || (row.ancestorIds || []).some((id) => hiddenCanvasIds[id])) canvasHiddenIds.add(row.id)
       }
-      const renderBoxes = (snap.boxes || []).filter((box) => box.kind !== 'server-container' && box.visible && !canvasHiddenIds.has(box.id))
+      const renderBoxes = (snap.boxes || []).filter((box) => box.kind !== 'server-container' && box.visible && box.visibleInHierarchy !== false && !canvasHiddenIds.has(box.id))
+      const selectionBox = renderBoxes.find((box) => box.id === snap.selectedId)
       function toggleCanvasVisible(event, id) {
         event.stopPropagation()
         setHiddenCanvasIds((prev) => {
@@ -1086,7 +1097,7 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false, upd
               clientTemplates && selectedRow ? e('div', { className: 'qxsim-hierarchy' }, e('div', { className: 'qxsim-hierarchy-head' }, e('strong', null, '层级与模板边界'), e('span', null, selectedRow.name)), e('div', { className: 'qxsim-parent-row' }, e('select', { 'aria-label': '父级控件', value: selectedParentId, onChange: (event) => void patch({ op: 'reparent', id: selectedRow.id, parentId: event.target.value }).then(() => setNotice(event.target.value === snap.root.id ? '已提升为可实例化顶层模板' : '已调整控件父级')).catch(() => {}) }, e('option', { value: snap.root.id }, '顶层模板（可实例化）'), parentCandidates.map((row) => e('option', { key: row.id, value: row.id }, `${'　'.repeat(row.depth)}${row.name}`))), e('button', { title: '在同级中上移', disabled: selectedRow.siblingIndex <= 0, onClick: () => void patch({ op: 'moveSibling', id: selectedRow.id, direction: 'up' }).catch(() => {}) }, '↑'), e('button', { title: '在同级中下移', disabled: selectedRow.siblingIndex >= selectedRow.siblingCount - 1, onClick: () => void patch({ op: 'moveSibling', id: selectedRow.id, direction: 'down' }).catch(() => {}) }, '↓')), e('div', { className: 'qxsim-hierarchy-note' }, selectedRow.depth === 0 ? '该节点会写入独立 UIControlTemplate，可直接作为 prefabId。' : `当前为第 ${selectedRow.depth} 层子控件，不会单独成为 prefabId。`)) : null,
               e('div', { className: 'qxsim-palette-head' }, e('span', { title: clientTemplates && addMode === 'template' ? '新增独立可实例化模板' : `添加到${selectedRow ? selectedRow.name : '当前控件'}` }, clientTemplates && addMode === 'template' ? '新增顶层模板' : `添加到${selectedRow ? `“${selectedRow.name}”` : '当前控件'}`), clientTemplates ? e('span', { className: 'qxsim-add-mode' }, e('button', { className: addMode === 'template' ? 'active' : '', onClick: () => setAddMode('template') }, '顶层'), e('button', { className: addMode === 'child' ? 'active' : '', onClick: () => setAddMode('child') }, '子控件')) : null),
               e('div', { className: 'qxsim-add' }, CONTROL_TYPES.filter(([kind]) => clientTemplates || kind !== 'container').map(([kind, label]) => e('button', { key: kind, title: `${clientTemplates && addMode === 'template' ? '新增' : '添加'}${label}`, onClick: () => addControl(kind, label) }, `＋ ${label}`))))),
-          e('main', { className: 'qxsim-center' }, e('div', { className: 'qxsim-workspace', ref: workspaceRef }, e('div', { className: 'qxsim-stage-shell', style: { width: `${Math.max(40, Math.round(canvasWidth * effectiveZoom))}px` } }, e('div', { className: 'qxsim-stage-label' }, e('b', null, clientTemplates ? 'Lua 模板预览' : '界面控件组'), e('span', { className: 'qxsim-platform-tag' }, snap.canvas.platform), e('span', null, `${activeRatio} · ${canvasWidth}×${canvasHeight} · 左下原点`)), e('div', { className: 'qxsim-stage', style: { width: '100%', aspectRatio: `${canvasWidth} / ${canvasHeight}`, touchAction: 'none' }, onPointerDown: canvasPointerDown, onPointerMove: canvasPointerMove, onPointerUp: canvasPointerUp, onPointerCancel: canvasPointerCancel }, renderBoxes.map((item) => renderControl(item, snap, canvasWidth, canvasHeight, effectiveZoom, dragOffset, fontFamily))))), error ? e('div', { className: 'qxsim-status error' }, '⚠ ', error) : e('div', { className: 'qxsim-status' }, e('span', null, `● ${snap.asset?.label || '控件'}编辑`), e('span', null, notice || (selectedRow ? `当前：${selectedRow.name}` : '')), e('span', { className: 'spacer' }), e('span', null, clientTemplates ? 'GIA 导出后可在 Lua 中按 prefabId 实例化' : '点击选中，拖动移动；保存后写盘'))),
+          e('main', { className: 'qxsim-center' }, e('div', { className: 'qxsim-workspace', ref: workspaceRef }, e('div', { className: 'qxsim-stage-shell', style: { width: `${Math.max(40, Math.round(canvasWidth * effectiveZoom))}px` } }, e('div', { className: 'qxsim-stage-label' }, e('b', null, clientTemplates ? 'Lua 模板预览' : '界面控件组'), e('span', { className: 'qxsim-platform-tag' }, snap.canvas.platform), e('span', null, `${activeRatio} · ${canvasWidth}×${canvasHeight} · 左下原点`)), e('div', { className: 'qxsim-stage', style: { width: '100%', aspectRatio: `${canvasWidth} / ${canvasHeight}`, touchAction: 'none' }, onPointerDown: canvasPointerDown, onPointerMove: canvasPointerMove, onPointerUp: canvasPointerUp, onPointerCancel: canvasPointerCancel }, e(MaskedControls, { boxes: renderBoxes, canvasWidth, canvasHeight, renderControl: (item) => renderControl(item, snap, canvasWidth, canvasHeight, effectiveZoom, dragOffset, fontFamily) }), selectionBox ? renderControl(selectionBox, snap, canvasWidth, canvasHeight, effectiveZoom, dragOffset, fontFamily, true) : null))), error ? e('div', { className: 'qxsim-status error' }, '⚠ ', error) : e('div', { className: 'qxsim-status' }, e('span', null, `● ${snap.asset?.label || '控件'}编辑`), e('span', null, notice || (selectedRow ? `当前：${selectedRow.name}` : '')), e('span', { className: 'spacer' }), e('span', null, clientTemplates ? 'GIA 导出后可在 Lua 中按 prefabId 实例化' : '点击选中，拖动移动；保存后写盘'))),
           e('aside', { className: 'qxsim-inspector' }, snap.inspector ? e(React.Fragment, null,
             e('div', { className: 'qxsim-inspector-head' }, e('div', { className: 'qxsim-inspector-line' }, e('span', { className: 'qxsim-kind' }, (KIND_META[snap.inspector.kind] || ['◇'])[0]), e('strong', null, snap.inspector.label), clientTemplates && selectedRow?.depth === 0 ? e('span', { className: 'qxsim-template-tag' }, '可实例化') : null), e('div', { className: 'qxsim-node-id' }, clientTemplates && selectedRow?.depth === 0 ? '导出 prefabId ' : '控件 GUID ', e('code', null, snap.inspector.guid ?? snap.inspector.id), ' · ', selectedRow?.name || '节点', clientTemplates && selectedRow?.depth === 0 ? e('small', null, '（真实编辑器导入后可能重映射）') : null), snap.inspector.kind !== 'server-container' ? e(ControlGuidEditor, { key: `${snap.asset?.type}:${snap.inspector.id}`, inspector: snap.inspector, autofill: snap.clientGuidAutofill, onSave: (id, guid, automatic) => changeControlGuid(id, guid, snap.asset?.type, automatic) }) : null),
             e('div', { className: 'qxsim-tabs', style: canInspectorScript ? undefined : { gridTemplateColumns: '1fr' } },

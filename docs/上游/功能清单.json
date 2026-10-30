@@ -1,3091 +1,3181 @@
 {
-  "schemaVersion": 1,
-  "features": [
-    {
-      "id": "L01",
-      "name": "Lua生命周期、脚本挂载与require",
-      "source": "look",
-      "upstreamPaths": [
-        "client/lua-runtime"
-      ],
-      "targetPaths": [
-        "client/lua-runtime"
-      ],
-      "tests": [
-        "client/lua-runtime/test/runtime.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/Look独立审计-20261019收口.md#l01",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "本地运行时行为有源码和回归断言支持",
-        "report": "docs/上游/Look独立审计-20261019收口.md#l01",
-        "evidence": [
-          {
-            "kind": "source-or-test-or-log",
-            "path": "client/lua-runtime/src/runtime.js"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "client/lua-runtime/test/runtime.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
-          }
-        ],
-        "boundaries": [
-          "未在千星客户端验证Lua生命周期"
-        ]
-      }
-    },
-    {
-      "id": "L02",
-      "name": "Tween、Sequence与动画回调",
-      "source": "look",
-      "upstreamPaths": [
-        "client/lua-runtime/src/tween.js"
-      ],
-      "targetPaths": [
-        "client/lua-runtime/src/tween.js",
-        "studio/look2"
-      ],
-      "tests": [
-        "client/lua-runtime/test/runtime.test.mjs",
-        "studio/test/look2-player.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/Look独立审计-20261019收口.md#l02",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "本地Tween、Sequence和Look2播放链路有源码与回归断言支持",
-        "report": "docs/上游/Look独立审计-20261019收口.md#l02",
-        "evidence": [
-          {
-            "kind": "source-or-test-or-log",
-            "path": "client/lua-runtime/src/tween.js"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "client/lua-runtime/test/runtime.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/test/look2-player.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
-          }
-        ],
-        "boundaries": [
-          "千星实际Tween时钟及回调语义未验收"
-        ]
-      }
-    },
-    {
-      "id": "L03",
-      "name": "鼠标、触摸、按键与命中",
-      "source": "look",
-      "upstreamPaths": [
-        "client/lua-runtime/src/runtime.js",
-        "studio/play/browser-session.js",
-        "studio/play/key-bindings.js"
-      ],
-      "targetPaths": [
-        "client/lua-runtime/src/runtime.js",
-        "studio/play/browser-session.js"
-      ],
-      "tests": [
-        "studio/test/browser-session.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/Look独立审计-20261019收口.md#l03",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "本地浏览器输入适配有源码与回归断言支持",
-        "report": "docs/上游/Look独立审计-20261019收口.md#l03",
-        "evidence": [
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/play/browser-session.js"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/test/browser-session.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
-          }
-        ],
-        "boundaries": [
-          "真实千星鼠标、触摸设备和游戏内命中未验收"
-        ]
-      }
-    },
-    {
-      "id": "L04",
-      "name": "网格条目实例化、布局与滚动",
-      "source": "look",
-      "upstreamPaths": [
-        "client/lua-runtime/src/grid.js",
-        "studio/play/scroll-geometry.js",
-        "studio/play/scroll.js"
-      ],
-      "targetPaths": [
-        "client/lua-runtime/src/grid.js",
-        "studio/play/scroll.js"
-      ],
-      "tests": [
-        "studio/test/scroll.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/Look独立审计-20261019收口.md#l04",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "本地网格与滚动行为有源码和回归断言支持",
-        "report": "docs/上游/Look独立审计-20261019收口.md#l04",
-        "evidence": [
-          {
-            "kind": "source-or-test-or-log",
-            "path": "client/lua-runtime/src/grid.js"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/play/scroll.js"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/test/scroll.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
-          }
-        ],
-        "boundaries": [
-          "千星Grid运行时及目标设备滚动未验收"
-        ]
-      }
-    },
-    {
-      "id": "L05",
-      "name": "文本视窗、换行与滚动条",
-      "source": "look",
-      "upstreamPaths": [
-        "studio/play/text-layout.js",
-        "studio/play/scroll.js"
-      ],
-      "targetPaths": [
-        "studio/play/text-layout.js",
-        "studio/play/pixi-renderer.js"
-      ],
-      "tests": [
-        "studio/test/scroll.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/Look独立审计-20261019收口.md#l05",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "本地文本视窗、换行和滚动条有源码与回归断言支持",
-        "report": "docs/上游/Look独立审计-20261019收口.md#l05",
-        "evidence": [
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/play/text-layout-core.js"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/test/scroll.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
-          }
-        ],
-        "boundaries": [
-          "目标客户端字体度量、裁剪和滚动条呈现未验收"
-        ]
-      }
-    },
-    {
-      "id": "L06",
-      "name": "2D音频、停止与存活状态",
-      "source": "look",
-      "upstreamPaths": [
-        "client/lua-runtime/src/runtime.js",
-        "studio/play/audio-player.js",
-        "studio/host/audio-assets.js",
-        "studio/assets/audio-catalog.js"
-      ],
-      "targetPaths": [
-        "studio/play/audio-player.js",
-        "studio/host/audio-assets.js"
-      ],
-      "tests": [
-        "client/lua-runtime/test/audio.test.mjs",
-        "studio/test/audio-player.test.mjs",
-        "web/test/audio-assets.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/Look独立审计-20261019收口.md#l06",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "本地音频生命周期与浏览器播放链路有源码和回归断言支持",
-        "report": "docs/上游/Look独立审计-20261019收口.md#l06",
-        "evidence": [
-          {
-            "kind": "source-or-test-or-log",
-            "path": "client/lua-runtime/test/audio.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/test/audio-player.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
-          }
-        ],
-        "boundaries": [
-          "千星音频接口和宿主解码策略未验收"
-        ]
-      }
-    },
-    {
-      "id": "L07",
-      "name": "三轴旋转投影与反向命中",
-      "source": "look",
-      "upstreamPaths": [
-        "studio/ui/layout.js",
-        "editor-ui/control-transform.js"
-      ],
-      "targetPaths": [
-        "studio/ui/layout.js",
-        "editor-ui/look2.js"
-      ],
-      "tests": [
-        "studio/test/rotation-xy.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/Look独立审计-20261019收口.md#l07",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "本地三轴投影与反向命中有源码和回归断言支持",
-        "report": "docs/上游/Look独立审计-20261019收口.md#l07",
-        "evidence": [
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/ui/layout.js"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/test/rotation-xy.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
-          }
-        ],
-        "boundaries": [
-          "不同平台真实渲染和命中坐标未验收"
-        ]
-      }
-    },
-    {
-      "id": "L08",
-      "name": "图片、元件图标与来源隔离缓存",
-      "source": "look",
-      "upstreamPaths": [
-        "studio/assets",
-        "studio/host/image-assets.js",
-        "editor-ui/image-preview.js"
-      ],
-      "targetPaths": [
-        "studio/assets",
-        "studio/host/image-assets.js",
-        "editor-ui/image-preview.js"
-      ],
-      "tests": [
-        "studio/test/image-assets.test.mjs",
-        "web/test/image-assets.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/Look独立审计-20261019收口.md#l08",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log",
-        "look3-workspace/整合/20261019-续/图片修复-真实浏览器.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "共享图片加载、缓存、刷新有定向浏览器及回归证据",
-        "report": "docs/上游/Look独立审计-20261019收口.md#l08",
-        "evidence": [
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/host/image-assets.js"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "web/test/image-assets.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-续/图片修复-真实浏览器.log"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
-          }
-        ],
-        "boundaries": [
-          "固定图片源服务和千星资源目录未验收；原浏览器日志验证共享链路，不单独证明活动Look2画布接线"
-        ]
-      }
-    },
-    {
-      "id": "L09",
-      "name": "九宫格、图片填充、软遮罩与资源释放",
-      "source": "look",
-      "upstreamPaths": [
-        "studio/assets/image-stretch.js",
-        "studio/play/image-mask.js",
-        "studio/play/pixi-renderer.js"
-      ],
-      "targetPaths": [
-        "studio/assets/image-stretch.js",
-        "studio/play/image-mask.js",
-        "studio/play/pixi-renderer.js"
-      ],
-      "tests": [
-        "studio/test/image-mask.test.mjs",
-        "studio/test/look2-image-mask.test.mjs",
-        "studio/test/image-fill.test.mjs",
-        "studio/test/editor-image-preview.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/Look独立审计-20261019收口.md#l09",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "本地行为已验证；覆盖硬裁剪、径向90/180/360填充、顺逆时针、反转遮罩、Percentage softRange及资源释放",
-        "report": "docs/上游/Look独立审计-20261019收口.md#l09",
-        "evidence": [
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/assets/image-stretch.js"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/play/image-mask.js"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/test/image-mask.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/test/image-fill.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/test/editor-image-preview.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
-          }
-        ],
-        "boundaries": [
-          "真实客户端遮罩和填充效果未验收"
-        ]
-      }
-    },
-    {
-      "id": "L10",
-      "name": "本地字体、PNG与浏览器文字测量",
-      "source": "look",
-      "upstreamPaths": [
-        "studio/fonts.js",
-        "studio/host/local-font.js",
-        "studio/play/browser-font.js",
-        "editor-ui/text-preview.js"
-      ],
-      "targetPaths": [
-        "studio/fonts.js",
-        "studio/host/local-font.js",
-        "studio/play/browser-font.js"
-      ],
-      "tests": [
-        "studio/test/local-font.test.mjs",
-        "web/test/local-font.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/Look独立审计-20261019收口.md#l10",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "本地字体测量、PNG和浏览器链路有源码及回归证据",
-        "report": "docs/上游/Look独立审计-20261019收口.md#l10",
-        "evidence": [
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/play/text-layout-core.js"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/test/text-autosize.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/test/local-font.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
-          }
-        ],
-        "boundaries": [
-          "未覆盖目标系统全部字体与字形塑形；未证明等价于千星文本框度量"
-        ]
-      }
-    },
-    {
-      "id": "L11",
-      "name": "GIA与JSON资产交换、布局迁移",
-      "source": "look",
-      "upstreamPaths": [
-        "studio/gia",
-        "studio/ui/project.js",
-        "studio/json.js"
-      ],
-      "targetPaths": [
-        "studio/gia",
-        "studio/ui/project.js",
-        "studio/json.js"
-      ],
-      "tests": [
-        "studio/test/platform-layout.test.mjs",
-        "studio/test/gia-observed-fields.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/Look独立审计-20261019收口.md#l11",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "本地GIA/JSON往返和布局迁移有fixture与回归断言支持",
-        "report": "docs/上游/Look独立审计-20261019收口.md#l11",
-        "evidence": [
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/gia"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/test/platform-layout.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/test/gia-observed-fields.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
-          }
-        ],
-        "boundaries": [
-          "真实四设备GIA字节和目标编辑器导入回读未验收"
-        ]
-      }
-    },
-    {
-      "id": "L12",
-      "name": "持久客户端索引与同级wire顺序",
-      "source": "look",
-      "upstreamPaths": [
-        "studio/gia/asset-indices.js",
-        "studio/gia/client-order.js"
-      ],
-      "targetPaths": [
-        "studio/gia/asset-indices.js",
-        "studio/gia/client-order.js"
-      ],
-      "tests": [
-        "studio/test/gia-asset-indices.test.mjs",
-        "studio/test/gia-client-order.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/Look独立审计-20261019收口.md#l12",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "本地持久客户端索引和wire顺序适配有源码与回归断言支持",
-        "report": "docs/上游/Look独立审计-20261019收口.md#l12",
-        "evidence": [
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/gia/asset-indices.js"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/gia/client-order.js"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
-          }
-        ],
-        "boundaries": [
-          "真实目标GIA/编辑器中的编码和身份语义未验收"
-        ]
-      }
-    },
-    {
-      "id": "L13",
-      "name": "变量、信号与多人隔离",
-      "source": "look",
-      "upstreamPaths": [
-        "server",
-        "studio/play/session.js"
-      ],
-      "targetPaths": [
-        "server",
-        "studio/play/session.js"
-      ],
-      "tests": [
-        "server/test/server.test.mjs",
-        "studio/test/autotest.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/Look独立审计-20261019收口.md#l13",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "本地模拟服务端变量、信号和多人隔离有源码与回归断言支持",
-        "report": "docs/上游/Look独立审计-20261019收口.md#l13",
-        "evidence": [
-          {
-            "kind": "source-or-test-or-log",
-            "path": "server/test/server.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/test/autotest.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
-          }
-        ],
-        "boundaries": [
-          "千星服务端节点图和真实多人房间未验收"
-        ]
-      }
-    },
-    {
-      "id": "L14",
-      "name": "多设备画布与多人视角",
-      "source": "look",
-      "upstreamPaths": [
-        "studio/constants.js",
-        "studio/ui/layout.js",
-        "studio/play/session.js"
-      ],
-      "targetPaths": [
-        "studio/constants.js",
-        "studio/ui/layout.js",
-        "studio/play/session.js"
-      ],
-      "tests": [
-        "studio/test/play-target.test.mjs",
-        "studio/test/platform-layout.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/Look独立审计-20261019收口.md#l14",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "本地四平台作者预览和多人视角有源码与回归断言支持",
-        "report": "docs/上游/Look独立审计-20261019收口.md#l14",
-        "evidence": [
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/look2/preview.js"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/test/editor-platform-preview.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/test/play-target.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
-          }
-        ],
-        "boundaries": [
-          "控制器槽位预览不模拟真实手柄运行时；真实设备与多人实机未验收"
-        ]
-      }
-    },
-    {
-      "id": "L15",
-      "name": "启动、暂停、步进与两种时钟",
-      "source": "look",
-      "upstreamPaths": [
-        "studio/host/controller.js",
-        "studio/host/worker.js",
-        "studio/play/session.js"
-      ],
-      "targetPaths": [
-        "studio/host/controller.js",
-        "studio/host/worker.js"
-      ],
-      "tests": [
-        "studio/test/host-clock.test.mjs",
-        "studio/test/play-target.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/Look独立审计-20261019收口.md#l15",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "本地宿主时钟、启停与手动步进有源码和回归断言支持",
-        "report": "docs/上游/Look独立审计-20261019收口.md#l15",
-        "evidence": [
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/host/controller.js"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/test/host-clock.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/test/play-target.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
-          }
-        ],
-        "boundaries": [
-          "千星帧钟、后台节流和真实宿主启停未验收"
-        ]
-      }
-    },
-    {
-      "id": "L16",
-      "name": "日志、录制、回放与断言",
-      "source": "look",
-      "upstreamPaths": [
-        "studio/log",
-        "studio/autotest"
-      ],
-      "targetPaths": [
-        "studio/log",
-        "studio/autotest"
-      ],
-      "tests": [
-        "studio/test/autotest.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/Look独立审计-20261019收口.md#l16",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "本地日志、录制、回放与断言失败快照有源码和回归断言支持",
-        "report": "docs/上游/Look独立审计-20261019收口.md#l16",
-        "evidence": [
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/log"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/autotest"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/test/autotest.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
-          }
-        ],
-        "boundaries": [
-          "千星日志和自动化格式兼容未验收"
-        ]
-      }
-    },
-    {
-      "id": "L17",
-      "name": "存档发现、扫描预算与显式保存",
-      "source": "look",
-      "upstreamPaths": [
-        "studio/host/workspace.js",
-        "studio/host/controller.js",
-        "web/lib/session.js"
-      ],
-      "targetPaths": [
-        "studio/host/workspace.js",
-        "studio/host/controller.js",
-        "web/lib/session.js"
-      ],
-      "tests": [
-        "studio/test/workspace.test.mjs",
-        "studio/test/workspace.upstream.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/Look独立审计-20261019收口.md#l17",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log",
-        "look3-workspace/整合/20261019-收口/文件改名边界局部.log",
-        "look3-workspace/整合/20261019-收口/跨实例文件保护局部.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "本地工作区路径管理、同进程映射、并发保护和跨实例旧绑定拒写有源码及15/15定向证据",
-        "report": "docs/上游/Look独立审计-20261019收口.md#l17",
-        "evidence": [
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/host/archive-management.js"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/host/controller.js"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "web/lib/editor-sessions.js"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/test/archive-management.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "web/test/editor-archive-actions.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/文件改名边界局部.log"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/跨实例文件保护局部.log"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
-          }
-        ],
-        "boundaries": [
-          "隔离进程不会自动同步UI会话路径；旧绑定保存被拒后需重新加载或另存为；真实DSH会话、千星目录和系统文件管理器未验收"
-        ]
-      }
-    },
-    {
-      "id": "L18",
-      "name": "索引批量校准与Lua引用同步",
-      "source": "look",
-      "upstreamPaths": [
-        "studio/control-guid-lua.js",
-        "studio/host/control-guid-sync.js",
-        "editor-ui/control-guid-sync.js"
-      ],
-      "targetPaths": [
-        "studio/control-guid-lua.js",
-        "studio/host/control-guid-sync.js",
-        "editor-ui/control-guid-sync.js"
-      ],
-      "tests": [
-        "studio/test/control-guid-sync.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/Look独立审计-20261019收口.md#l18",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "本地GUID校准和Lua引用同步计划/文件操作有源码与回归断言支持",
-        "report": "docs/上游/Look独立审计-20261019收口.md#l18",
-        "evidence": [
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/control-guid-lua.js"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/host/control-guid-sync.js"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/test/control-guid-sync.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
-          }
-        ],
-        "boundaries": [
-          "未对真实游戏脚本目录执行用户确认后的同步"
-        ]
-      }
-    },
-    {
-      "id": "L19",
-      "name": "实机脚本目录绑定、差异与确认复制",
-      "source": "look",
-      "upstreamPaths": [
-        "studio/script-sync-config.js",
-        "studio/host/script-sync.js",
-        "editor-ui/script-sync.js"
-      ],
-      "targetPaths": [
-        "studio/script-sync-config.js",
-        "studio/host/script-sync.js",
-        "editor-ui/script-sync.js"
-      ],
-      "tests": [
-        "studio/test/script-sync.test.mjs",
-        "web/test/script-sync-e2e.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/Look独立审计-20261019收口.md#l19",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "本地临时目录脚本绑定、差异和显式确认复制链路有源码与回归断言支持",
-        "report": "docs/上游/Look独立审计-20261019收口.md#l19",
-        "evidence": [
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/script-sync-config.js"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/host/script-sync.js"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "studio/test/script-sync.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "web/test/script-sync-e2e.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
-          }
-        ],
-        "boundaries": [
-          "真实千星安装目录未执行复制验收"
-        ]
-      }
-    },
-    {
-      "id": "L20",
-      "name": "Web编辑、磁盘预览与独立会话",
-      "source": "look",
-      "upstreamPaths": [
-        "web"
-      ],
-      "targetPaths": [
-        "web"
-      ],
-      "tests": [
-        "web/test/editor.test.mjs",
-        "web/test/web.test.mjs",
-        "web/test/preview-state.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/Look独立审计-20261019收口.md#l20",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "本地Web编辑会话、预览切换和旧写入保护有源码与回归断言支持",
-        "report": "docs/上游/Look独立审计-20261019收口.md#l20",
-        "evidence": [
-          {
-            "kind": "source-or-test-or-log",
-            "path": "web/server.js"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "web/lib/editor-sessions.js"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "web/test/editor.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "web/test/preview-state.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
-          }
-        ],
-        "boundaries": [
-          "未做发布部署或非本机真实服务验收"
-        ]
-      }
-    },
-    {
-      "id": "L21",
-      "name": "MCP工具、预览桥接与手动时钟",
-      "source": "look",
-      "upstreamPaths": [
-        "mcp"
-      ],
-      "targetPaths": [
-        "mcp"
-      ],
-      "tests": [
-        "mcp/test/protocol.test.mjs",
-        "mcp/test/web-integration.test.mjs",
-        "mcp/test/protocol.upstream.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/Look独立审计-20261019收口.md#l21",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "本地MCP协议、预览桥接、手动时钟和进程间路径行为有源码与回归断言支持",
-        "report": "docs/上游/Look独立审计-20261019收口.md#l21",
-        "evidence": [
-          {
-            "kind": "source-or-test-or-log",
-            "path": "mcp/index.js"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "mcp/lib/preview.js"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "mcp/test/protocol.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "mcp/test/protocol.upstream.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "mcp/test/web-integration.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
-          }
-        ],
-        "boundaries": [
-          "功能清单测试路径遗漏protocol.upstream.test.mjs；真实MCP宿主连接未验收"
-        ]
-      }
-    },
-    {
-      "id": "L22",
-      "name": "DSH工具、资源路由与生命周期",
-      "source": "look",
-      "upstreamPaths": [
-        "dsh-plugin"
-      ],
-      "targetPaths": [
-        "dsh-plugin"
-      ],
-      "tests": [
-        "dsh-plugin/test/plugin.test.mjs",
-        "dsh-plugin/test/lifecycle.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/Look独立审计-20261019收口.md#l22",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log",
-        "look3-workspace/整合/20261019-收口/跨实例文件保护局部.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "本地DSH资源/管理路由、同宿主会话映射和失败边界有源码及15/15定向证据",
-        "report": "docs/上游/Look独立审计-20261019收口.md#l22",
-        "evidence": [
-          {
-            "kind": "source-or-test-or-log",
-            "path": "dsh-plugin/lib/index.js"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "dsh-plugin/test/archive-management.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "dsh-plugin/test/plugin.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "dsh-plugin/test/lifecycle.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/跨实例文件保护局部.log"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
-          }
-        ],
-        "boundaries": [
-          "跨进程会话不自动重映射；真实DSH用户会话未验收"
-        ]
-      }
-    },
-    {
-      "id": "L23",
-      "name": "独立窗口与受限宿主内嵌试玩",
-      "source": "look",
-      "upstreamPaths": [
-        "editor-ui/play-launcher.js",
-        "dsh-plugin/lib/play.html"
-      ],
-      "targetPaths": [
-        "editor-ui/play-launcher.js",
-        "dsh-plugin/lib/play.html"
-      ],
-      "tests": [
-        "web/test/desktop-play.test.mjs",
-        "web/test/embedded-play-browser.test.mjs",
-        "web/test/play-return.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/Look独立审计-20261019收口.md#l23",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "本地Web/popup/iframe关闭链路有源码与浏览器回归断言支持",
-        "report": "docs/上游/Look独立审计-20261019收口.md#l23",
-        "evidence": [
-          {
-            "kind": "source-or-test-or-log",
-            "path": "editor-ui/play-launcher.js"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "web/test/play-return.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "web/test/embedded-play-browser.test.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
-          }
-        ],
-        "boundaries": [
-          "Electron测试因未配置环境而跳过；真实DSH壳未验收"
-        ]
-      }
-    },
-    {
-      "id": "L24",
-      "name": "七步制作工作流与预设",
-      "source": "look",
-      "upstreamPaths": [
-        "agent",
-        "skill"
-      ],
-      "targetPaths": [
-        "agent",
-        "skill"
-      ],
-      "tests": [
-        "scripts/smoke-installed.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/Look独立审计-20261019收口.md#l24",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log",
-        "look3-workspace/整合/20261019-收口/最终三产品隔离安装.log",
-        "look3-workspace/整合/20261019-收口/官方DSH隔离宿主验证.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "本地Skill/预设交付及两API隔离包、官方DSH临时profile均有运行证据",
-        "report": "docs/上游/Look独立审计-20261019收口.md#l24",
-        "evidence": [
-          {
-            "kind": "source-or-test-or-log",
-            "path": "scripts/smoke-installed.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "agent/wonderland-lua-builder"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/最终三产品隔离安装.log"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/官方DSH隔离宿主验证.log"
-          }
-        ],
-        "boundaries": [
-          "尚未验证用户按七步完成玩法；不以新增玩法为本地交付条件；千星或宿主验收未做"
-        ]
-      }
-    },
-    {
-      "id": "L25",
-      "name": "三产品构建、独立安装与许可文件",
-      "source": "look",
-      "upstreamPaths": [
-        "scripts",
-        "package.json",
-        "Dockerfile",
-        "compose.yaml"
-      ],
-      "targetPaths": [
-        "scripts",
-        "package.json",
-        "Dockerfile",
-        "compose.yaml"
-      ],
-      "tests": [
-        "scripts/test.mjs",
-        "scripts/smoke-packages.mjs",
-        "scripts/smoke-git-install.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/Look独立审计-20261019收口.md#l25",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log",
-        "look3-workspace/整合/20261019-收口/最终三产品构建.log",
-        "look3-workspace/整合/20261019-收口/最终三产品打包.log",
-        "look3-workspace/整合/20261019-收口/最终三产品隔离安装.log",
-        "look3-workspace/整合/20261019-收口/最终Git源码隔离安装.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "三产品构建打包、两API隔离安装、Git源码安装和包SHA均已验证",
-        "report": "docs/上游/Look独立审计-20261019收口.md#l25",
-        "evidence": [
-          {
-            "kind": "source-or-test-or-log",
-            "path": "scripts/build.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "scripts/pack.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "scripts/smoke-packages.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "scripts/smoke-git-install.mjs"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "release/manifest.json"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/最终三产品构建.log"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/最终三产品打包.log"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/最终三产品隔离安装.log"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/最终Git源码隔离安装.log"
-          },
-          {
-            "kind": "source-or-test-or-log",
-            "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
-          }
-        ],
-        "boundaries": [
-          "安装路径和Harness smoke不证明千星、真实DSH用户环境或项目试玩；不自动改变正式acceptedCommit"
-        ]
-      }
-    },
-    {
-      "id": "U-UI01",
-      "name": "同工程1280×720/1920×1080下比对工具栏、四区域与时间轴布局、颜色、字体、间距和选中状态",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/界面资源独立审计-20261019收口.md#u-ui01",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log",
-        "look3-workspace/整合/20261019-收口/界面对照/原Look2-1280x720.png",
-        "look3-workspace/整合/20261019-收口/界面对照/Look3-1280x720.png",
-        "look3-workspace/整合/20261019-收口/界面对照/原Look2-1920x1080.png",
-        "look3-workspace/整合/20261019-收口/界面对照/Look3-1920x1080.png",
-        "look3-workspace/整合/20261019-收口/界面对照/界面量测.json"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "visual-compared-partial",
-        "report": "docs/上游/界面资源独立审计-20261019收口.md#u-ui01",
-        "evidence": [
-          {
-            "kind": "screenshot",
-            "path": "look3-workspace/整合/20261019-收口/界面对照/原Look2-1280x720.png",
-            "result": "同工程原Look2截图，1280x720",
-            "boundary": "仅截图静态状态"
-          },
-          {
-            "kind": "screenshot",
-            "path": "look3-workspace/整合/20261019-收口/界面对照/Look3-1280x720.png",
-            "result": "同工程Look3截图，1280x720",
-            "boundary": "仅截图静态状态"
-          },
-          {
-            "kind": "screenshot",
-            "path": "look3-workspace/整合/20261019-收口/界面对照/原Look2-1920x1080.png",
-            "result": "同工程原Look2截图，1920x1080",
-            "boundary": "仅截图静态状态"
-          },
-          {
-            "kind": "screenshot",
-            "path": "look3-workspace/整合/20261019-收口/界面对照/Look3-1920x1080.png",
-            "result": "同工程Look3截图，1920x1080",
-            "boundary": "仅截图静态状态"
-          },
-          {
-            "kind": "measurement",
-            "path": "look3-workspace/整合/20261019-收口/界面对照/界面量测.json",
-            "result": "四区域/时间轴尺寸、位置、字体、抽样颜色、选中态和溢出检查一致",
-            "boundary": "未做全部工具项逐像素差分；顶层壳层/部分工具文案存在差异"
-          },
-          {
-            "kind": "test",
-            "path": "web/test/look3-editor-browser.test.mjs",
-            "result": "桌面/窄屏页面入口与可见性回归",
-            "boundary": "不替代Look2与Look3视觉差分"
-          }
-        ],
-        "boundaries": [
-          "仅截图静态状态",
-          "未做全部工具项逐像素差分；顶层壳层/部分工具文案存在差异",
-          "不替代Look2与Look3视觉差分"
-        ]
-      }
-    },
-    {
-      "id": "U-UI02",
-      "name": "工具栏工作区、新建、保存、撤销/重做/记录、导入/导出、模板、图片、Lua、设备、缩放入口可操作",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/界面资源独立审计-20261019收口.md#u-ui02",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "behavior-tested-partial",
-        "report": "docs/上游/界面资源独立审计-20261019收口.md#u-ui02",
-        "evidence": [
-          {
-            "kind": "test",
-            "path": "studio/test/editor-workspace-panel.test.mjs",
-            "result": "3/3通过，覆盖工作区面板、筛选、创建/改名路径处理器",
-            "boundary": "不覆盖全部工具栏入口的端到端操作"
-          },
-          {
-            "kind": "test",
-            "path": "studio/test/editor-timeline.test.mjs",
-            "result": "覆盖历史、时间轴和部分真实按钮处理器",
-            "boundary": "导入/导出、模板、图片、Lua、设备入口未组成完整操作矩阵"
-          }
-        ],
-        "boundaries": [
-          "不覆盖全部工具栏入口的端到端操作",
-          "导入/导出、模板、图片、Lua、设备入口未组成完整操作矩阵"
-        ]
-      }
-    },
-    {
-      "id": "U-UI03",
-      "name": "树搜索、父子折叠、隐藏、锁定、删除、复制、拖放改父级及层序，选中与属性/画布联动",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/界面资源独立审计-20261019收口.md#u-ui03",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "behavior-tested-partial",
-        "report": "docs/上游/界面资源独立审计-20261019收口.md#u-ui03",
-        "evidence": [
-          {
-            "kind": "test",
-            "path": "studio/test/editor-hierarchy-selection.test.mjs",
-            "result": "重挂、拖放、选择、失败原子性、撤销/重做断言",
-            "boundary": "不是所有树操作的单一页面流程"
-          },
-          {
-            "kind": "test",
-            "path": "studio/test/editor-selection-visibility.test.mjs",
-            "result": "显隐子树与选中状态断言",
-            "boundary": "搜索/锁定/拖放组合未全覆盖"
-          },
-          {
-            "kind": "test",
-            "path": "studio/test/editor-container-actions.test.mjs",
-            "result": "删除与层序操作断言",
-            "boundary": "外部编辑器验收未做"
-          }
-        ],
-        "boundaries": [
-          "不是所有树操作的单一页面流程",
-          "搜索/锁定/拖放组合未全覆盖",
-          "外部编辑器验收未做"
-        ]
-      }
-    },
-    {
-      "id": "U-UI04",
-      "name": "画布滚轮缩放、中键平移、缩放百分比/增减/适应、坐标与设备尺寸显示",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/界面资源独立审计-20261019收口.md#u-ui04",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "wiring-reviewed",
-        "report": "docs/上游/界面资源独立审计-20261019收口.md#u-ui04",
-        "evidence": [
-          {
-            "kind": "source",
-            "path": "editor-ui/look2.js",
-            "result": "存在滚轮缩放、中键平移、缩放按钮、百分比、坐标和设备尺寸接线",
-            "boundary": "缺编辑画布滚轮/中键真实指针行为断言"
-          },
-          {
-            "kind": "test",
-            "path": "web/test/look3-editor-browser.test.mjs",
-            "result": "验证页面布局和入口可见",
-            "boundary": "Runtime滚轮测试不等同于画布缩放/平移"
-          }
-        ],
-        "boundaries": [
-          "缺编辑画布滚轮/中键真实指针行为断言",
-          "Runtime滚轮测试不等同于画布缩放/平移"
-        ]
-      }
-    },
-    {
-      "id": "U-UI05",
-      "name": "三合一/移动/旋转/大小手柄；父级有旋转/缩放时仍使用正确坐标；锁定对象不能拖动",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/界面资源独立审计-20261019收口.md#u-ui05",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "behavior-tested-partial",
-        "report": "docs/上游/界面资源独立审计-20261019收口.md#u-ui05",
-        "evidence": [
-          {
-            "kind": "test",
-            "path": "studio/test/editor-resize-anchors.test.mjs",
-            "result": "八方向缩放、反向边保持、旋转缩放父级局部几何断言",
-            "boundary": "不覆盖所有设备/锁定/手柄模式的外部真实操作"
-          },
-          {
-            "kind": "test",
-            "path": "studio/test/editor-timeline.test.mjs",
-            "result": "平台变换草稿提交与撤销行为断言",
-            "boundary": "非千星实机验收"
-          }
-        ],
-        "boundaries": [
-          "不覆盖所有设备/锁定/手柄模式的外部真实操作",
-          "非千星实机验收"
-        ]
-      }
-    },
-    {
-      "id": "U-UI06",
-      "name": "骨骼模式、动画面板收起/展开、时间轴高度拖动，窄屏不丢失功能入口",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/界面资源独立审计-20261019收口.md#u-ui06",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "behavior-tested-partial",
-        "report": "docs/上游/界面资源独立审计-20261019收口.md#u-ui06",
-        "evidence": [
-          {
-            "kind": "test",
-            "path": "studio/test/editor-timeline.test.mjs",
-            "result": "面板收起状态断言",
-            "boundary": "没有覆盖每种窄屏/拖动高度组合"
-          },
-          {
-            "kind": "test",
-            "path": "web/test/look3-bones-browser.test.mjs",
-            "result": "骨骼创建、长度手柄、附着、撤销真实指针行为",
-            "boundary": "本地浏览器，不是目标游戏编辑器"
-          },
-          {
-            "kind": "test",
-            "path": "web/test/look3-editor-browser.test.mjs",
-            "result": "桌面及窄屏入口可见性",
-            "boundary": "不是窄屏全状态组合验证"
-          }
-        ],
-        "boundaries": [
-          "没有覆盖每种窄屏/拖动高度组合",
-          "本地浏览器，不是目标游戏编辑器",
-          "不是窄屏全状态组合验证"
-        ]
-      }
-    },
-    {
-      "id": "U-UI07",
-      "name": "属性基础/运行时页、分组展开/复制/重置，四平台变换与锚点预设、3D数值、创建/编辑设置",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/界面资源独立审计-20261019收口.md#u-ui07",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "behavior-tested-partial",
-        "report": "docs/上游/界面资源独立审计-20261019收口.md#u-ui07",
-        "evidence": [
-          {
-            "kind": "test",
-            "path": "studio/test/field-groups.test.mjs",
-            "result": "Inspector字段到布局/动画通道映射断言",
-            "boundary": "不覆盖所有字段页视觉/提交组合"
-          },
-          {
-            "kind": "test",
-            "path": "studio/test/editor-platform-preview.test.mjs",
-            "result": "四平台作者预览和未变Runtime视口断言",
-            "boundary": "非真实游戏视口"
-          },
-          {
-            "kind": "test",
-            "path": "studio/test/editor-timeline.test.mjs",
-            "result": "平台轴草稿处理器断言",
-            "boundary": "全字段矩阵未覆盖"
-          }
-        ],
-        "boundaries": [
-          "不覆盖所有字段页视觉/提交组合",
-          "非真实游戏视口",
-          "全字段矩阵未覆盖"
-        ]
-      }
-    },
-    {
-      "id": "U-UI08",
-      "name": "各控件类型属性显示与提交，颜色、文本、字体、图片、填充、遮罩、软边、按钮状态/模板引用等",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/界面资源独立审计-20261019收口.md#u-ui08",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "behavior-tested-partial",
-        "report": "docs/上游/界面资源独立审计-20261019收口.md#u-ui08",
-        "evidence": [
-          {
-            "kind": "test",
-            "path": "studio/test/gia-observed-fields.test.mjs",
-            "result": "观察到的字段导入/导出及平台语义断言",
-            "boundary": "不是各控件全属性UI矩阵"
-          },
-          {
-            "kind": "test",
-            "path": "studio/test/editor-image-preview.test.mjs",
-            "result": "遮罩/羽化/填充图像预览断言",
-            "boundary": "外部游戏运行语义未验"
-          },
-          {
-            "kind": "test",
-            "path": "studio/test/editor-timeline.test.mjs",
-            "result": "动画属性编辑子集断言",
-            "boundary": "颜色、字体、模板引用等未全覆盖"
-          }
-        ],
-        "boundaries": [
-          "不是各控件全属性UI矩阵",
-          "外部游戏运行语义未验",
-          "颜色、字体、模板引用等未全覆盖"
-        ]
-      }
-    },
-    {
-      "id": "U-RS01",
-      "name": "本地/网址图片导入，图片随正式工程保存；网址失效后仍可重开",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/界面资源独立审计-20261019收口.md#u-rs01",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "behavior-tested-partial",
-        "report": "docs/上游/界面资源独立审计-20261019收口.md#u-rs01",
-        "evidence": [
-          {
-            "kind": "test",
-            "path": "studio/test/look2-image-source.test.mjs",
-            "result": "网址导入内嵌字节、非法格式拒绝不污染缓存",
-            "boundary": "不等于真实文件选择器/外网服务器验收"
-          },
-          {
-            "kind": "test",
-            "path": "studio/test/look2.test.mjs",
-            "result": "工程资源往返覆盖",
-            "boundary": "外部目标存档未导入"
-          }
-        ],
-        "boundaries": [
-          "不等于真实文件选择器/外网服务器验收",
-          "外部目标存档未导入"
-        ]
-      }
-    },
-    {
-      "id": "U-RS02",
-      "name": "资源搜索、重命名、共享引用/引用数、清除与删除，绑定多个控件并保存重开",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/界面资源独立审计-20261019收口.md#u-rs02",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "behavior-tested-partial",
-        "report": "docs/上游/界面资源独立审计-20261019收口.md#u-rs02",
-        "evidence": [
-          {
-            "kind": "test",
-            "path": "studio/test/editor-resource-options.test.mjs",
-            "result": "单项清除绑定及删除范围断言",
-            "boundary": "引用数显示未单独断言"
-          },
-          {
-            "kind": "test",
-            "path": "studio/test/look2-history.test.mjs",
-            "result": "资源事务撤销/重做断言",
-            "boundary": "全部资源类型UI矩阵未覆盖"
-          },
-          {
-            "kind": "test",
-            "path": "studio/test/look2.test.mjs",
-            "result": "存档往返覆盖",
-            "boundary": "真实设备文件读写未验"
-          }
-        ],
-        "boundaries": [
-          "引用数显示未单独断言",
-          "全部资源类型UI矩阵未覆盖",
-          "真实设备文件读写未验"
-        ]
-      }
-    },
-    {
-      "id": "U-RS03",
-      "name": "椭圆/矩形/三角形拟合：数量、精度、线程、透明选项，恢复默认参数",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/界面资源独立审计-20261019收口.md#u-rs03",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "behavior-tested-partial",
-        "report": "docs/上游/界面资源独立审计-20261019收口.md#u-rs03",
-        "evidence": [
-          {
-            "kind": "test",
-            "path": "studio/test/look2-primitives.test.mjs",
-            "result": "选项归一化/默认值/Worker硬件上限行为断言",
-            "boundary": "不同机器性能与负载未验"
-          },
-          {
-            "kind": "test",
-            "path": "studio/test/editor-resource-options.test.mjs",
-            "result": "逐资源参数读写断言",
-            "boundary": "外部宿主Worker限制未验"
-          }
-        ],
-        "boundaries": [
-          "不同机器性能与负载未验",
-          "外部宿主Worker限制未验"
-        ]
-      }
-    },
-    {
-      "id": "U-RS04",
-      "name": "计算不阻塞编辑器，进度与取消；关闭面板取消剩余计算，已完成结果保留；过期结果不覆盖新资源",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/界面资源独立审计-20261019收口.md#u-rs04",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "behavior-tested-partial",
-        "report": "docs/上游/界面资源独立审计-20261019收口.md#u-rs04",
-        "evidence": [
-          {
-            "kind": "test",
-            "path": "studio/test/look2-primitives.test.mjs",
-            "result": "Worker进度与终止断言",
-            "boundary": "面板真实关闭流程未独立验证"
-          },
-          {
-            "kind": "test",
-            "path": "studio/test/editor-resource-options.test.mjs",
-            "result": "批处理取消、成功/中断/未处理统计、失败后继续断言",
-            "boundary": "浏览器UI生命周期组合待验"
-          }
-        ],
-        "boundaries": [
-          "面板真实关闭流程未独立验证",
-          "浏览器UI生命周期组合待验"
-        ]
-      }
-    },
-    {
-      "id": "U-RS05",
-      "name": "一键生成全部缺失图元不受搜索限制，逐图参数生效，失败与取消结果准确",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/界面资源独立审计-20261019收口.md#u-rs05",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "behavior-tested",
-        "report": "docs/上游/界面资源独立审计-20261019收口.md#u-rs05",
-        "evidence": [
-          {
-            "kind": "test",
-            "path": "studio/test/editor-resource-options.test.mjs",
-            "result": "明确断言批处理不受搜索过滤、逐图参数、失败继续及取消统计",
-            "boundary": "真实大规模图片和宿主性能未测"
-          }
-        ],
-        "boundaries": [
-          "真实大规模图片和宿主性能未测"
-        ]
-      }
-    },
-    {
-      "id": "U-RS06",
-      "name": "原图/拟合显示切换与全局切换；同资源在不同尺寸控件中等比适配",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/界面资源独立审计-20261019收口.md#u-rs06",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "behavior-tested-partial",
-        "report": "docs/上游/界面资源独立审计-20261019收口.md#u-rs06",
-        "evidence": [
-          {
-            "kind": "test",
-            "path": "studio/test/editor-image-preview.test.mjs",
-            "result": "预览、缓存更新和图像行为断言",
-            "boundary": "不同尺寸控件共享资源的视觉比例未单测"
-          },
-          {
-            "kind": "source",
-            "path": "editor-ui/look2.js",
-            "result": "单项/全局预览切换入口存在",
-            "boundary": "不等于浏览器交互全流程"
-          }
-        ],
-        "boundaries": [
-          "不同尺寸控件共享资源的视觉比例未单测",
-          "不等于浏览器交互全流程"
-        ]
-      }
-    },
-    {
-      "id": "U-RS07",
-      "name": "导出/导入纯填充SVG、shaper CSS，支持三种形状与平移/旋转/缩放；透明/白底语义一致",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/界面资源独立审计-20261019收口.md#u-rs07",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "behavior-tested-partial",
-        "report": "docs/上游/界面资源独立审计-20261019收口.md#u-rs07",
-        "evidence": [
-          {
-            "kind": "test",
-            "path": "studio/test/look2-primitives.test.mjs",
-            "result": "纯填充SVG/CSS往返、几何、颜色/透明度及底色映射断言",
-            "boundary": "外部工具边缘格式兼容未验"
-          }
-        ],
-        "boundaries": [
-          "外部工具边缘格式兼容未验"
-        ]
-      }
-    },
-    {
-      "id": "U-RS08",
-      "name": "不支持曲线/描边/渐变/蒙版时明确报错，旧拟合与原图/ID不变；成功覆盖可撤销",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/界面资源独立审计-20261019收口.md#u-rs08",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "behavior-tested-partial",
-        "report": "docs/上游/界面资源独立审计-20261019收口.md#u-rs08",
-        "evidence": [
-          {
-            "kind": "test",
-            "path": "studio/test/look2-primitives.test.mjs",
-            "result": "不支持path/描边/渐变时拒绝并保留旧拟合",
-            "boundary": "成功覆盖的专用导入handler撤销测试不足"
-          },
-          {
-            "kind": "test",
-            "path": "studio/test/look2-history.test.mjs",
-            "result": "共享历史事务有撤销/重做测试",
-            "boundary": "不是每种导入handler的单独撤销证明"
-          }
-        ],
-        "boundaries": [
-          "成功覆盖的专用导入handler撤销测试不足",
-          "不是每种导入handler的单独撤销证明"
-        ]
-      }
-    },
-    {
-      "id": "U-RS09",
-      "name": "参考源在线素材目录/分类/搜索/真实缩略图/边框；已加载项自动缓存，断网仍可读取",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/界面资源独立审计-20261019收口.md#u-rs09",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "behavior-tested-partial",
-        "report": "docs/上游/界面资源独立审计-20261019收口.md#u-rs09",
-        "evidence": [
-          {
-            "kind": "test",
-            "path": "studio/test/look2-image-source.test.mjs",
-            "result": "目录/图片共用请求与离线回退断言",
-            "boundary": "测试端点可控，不是官方在线源"
-          },
-          {
-            "kind": "test",
-            "path": "web/test/editor.test.mjs",
-            "result": "目录/图片/Worker路由及缓存头断言",
-            "boundary": "DSH实际远程请求未验"
-          }
-        ],
-        "boundaries": [
-          "测试端点可控，不是官方在线源",
-          "DSH实际远程请求未验"
-        ]
-      }
-    },
-    {
-      "id": "U-AN01",
-      "name": "动画新增/复制/改名/删除/切换，共享基础控件但关键帧、事件、时长相互独立",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/格式动画独立审计-20261019收口.md#u-an01",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "partial-local-evidence",
-        "report": "docs/上游/格式动画独立审计-20261019收口.md#u-an01",
-        "evidence": [
-          {
-            "kind": "local-test",
-            "path": "studio/test/editor-timeline.test.mjs",
-            "claim": "动画复制隔离、事务失败和撤销路径。"
-          },
-          {
-            "kind": "local-test",
-            "path": "studio/test/editor-animation-names.test.mjs",
-            "claim": "唯一名称、输入边界和失败不改历史。"
-          }
-        ],
-        "boundaries": []
-      }
-    },
-    {
-      "id": "U-AN02",
-      "name": "分组轨道/控件折叠、当前值/插帧、秒/帧刻度、播放头、回起点、播放/暂停、帧率/时长/吸附",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/格式动画独立审计-20261019收口.md#u-an02",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "partial-local-evidence",
-        "report": "docs/上游/格式动画独立审计-20261019收口.md#u-an02",
-        "evidence": [
-          {
-            "kind": "local-test",
-            "path": "studio/test/editor-timeline.test.mjs",
-            "claim": "分组折叠、传输、时长钳制、拒绝事务和关键帧时间吸附。"
-          }
-        ],
-        "boundaries": []
-      }
-    },
-    {
-      "id": "U-AN03",
-      "name": "双击/右键插帧、拖动、关键帧参数、多选、Ctrl+C/V、Delete、轨道删除，撤销恢复",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/格式动画独立审计-20261019收口.md#u-an03",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "partial-local-evidence",
-        "report": "docs/上游/格式动画独立审计-20261019收口.md#u-an03",
-        "evidence": [
-          {
-            "kind": "local-test",
-            "path": "studio/test/editor-timeline.test.mjs",
-            "claim": "组拖动、插帧事务、轨道增删、复制粘贴、删除和撤销。"
-          }
-        ],
-        "boundaries": []
-      }
-    },
-    {
-      "id": "U-AN04",
-      "name": "31种缓动以及阶跃/补间、最后保持、精确边界、颜色/布尔字段的正确编辑与播放",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/格式动画独立审计-20261019收口.md#u-an04",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "partial-local-evidence",
-        "report": "docs/上游/格式动画独立审计-20261019收口.md#u-an04",
-        "evidence": [
-          {
-            "kind": "local-test",
-            "path": "studio/test/look2-player.test.mjs",
-            "claim": "本地 JavaScript/Lua 缓动、相对值、incoming、末帧保持和显隐阶跃。"
-          },
-          {
-            "kind": "source-review",
-            "path": "studio/look2/sampling.js",
-            "claim": "31 个正式公式及 3 个旧名称兼容别名。"
-          }
-        ],
-        "boundaries": []
-      }
-    },
-    {
-      "id": "U-AN05",
-      "name": "位置/大小/缩放的前帧增量；首帧基于初始值，后续基于前一右侧值；跳变入侧值",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/格式动画独立审计-20261019收口.md#u-an05",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "partial-local-evidence",
-        "report": "docs/上游/格式动画独立审计-20261019收口.md#u-an05",
-        "evidence": [
-          {
-            "kind": "local-test",
-            "path": "studio/test/look3-site-interop.test.mjs",
-            "claim": "Clip v4/v5/v6、incoming 值、接边迁移、元数据与输入不变。"
-          },
-          {
-            "kind": "local-test",
-            "path": "studio/test/look2-player.test.mjs",
-            "claim": "本地 JavaScript/Lua Runtime 采样对照。"
-          }
-        ],
-        "boundaries": []
-      }
-    },
-    {
-      "id": "U-AN06",
-      "name": "旋转多圈角度、组透明度0–255、颜色RGBA与首帧前显隐，JS/Lua结果对照",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/格式动画独立审计-20261019收口.md#u-an06",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "partial-local-evidence",
-        "report": "docs/上游/格式动画独立审计-20261019收口.md#u-an06",
-        "evidence": [
-          {
-            "kind": "local-test",
-            "path": "studio/test/look2-animation-interop.test.mjs",
-            "claim": "多圈旋转、颜色、组透明度和跨越事件。"
-          },
-          {
-            "kind": "local-test",
-            "path": "studio/test/look2-player.test.mjs",
-            "claim": "JavaScript/Lua Runtime 采样对照。"
-          }
-        ],
-        "boundaries": []
-      }
-    },
-    {
-      "id": "U-AN07",
-      "name": "事件时间/名称/目标/参数、编辑/删除/排序与最近50条日志；播放触发、seek不触发、同刻顺序稳定",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/格式动画独立审计-20261019收口.md#u-an07",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "partial-local-evidence",
-        "report": "docs/上游/格式动画独立审计-20261019收口.md#u-an07",
-        "evidence": [
-          {
-            "kind": "local-test",
-            "path": "studio/test/editor-timeline.test.mjs",
-            "claim": "零点事件、同刻顺序、50 条日志、事件编辑撤销。"
-          },
-          {
-            "kind": "local-test",
-            "path": "studio/test/look2-player.test.mjs",
-            "claim": "本地 Lua Runtime 的路径调用、异常隔离和 seek 不触发。"
-          }
-        ],
-        "boundaries": []
-      }
-    },
-    {
-      "id": "U-TP01",
-      "name": "模板GIA导入、名称/索引管理、保存重开、引用/实例化及缺失模板提示",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/格式动画独立审计-20261019收口.md#u-tp01",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log",
-        "look3-workspace/整合/20261019-收口/TP01四设备模板GIA/TP01-固定UGC结构-四设备模板.gia",
-        "look3-workspace/整合/20261019-收口/TP01四设备模板GIA/验证结果.json",
-        "look3-workspace/整合/20261019-收口/TP01四设备模板GIA/固定源与哈希.json",
-        "look3-workspace/整合/20261019-收口/TP01四设备模板GIA/运行日志.log",
-        "look3-workspace/整合/20261019-收口/TP01四设备模板GIA/Look3本地回导-四设备模板.gia"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "synthetic-fixed-source-local-roundtrip",
-        "report": "docs/上游/格式动画独立审计-20261019收口.md#u-tp01",
-        "evidence": [
-          {
-            "kind": "synthetic-fixed-source-fixture",
-            "path": "look3-workspace/整合/20261019-收口/TP01四设备模板GIA/TP01-固定UGC结构-四设备模板.gia",
-            "claim": "固定 UGC exporter/converter 生成的四设备模板 GIA；不是网站真实导出。"
-          },
-          {
-            "kind": "local-roundtrip-result",
-            "path": "look3-workspace/整合/20261019-收口/TP01四设备模板GIA/验证结果.json",
-            "claim": "固定 importer 槽位 8/8；Look3 importGia 和 exportGia/importGia 各 48/48 布局值。"
-          },
-          {
-            "kind": "fixed-source-pins-and-hashes",
-            "path": "look3-workspace/整合/20261019-收口/TP01四设备模板GIA/固定源与哈希.json",
-            "claim": "记录固定提交、Git blob 与源码哈希。"
-          },
-          {
-            "kind": "execution-log",
-            "path": "look3-workspace/整合/20261019-收口/TP01四设备模板GIA/运行日志.log",
-            "claim": "固定 exporter、converter 和本地回读链执行摘要。"
-          },
-          {
-            "kind": "look3-local-export",
-            "path": "look3-workspace/整合/20261019-收口/TP01四设备模板GIA/Look3本地回导-四设备模板.gia",
-            "claim": "Look3 本地 exportGia 输出；未做外部 UGC 回导。"
-          }
-        ],
-        "boundaries": []
-      }
-    },
-    {
-      "id": "U-IM01",
-      "name": "站点JSONv12往返保留编辑字段、模板、资源、动画、事件与未编辑元数据",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/格式动画独立审计-20261019收口.md#u-im01",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "partial-local-evidence",
-        "report": "docs/上游/格式动画独立审计-20261019收口.md#u-im01",
-        "evidence": [
-          {
-            "kind": "local-test",
-            "path": "studio/test/look3-site-interop.test.mjs",
-            "claim": "站点 JSON 与旧布局迁移、重开、incoming 和未编辑元数据。"
-          }
-        ],
-        "boundaries": []
-      }
-    },
-    {
-      "id": "U-IM02",
-      "name": "GIA导入/导出/回导保留层序、图元形状/颜色/变换、脚本源码/映射/挂载；源编辑树不被烘焙污染",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/格式动画独立审计-20261019收口.md#u-im02",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "partial-local-evidence",
-        "report": "docs/上游/格式动画独立审计-20261019收口.md#u-im02",
-        "evidence": [
-          {
-            "kind": "local-test",
-            "path": "studio/test/gia-client-order.test.mjs",
-            "claim": "wire 与编辑树层序映射。"
-          },
-          {
-            "kind": "local-test",
-            "path": "studio/test/scripts.test.mjs",
-            "claim": "脚本映射、挂载和模板路径。"
-          },
-          {
-            "kind": "local-test",
-            "path": "studio/test/look2-integration.test.mjs",
-            "claim": "导出烘焙不修改作者源树。"
-          },
-          {
-            "kind": "local-test",
-            "path": "studio/test/upstream-core-integration.test.mjs",
-            "claim": "已观察遮罩字段的 GIA 往返。"
-          }
-        ],
-        "boundaries": []
-      }
-    },
-    {
-      "id": "U-IM03",
-      "name": "PSD图层分组/位置/透明度及网页支持的像素结果，失败时保留原工程",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/格式动画独立审计-20261019收口.md#u-im03",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "partial-local-evidence",
-        "report": "docs/上游/格式动画独立审计-20261019收口.md#u-im03",
-        "evidence": [
-          {
-            "kind": "local-test",
-            "path": "studio/test/look2-assets.test.mjs",
-            "claim": "PSD 图层、mask、像素、取消和损坏 Worker 协议。"
-          },
-          {
-            "kind": "local-test",
-            "path": "studio/test/platform-layout.test.mjs",
-            "claim": "通用失败导入保持既有资产。"
-          }
-        ],
-        "boundaries": []
-      }
-    },
-    {
-      "id": "U-IM04",
-      "name": "Spine3.8层级变换、贴图、动画/曲线/插槽和网页支持边界；失效资源/不支持特性明确报告",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/格式动画独立审计-20261019收口.md#u-im04",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "partial-local-evidence",
-        "report": "docs/上游/格式动画独立审计-20261019收口.md#u-im04",
-        "evidence": [
-          {
-            "kind": "local-test",
-            "path": "studio/test/look2-assets.test.mjs",
-            "claim": "Spine 3.8 层级、Bezier 30Hz、告警、拒绝路径和版本边界。"
-          }
-        ],
-        "boundaries": []
-      }
-    },
-    {
-      "id": "U-LU01",
-      "name": "TimelineData @8及网页支持旧schema导入，追加/替换、指定根/路径、颜色、跳变、事件完整往返",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/格式动画独立审计-20261019收口.md#u-lu01",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "partial-local-evidence",
-        "report": "docs/上游/格式动画独立审计-20261019收口.md#u-lu01",
-        "evidence": [
-          {
-            "kind": "local-test",
-            "path": "studio/test/look2-animation-interop.test.mjs",
-            "claim": "TimelineData @8、旧版本、追加/替换、路径、颜色、incoming 与事件。"
-          }
-        ],
-        "boundaries": []
-      }
-    },
-    {
-      "id": "U-LU02",
-      "name": "TweenTimelineLib.Create(root,data,options)返回可控制序列，数据版本检查、重播、显隐、事件/回调",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/格式动画独立审计-20261019收口.md#u-lu02",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log",
-        "look3-workspace/整合/20261019-续/U-LU02-libversion.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "partial-local-evidence",
-        "report": "docs/上游/格式动画独立审计-20261019收口.md#u-lu02",
-        "evidence": [
-          {
-            "kind": "local-test-log",
-            "path": "look3-workspace/整合/20261019-续/U-LU02-libversion.log",
-            "claim": "版本兼容和 TweenTimelineLib 合约定向测试 13/13。"
-          },
-          {
-            "kind": "known-difference",
-            "path": "docs/上游/格式动画独立审计-20261019收口.md#u-lu02",
-            "claim": "本地版本错误抛 Lua error；固定源记录错误后返回空序列。"
-          }
-        ],
-        "boundaries": []
-      }
-    },
-    {
-      "id": "U-LU03",
-      "name": "PrimitiveData和PrimitiveImageLib.create(root,data,imagePrefabIndex)，销毁/重复生成只影响自身创建图元",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/格式动画独立审计-20261019收口.md#u-lu03",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log",
-        "look3-workspace/整合/20261019-收口/TP01四设备模板GIA/U-LU03定向测试原始输出.log",
-        "look3-workspace/整合/20261019-收口/TP01四设备模板GIA/U-LU03故障恢复验证.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "local-runtime-fault-injection-passed",
-        "report": "docs/上游/格式动画独立审计-20261019收口.md#u-lu03",
-        "evidence": [
-          {
-            "kind": "source-change",
-            "path": "studio/look2/primitives.js",
-            "claim": "逐控件保护、失败保留重试、错误聚合、旧集合失败回滚候选及 owner 保留。"
-          },
-          {
-            "kind": "local-fault-injection-test",
-            "path": "studio/test/look2-primitives.test.mjs",
-            "claim": "单项失败重试、replace 回滚和双重清理失败后旧句柄清理两边残留；9/9。"
-          },
-          {
-            "kind": "test-output",
-            "path": "look3-workspace/整合/20261019-收口/TP01四设备模板GIA/U-LU03定向测试原始输出.log",
-            "claim": "定向测试原始 stdout，9/9。"
-          },
-          {
-            "kind": "summary-log",
-            "path": "look3-workspace/整合/20261019-收口/TP01四设备模板GIA/U-LU03故障恢复验证.log",
-            "claim": "固定源语义、故障序列和非游戏验收边界的摘要。"
-          }
-        ],
-        "boundaries": []
-      }
-    },
-    {
-      "id": "U-ST01",
-      "name": "控件/素材/模板/动画统一事务、版本冲突无副作用、撤销/重做/历史恢复与失败回滚",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/界面资源独立审计-20261019收口.md#u-st01",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "behavior-tested-partial",
-        "report": "docs/上游/界面资源独立审计-20261019收口.md#u-st01",
-        "evidence": [
-          {
-            "kind": "test",
-            "path": "studio/test/look2-history.test.mjs",
-            "result": "原子事务、冲突无副作用、撤销/重做、模板/资源历史断言",
-            "boundary": "未覆盖跨全部资源/动画类型组合"
-          },
-          {
-            "kind": "test",
-            "path": "studio/test/editor-timeline.test.mjs",
-            "result": "真实界面处理器一步撤销断言",
-            "boundary": "不等于全量整合矩阵"
-          }
-        ],
-        "boundaries": [
-          "未覆盖跨全部资源/动画类型组合",
-          "不等于全量整合矩阵"
-        ]
-      }
-    },
-    {
-      "id": "U-ST02",
-      "name": "工作区存档、新建/改名/保存/重开、IndexedDB大图片草稿与恢复，正式文件仅显式保存",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/界面资源独立审计-20261019收口.md#u-st02",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log",
-        "look3-workspace/整合/20261019-收口/文件改名边界局部.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "behavior-tested-partial",
-        "report": "docs/上游/界面资源独立审计-20261019收口.md#u-st02",
-        "evidence": [
-          {
-            "kind": "test",
-            "path": "studio/test/editor-workspace-panel.test.mjs",
-            "result": "当前复跑3/3；工作区、草稿路径映射、显式保存处理器行为",
-            "boundary": "文件管理局部测试使用真实临时目录；用户实际目录/权限与桌面宿主验收仍待验"
-          },
-          {
-            "kind": "test-log",
-            "path": "look3-workspace/整合/20261019-收口/文件改名边界局部.log",
-            "result": "13/13通过；旧路径别名封锁、改回并显式重载恢复保存目标",
-            "boundary": "后端独立代码审查由resume_look负责"
-          }
-        ],
-        "boundaries": [
-          "文件管理局部测试使用真实临时目录；用户实际目录/权限与桌面宿主验收仍待验",
-          "后端独立代码审查由resume_look负责"
-        ]
-      }
-    },
-    {
-      "id": "U-ST03",
-      "name": "2.0.3及原Look旧存档迁移保持效果，原文件不覆盖；原Look目录保持不变",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/格式动画独立审计-20261019收口.md#u-st03",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "partial-local-evidence",
-        "report": "docs/上游/格式动画独立审计-20261019收口.md#u-st03",
-        "evidence": [
-          {
-            "kind": "local-test",
-            "path": "studio/test/platform-layout.test.mjs",
-            "claim": "v1–v3 迁移和输入对象不变。"
-          },
-          {
-            "kind": "local-test",
-            "path": "studio/test/scripts.test.mjs",
-            "claim": "旧存档按资产恢复脚本挂载。"
-          }
-        ],
-        "boundaries": []
-      }
-    },
-    {
-      "id": "U-HT01",
-      "name": "Web/DSH/MCP接口同步、三产品构建、全量回归、资源Worker与在线图片宿主接入",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/界面资源独立审计-20261019收口.md#u-ht01",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log",
-        "look3-workspace/整合/20261019-续/共享资源与宿主局部.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "integration-tested-partial",
-        "report": "docs/上游/界面资源独立审计-20261019收口.md#u-ht01",
-        "evidence": [
-          {
-            "kind": "test",
-            "path": "web/test/editor.test.mjs",
-            "result": "Web会话、资源路由和Worker访问的局部证据",
-            "boundary": "不代表当前全量回归结果"
-          },
-          {
-            "kind": "test-log",
-            "path": "look3-workspace/整合/20261019-续/共享资源与宿主局部.log",
-            "result": "上一轮Web/DSH/MCP局部证据",
-            "boundary": "不作为本次最终全量验收或外部宿主验收"
-          }
-        ],
-        "boundaries": [
-          "不代表当前全量回归结果",
-          "不作为本次最终全量验收或外部宿主验收"
-        ]
-      }
-    },
-    {
-      "id": "U-HT02",
-      "name": "子代理按完整清单独立验收；千星实机状态与自动化结果分别报告",
-      "source": "ui-editor",
-      "upstreamPaths": [
-        "src/views/ClientUIAnimationEditor"
-      ],
-      "targetPaths": [
-        "editor-ui",
-        "studio/look2"
-      ],
-      "tests": [
-        "studio/test/look2.test.mjs"
-      ],
-      "status": "pending",
-      "evidence": [
-        "docs/上游/界面资源独立审计-20261019收口.md#u-ht02",
-        "look3-workspace/整合/20261019-收口/最终完整回归.log"
-      ],
-      "externalAcceptance": "pending",
-      "localReview": {
-        "readingState": "未读",
-        "status": "gate-tested-partial",
-        "report": "docs/上游/界面资源独立审计-20261019收口.md#u-ht02",
-        "evidence": [
-          {
-            "kind": "source",
-            "path": "scripts/acceptance-ledger-core.mjs",
-            "result": "正式条目ID和验收证据类型门禁",
-            "boundary": "门禁不等于功能完成"
-          },
-          {
-            "kind": "test",
-            "path": "studio/test/acceptance-ledger.test.mjs",
-            "result": "断言证据范围和外部验收不可由测试总数替代",
-            "boundary": "本稿仅独立覆盖21项，不是62项整体验收"
-          },
-          {
-            "kind": "manifest",
-            "path": "docs/上游/功能清单.json",
-            "result": "正式状态仍由主代理维护",
-            "boundary": "本次未修改"
-          }
-        ],
-        "boundaries": [
-          "门禁不等于功能完成",
-          "本稿仅独立覆盖21项，不是62项整体验收",
-          "本次未修改"
-        ]
-      }
-    }
-  ],
-  "projectStatus": "local-stage-complete-external-pending",
-  "projectComplete": false,
-  "checkpoint": "look3-workspace/整合/20261019-收口/收口检查点.json",
-  "note": "【未读】2026-10-19收口：62项均补独立本地审查映射；修复路径别名/跨实例旧绑定保存与图元清理异常。最终780项778通过2跳过0失败；三产品构建/双API包安装/Git安装/官方DSH临时宿主通过。本地修复及分发验证阶段完成，正式/外部验收仍pending，不以本地通过推进acceptedCommit。",
-  "progressReport": "look3-workspace/整合/20261019-收口/收口验证汇总.json",
-  "currentLocalEvidence": {
-    "fullRegression": {
-      "command": "QXQY_BROWSER=Edge node scripts/test.mjs",
-      "exitCode": 0,
-      "scopes": [
-        {
-          "scope": "scripts/upstream-sync",
-          "tests": 3,
-          "pass": 3,
-          "fail": 0,
-          "cancelled": 0,
-          "skipped": 0
-        },
-        {
-          "scope": "client/lua-runtime",
-          "tests": 60,
-          "pass": 60,
-          "fail": 0,
-          "cancelled": 0,
-          "skipped": 0
-        },
-        {
-          "scope": "server",
-          "tests": 11,
-          "pass": 11,
-          "fail": 0,
-          "cancelled": 0,
-          "skipped": 0
-        },
-        {
-          "scope": "studio",
-          "tests": 573,
-          "pass": 573,
-          "fail": 0,
-          "cancelled": 0,
-          "skipped": 0
-        },
-        {
-          "scope": "dsh-plugin",
-          "tests": 57,
-          "pass": 57,
-          "fail": 0,
-          "cancelled": 0,
-          "skipped": 0
-        },
-        {
-          "scope": "mcp",
-          "tests": 19,
-          "pass": 19,
-          "fail": 0,
-          "cancelled": 0,
-          "skipped": 0
-        },
-        {
-          "scope": "web",
-          "tests": 57,
-          "pass": 55,
-          "fail": 0,
-          "cancelled": 0,
-          "skipped": 2
-        }
-      ],
-      "totals": {
-        "tests": 780,
-        "pass": 778,
-        "fail": 0,
-        "cancelled": 0,
-        "skipped": 2
-      },
-      "skips": [
-        "Windows 符号链接 bin 启动平台条件",
-        "未配置 QXQY_ELECTRON 的 Desktop 用例"
-      ],
-      "sourceHashesUnchangedAfterRegression": true,
-      "log": "look3-workspace/整合/20261019-收口/最终完整回归.log",
-      "finalSource": true,
-      "includesBuilds": [
-        "web",
-        "dsh-plugin"
-      ]
-    },
-    "auditReports": [
-      "docs/上游/Look独立审计-20261019收口.md",
-      "docs/上游/界面资源独立审计-20261019收口.md",
-      "docs/上游/格式动画独立审计-20261019收口.md"
+ "schemaVersion": 1,
+ "features": [
+  {
+   "id": "L01",
+   "name": "Lua生命周期、脚本挂载与require",
+   "source": "look",
+   "upstreamPaths": [
+    "client/lua-runtime"
+   ],
+   "targetPaths": [
+    "client/lua-runtime"
+   ],
+   "tests": [
+    "client/lua-runtime/test/runtime.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/Look独立审计-20261019收口.md#l01",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "本地运行时行为有源码和回归断言支持",
+    "report": "docs/上游/Look独立审计-20261019收口.md#l01",
+    "evidence": [
+     {
+      "kind": "source-or-test-or-log",
+      "path": "client/lua-runtime/src/runtime.js"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "client/lua-runtime/test/runtime.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261030-上游适配与落账/验证汇总-20261030.json"
+     }
     ],
-    "independentReviewComplete": true,
-    "reviewMeaning": "全部62项已逐项评估，不代表全部功能范围正式验收通过",
-    "perFeatureMappingCount": 62,
-    "sourceHashes": "look3-workspace/整合/20261019-收口/回归源码哈希.json",
-    "build": {
-      "log": "look3-workspace/整合/20261019-收口/最终三产品构建.log",
-      "exitCode": 0
-    },
-    "pack": {
-      "log": "look3-workspace/整合/20261019-收口/最终三产品打包.log",
-      "exitCode": 0,
-      "manifest": "look3-workspace/整合/20261019-收口/最终发布包/manifest.json"
-    },
-    "installedPackages": {
-      "log": "look3-workspace/整合/20261019-收口/最终三产品隔离安装.log",
-      "exitCode": 0,
-      "dshToolsVersions": [
-        "0.1.0-rc.6",
-        "0.2.0-rc.2"
-      ]
-    },
-    "gitSourceInstall": {
-      "log": "look3-workspace/整合/20261019-收口/最终Git源码隔离安装.log",
-      "exitCode": 0,
-      "pnpmVersion": "10.15.0",
-      "dshToolsVersion": "0.2.0-rc.2"
-    },
-    "officialDshTemporaryHost": {
-      "log": "look3-workspace/整合/20261019-收口/官方DSH隔离宿主验证.log",
-      "exitCode": 0,
-      "version": "0.2.0-rc.2",
-      "userProfileTouched": false
-    },
-    "visualComparison": {
-      "path": "look3-workspace/整合/20261019-收口/界面对照/界面量测.json",
-      "sizes": [
-        "1280x720",
-        "1920x1080"
-      ],
-      "scope": "同工程四区/时间轴与抽样样式；不是全页逐像素验收"
-    },
-    "fixedExporterFixture": {
-      "path": "look3-workspace/整合/20261019-收口/TP01四设备模板GIA/验证结果.json",
-      "upstreamSlots": "8/8",
-      "localImportValues": "48/48",
-      "localRoundtripValues": "48/48",
-      "externalWebsiteSample": false
-    },
-    "artifactHashes": [
-      {
-        "product": "dsh-plugin",
-        "name": "look3-dsh-plugin",
-        "version": "3.0.0",
-        "filename": "look3-dsh-plugin-3.0.0.tgz",
-        "sha256": "7b6af1e3a6e3f49822910f793a7920a174fe67d028aea20c8c6b99cc59778f48"
-      },
-      {
-        "product": "mcp",
-        "name": "look3-mcp",
-        "version": "3.0.0",
-        "filename": "look3-mcp-3.0.0.tgz",
-        "sha256": "cbf4df81626f6ca45fad18c3e98f95c56a11bd761d77cc813afbdaa8abf2ff2d"
-      },
-      {
-        "product": "web",
-        "name": "look3-web",
-        "version": "3.0.0",
-        "filename": "look3-web-3.0.0.tgz",
-        "sha256": "5da176accbecf60ab11d769f359f4aa9ef9a20b7b2a2bf65badb8c6afd2f4a4f"
-      }
+    "boundaries": [
+     "未在千星客户端验证Lua生命周期",
+     "2026-10-30 上游适配只补本地证据与范围说明，正式/外部接受状态未前移。"
     ]
+   }
   },
-  "integrationStageComplete": false,
-  "localImplementationStageComplete": true
+  {
+   "id": "L02",
+   "name": "Tween、Sequence与动画回调",
+   "source": "look",
+   "upstreamPaths": [
+    "client/lua-runtime/src/tween.js"
+   ],
+   "targetPaths": [
+    "client/lua-runtime/src/tween.js",
+    "studio/look2"
+   ],
+   "tests": [
+    "client/lua-runtime/test/runtime.test.mjs",
+    "studio/test/look2-player.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/Look独立审计-20261019收口.md#l02",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "本地Tween、Sequence和Look2播放链路有源码与回归断言支持",
+    "report": "docs/上游/Look独立审计-20261019收口.md#l02",
+    "evidence": [
+     {
+      "kind": "source-or-test-or-log",
+      "path": "client/lua-runtime/src/tween.js"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "client/lua-runtime/test/runtime.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/test/look2-player.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
+     }
+    ],
+    "boundaries": [
+     "千星实际Tween时钟及回调语义未验收"
+    ]
+   }
+  },
+  {
+   "id": "L03",
+   "name": "鼠标、触摸、按键与命中",
+   "source": "look",
+   "upstreamPaths": [
+    "client/lua-runtime/src/runtime.js",
+    "studio/play/browser-session.js",
+    "studio/play/key-bindings.js"
+   ],
+   "targetPaths": [
+    "client/lua-runtime/src/runtime.js",
+    "studio/play/browser-session.js"
+   ],
+   "tests": [
+    "studio/test/browser-session.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/Look独立审计-20261019收口.md#l03",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "本地浏览器输入适配有源码与回归断言支持",
+    "report": "docs/上游/Look独立审计-20261019收口.md#l03",
+    "evidence": [
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/play/browser-session.js"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/test/browser-session.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261030-上游适配与落账/上游核对-20261030.json"
+     }
+    ],
+    "boundaries": [
+     "真实千星鼠标、触摸设备和游戏内命中未验收",
+     "2026-10-30 上游适配只补本地证据与范围说明，正式/外部接受状态未前移。"
+    ]
+   }
+  },
+  {
+   "id": "L04",
+   "name": "网格条目实例化、布局与滚动",
+   "source": "look",
+   "upstreamPaths": [
+    "client/lua-runtime/src/grid.js",
+    "studio/play/scroll-geometry.js",
+    "studio/play/scroll.js"
+   ],
+   "targetPaths": [
+    "client/lua-runtime/src/grid.js",
+    "studio/play/scroll.js"
+   ],
+   "tests": [
+    "studio/test/scroll.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/Look独立审计-20261019收口.md#l04",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "本地网格与滚动行为有源码和回归断言支持",
+    "report": "docs/上游/Look独立审计-20261019收口.md#l04",
+    "evidence": [
+     {
+      "kind": "source-or-test-or-log",
+      "path": "client/lua-runtime/src/grid.js"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/play/scroll.js"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/test/scroll.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
+     }
+    ],
+    "boundaries": [
+     "千星Grid运行时及目标设备滚动未验收"
+    ]
+   }
+  },
+  {
+   "id": "L05",
+   "name": "文本视窗、换行与滚动条",
+   "source": "look",
+   "upstreamPaths": [
+    "studio/play/text-layout.js",
+    "studio/play/scroll.js"
+   ],
+   "targetPaths": [
+    "studio/play/text-layout.js",
+    "studio/play/pixi-renderer.js"
+   ],
+   "tests": [
+    "studio/test/scroll.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/Look独立审计-20261019收口.md#l05",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "本地文本视窗、换行和滚动条有源码与回归断言支持",
+    "report": "docs/上游/Look独立审计-20261019收口.md#l05",
+    "evidence": [
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/play/text-layout-core.js"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/test/scroll.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261030-上游适配与落账/上游核对-20261030.json"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261030-上游适配与落账/验证汇总-20261030.json"
+     }
+    ],
+    "boundaries": [
+     "目标客户端字体度量、裁剪和滚动条呈现未验收",
+     "2026-10-30 上游适配只补本地证据与范围说明，正式/外部接受状态未前移。"
+    ]
+   }
+  },
+  {
+   "id": "L06",
+   "name": "2D音频、停止与存活状态",
+   "source": "look",
+   "upstreamPaths": [
+    "client/lua-runtime/src/runtime.js",
+    "studio/play/audio-player.js",
+    "studio/host/audio-assets.js",
+    "studio/assets/audio-catalog.js"
+   ],
+   "targetPaths": [
+    "studio/play/audio-player.js",
+    "studio/host/audio-assets.js"
+   ],
+   "tests": [
+    "client/lua-runtime/test/audio.test.mjs",
+    "studio/test/audio-player.test.mjs",
+    "web/test/audio-assets.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/Look独立审计-20261019收口.md#l06",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "本地音频生命周期与浏览器播放链路有源码和回归断言支持",
+    "report": "docs/上游/Look独立审计-20261019收口.md#l06",
+    "evidence": [
+     {
+      "kind": "source-or-test-or-log",
+      "path": "client/lua-runtime/test/audio.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/test/audio-player.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
+     }
+    ],
+    "boundaries": [
+     "千星音频接口和宿主解码策略未验收"
+    ]
+   }
+  },
+  {
+   "id": "L07",
+   "name": "三轴旋转投影与反向命中",
+   "source": "look",
+   "upstreamPaths": [
+    "studio/ui/layout.js",
+    "editor-ui/control-transform.js"
+   ],
+   "targetPaths": [
+    "studio/ui/layout.js",
+    "editor-ui/look2.js"
+   ],
+   "tests": [
+    "studio/test/rotation-xy.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/Look独立审计-20261019收口.md#l07",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "本地三轴投影与反向命中有源码和回归断言支持",
+    "report": "docs/上游/Look独立审计-20261019收口.md#l07",
+    "evidence": [
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/ui/layout.js"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/test/rotation-xy.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
+     }
+    ],
+    "boundaries": [
+     "不同平台真实渲染和命中坐标未验收"
+    ]
+   }
+  },
+  {
+   "id": "L08",
+   "name": "图片、元件图标与来源隔离缓存",
+   "source": "look",
+   "upstreamPaths": [
+    "studio/assets",
+    "studio/host/image-assets.js",
+    "editor-ui/image-preview.js"
+   ],
+   "targetPaths": [
+    "studio/assets",
+    "studio/host/image-assets.js",
+    "editor-ui/image-preview.js"
+   ],
+   "tests": [
+    "studio/test/image-assets.test.mjs",
+    "web/test/image-assets.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/Look独立审计-20261019收口.md#l08",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log",
+    "look3-workspace/整合/20261019-续/图片修复-真实浏览器.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "共享图片加载、缓存、刷新有定向浏览器及回归证据",
+    "report": "docs/上游/Look独立审计-20261019收口.md#l08",
+    "evidence": [
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/host/image-assets.js"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "web/test/image-assets.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-续/图片修复-真实浏览器.log"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
+     }
+    ],
+    "boundaries": [
+     "固定图片源服务和千星资源目录未验收；原浏览器日志验证共享链路，不单独证明活动Look2画布接线"
+    ]
+   }
+  },
+  {
+   "id": "L09",
+   "name": "九宫格、图片填充、软遮罩与资源释放",
+   "source": "look",
+   "upstreamPaths": [
+    "studio/assets/image-stretch.js",
+    "studio/play/image-mask.js",
+    "studio/play/pixi-renderer.js"
+   ],
+   "targetPaths": [
+    "studio/assets/image-stretch.js",
+    "studio/play/image-mask.js",
+    "studio/play/pixi-renderer.js"
+   ],
+   "tests": [
+    "studio/test/image-mask.test.mjs",
+    "studio/test/look2-image-mask.test.mjs",
+    "studio/test/image-fill.test.mjs",
+    "studio/test/editor-image-preview.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/Look独立审计-20261019收口.md#l09",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "本地行为已验证；覆盖硬裁剪、径向90/180/360填充、顺逆时针、反转遮罩、Percentage softRange及资源释放",
+    "report": "docs/上游/Look独立审计-20261019收口.md#l09",
+    "evidence": [
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/assets/image-stretch.js"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/play/image-mask.js"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/test/image-mask.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/test/image-fill.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/test/editor-image-preview.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261030-上游适配与落账/上游核对-20261030.json"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261030-上游适配与落账/验证汇总-20261030.json"
+     }
+    ],
+    "boundaries": [
+     "真实客户端遮罩和填充效果未验收",
+     "2026-10-30 上游适配只补本地证据与范围说明，正式/外部接受状态未前移。"
+    ]
+   }
+  },
+  {
+   "id": "L10",
+   "name": "本地字体、PNG与浏览器文字测量",
+   "source": "look",
+   "upstreamPaths": [
+    "studio/fonts.js",
+    "studio/host/local-font.js",
+    "studio/play/browser-font.js",
+    "editor-ui/text-preview.js"
+   ],
+   "targetPaths": [
+    "studio/fonts.js",
+    "studio/host/local-font.js",
+    "studio/play/browser-font.js"
+   ],
+   "tests": [
+    "studio/test/local-font.test.mjs",
+    "web/test/local-font.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/Look独立审计-20261019收口.md#l10",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "本地字体测量、PNG和浏览器链路有源码及回归证据",
+    "report": "docs/上游/Look独立审计-20261019收口.md#l10",
+    "evidence": [
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/play/text-layout-core.js"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/test/text-autosize.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/test/local-font.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261030-上游适配与落账/上游核对-20261030.json"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261030-上游适配与落账/验证汇总-20261030.json"
+     }
+    ],
+    "boundaries": [
+     "未覆盖目标系统全部字体与字形塑形；未证明等价于千星文本框度量",
+     "2026-10-30 上游适配只补本地证据与范围说明，正式/外部接受状态未前移。"
+    ]
+   }
+  },
+  {
+   "id": "L11",
+   "name": "GIA与JSON资产交换、布局迁移",
+   "source": "look",
+   "upstreamPaths": [
+    "studio/gia",
+    "studio/ui/project.js",
+    "studio/json.js"
+   ],
+   "targetPaths": [
+    "studio/gia",
+    "studio/ui/project.js",
+    "studio/json.js"
+   ],
+   "tests": [
+    "studio/test/platform-layout.test.mjs",
+    "studio/test/gia-observed-fields.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/Look独立审计-20261019收口.md#l11",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "本地GIA/JSON往返和布局迁移有fixture与回归断言支持",
+    "report": "docs/上游/Look独立审计-20261019收口.md#l11",
+    "evidence": [
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/gia"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/test/platform-layout.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/test/gia-observed-fields.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261030-上游适配与落账/上游核对-20261030.json"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261030-上游适配与落账/验证汇总-20261030.json"
+     }
+    ],
+    "boundaries": [
+     "真实四设备GIA字节和目标编辑器导入回读未验收",
+     "2026-10-30 上游适配只补本地证据与范围说明，正式/外部接受状态未前移。"
+    ]
+   }
+  },
+  {
+   "id": "L12",
+   "name": "持久客户端索引与同级wire顺序",
+   "source": "look",
+   "upstreamPaths": [
+    "studio/gia/asset-indices.js",
+    "studio/gia/client-order.js"
+   ],
+   "targetPaths": [
+    "studio/gia/asset-indices.js",
+    "studio/gia/client-order.js"
+   ],
+   "tests": [
+    "studio/test/gia-asset-indices.test.mjs",
+    "studio/test/gia-client-order.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/Look独立审计-20261019收口.md#l12",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "本地持久客户端索引和wire顺序适配有源码与回归断言支持",
+    "report": "docs/上游/Look独立审计-20261019收口.md#l12",
+    "evidence": [
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/gia/asset-indices.js"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/gia/client-order.js"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
+     }
+    ],
+    "boundaries": [
+     "真实目标GIA/编辑器中的编码和身份语义未验收"
+    ]
+   }
+  },
+  {
+   "id": "L13",
+   "name": "变量、信号与多人隔离",
+   "source": "look",
+   "upstreamPaths": [
+    "server",
+    "studio/play/session.js"
+   ],
+   "targetPaths": [
+    "server",
+    "studio/play/session.js"
+   ],
+   "tests": [
+    "server/test/server.test.mjs",
+    "studio/test/autotest.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/Look独立审计-20261019收口.md#l13",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "本地模拟服务端变量、信号和多人隔离有源码与回归断言支持",
+    "report": "docs/上游/Look独立审计-20261019收口.md#l13",
+    "evidence": [
+     {
+      "kind": "source-or-test-or-log",
+      "path": "server/test/server.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/test/autotest.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
+     }
+    ],
+    "boundaries": [
+     "千星服务端节点图和真实多人房间未验收"
+    ]
+   }
+  },
+  {
+   "id": "L14",
+   "name": "多设备画布与多人视角",
+   "source": "look",
+   "upstreamPaths": [
+    "studio/constants.js",
+    "studio/ui/layout.js",
+    "studio/play/session.js"
+   ],
+   "targetPaths": [
+    "studio/constants.js",
+    "studio/ui/layout.js",
+    "studio/play/session.js"
+   ],
+   "tests": [
+    "studio/test/play-target.test.mjs",
+    "studio/test/platform-layout.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/Look独立审计-20261019收口.md#l14",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "本地四平台作者预览和多人视角有源码与回归断言支持",
+    "report": "docs/上游/Look独立审计-20261019收口.md#l14",
+    "evidence": [
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/look2/preview.js"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/test/editor-platform-preview.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/test/play-target.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
+     }
+    ],
+    "boundaries": [
+     "控制器槽位预览不模拟真实手柄运行时；真实设备与多人实机未验收"
+    ]
+   }
+  },
+  {
+   "id": "L15",
+   "name": "启动、暂停、步进与两种时钟",
+   "source": "look",
+   "upstreamPaths": [
+    "studio/host/controller.js",
+    "studio/host/worker.js",
+    "studio/play/session.js"
+   ],
+   "targetPaths": [
+    "studio/host/controller.js",
+    "studio/host/worker.js"
+   ],
+   "tests": [
+    "studio/test/host-clock.test.mjs",
+    "studio/test/play-target.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/Look独立审计-20261019收口.md#l15",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "本地宿主时钟、启停与手动步进有源码和回归断言支持",
+    "report": "docs/上游/Look独立审计-20261019收口.md#l15",
+    "evidence": [
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/host/controller.js"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/test/host-clock.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/test/play-target.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
+     }
+    ],
+    "boundaries": [
+     "千星帧钟、后台节流和真实宿主启停未验收"
+    ]
+   }
+  },
+  {
+   "id": "L16",
+   "name": "日志、录制、回放与断言",
+   "source": "look",
+   "upstreamPaths": [
+    "studio/log",
+    "studio/autotest"
+   ],
+   "targetPaths": [
+    "studio/log",
+    "studio/autotest"
+   ],
+   "tests": [
+    "studio/test/autotest.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/Look独立审计-20261019收口.md#l16",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "本地日志、录制、回放与断言失败快照有源码和回归断言支持",
+    "report": "docs/上游/Look独立审计-20261019收口.md#l16",
+    "evidence": [
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/log"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/autotest"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/test/autotest.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
+     }
+    ],
+    "boundaries": [
+     "千星日志和自动化格式兼容未验收"
+    ]
+   }
+  },
+  {
+   "id": "L17",
+   "name": "存档发现、扫描预算与显式保存",
+   "source": "look",
+   "upstreamPaths": [
+    "studio/host/workspace.js",
+    "studio/host/controller.js",
+    "web/lib/session.js"
+   ],
+   "targetPaths": [
+    "studio/host/workspace.js",
+    "studio/host/controller.js",
+    "web/lib/session.js"
+   ],
+   "tests": [
+    "studio/test/workspace.test.mjs",
+    "studio/test/workspace.upstream.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/Look独立审计-20261019收口.md#l17",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log",
+    "look3-workspace/整合/20261019-收口/文件改名边界局部.log",
+    "look3-workspace/整合/20261019-收口/跨实例文件保护局部.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "本地工作区路径管理、同进程映射、并发保护和跨实例旧绑定拒写有源码及15/15定向证据",
+    "report": "docs/上游/Look独立审计-20261019收口.md#l17",
+    "evidence": [
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/host/archive-management.js"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/host/controller.js"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "web/lib/editor-sessions.js"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/test/archive-management.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "web/test/editor-archive-actions.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/文件改名边界局部.log"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/跨实例文件保护局部.log"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
+     }
+    ],
+    "boundaries": [
+     "隔离进程不会自动同步UI会话路径；旧绑定保存被拒后需重新加载或另存为；真实DSH会话、千星目录和系统文件管理器未验收"
+    ]
+   }
+  },
+  {
+   "id": "L18",
+   "name": "索引批量校准与Lua引用同步",
+   "source": "look",
+   "upstreamPaths": [
+    "studio/control-guid-lua.js",
+    "studio/host/control-guid-sync.js",
+    "editor-ui/control-guid-sync.js"
+   ],
+   "targetPaths": [
+    "studio/control-guid-lua.js",
+    "studio/host/control-guid-sync.js",
+    "editor-ui/control-guid-sync.js"
+   ],
+   "tests": [
+    "studio/test/control-guid-sync.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/Look独立审计-20261019收口.md#l18",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "本地GUID校准和Lua引用同步计划/文件操作有源码与回归断言支持",
+    "report": "docs/上游/Look独立审计-20261019收口.md#l18",
+    "evidence": [
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/control-guid-lua.js"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/host/control-guid-sync.js"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/test/control-guid-sync.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
+     }
+    ],
+    "boundaries": [
+     "未对真实游戏脚本目录执行用户确认后的同步"
+    ]
+   }
+  },
+  {
+   "id": "L19",
+   "name": "实机脚本目录绑定、差异与确认复制",
+   "source": "look",
+   "upstreamPaths": [
+    "studio/script-sync-config.js",
+    "studio/host/script-sync.js",
+    "editor-ui/script-sync.js"
+   ],
+   "targetPaths": [
+    "studio/script-sync-config.js",
+    "studio/host/script-sync.js",
+    "editor-ui/script-sync.js"
+   ],
+   "tests": [
+    "studio/test/script-sync.test.mjs",
+    "web/test/script-sync-e2e.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/Look独立审计-20261019收口.md#l19",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "本地临时目录脚本绑定、差异和显式确认复制链路有源码与回归断言支持",
+    "report": "docs/上游/Look独立审计-20261019收口.md#l19",
+    "evidence": [
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/script-sync-config.js"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/host/script-sync.js"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "studio/test/script-sync.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "web/test/script-sync-e2e.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261030-上游适配与落账/上游核对-20261030.json"
+     }
+    ],
+    "boundaries": [
+     "真实千星安装目录未执行复制验收",
+     "2026-10-30 上游适配只补本地证据与范围说明，正式/外部接受状态未前移。"
+    ]
+   }
+  },
+  {
+   "id": "L20",
+   "name": "Web编辑、磁盘预览与独立会话",
+   "source": "look",
+   "upstreamPaths": [
+    "web"
+   ],
+   "targetPaths": [
+    "web"
+   ],
+   "tests": [
+    "web/test/editor.test.mjs",
+    "web/test/web.test.mjs",
+    "web/test/preview-state.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/Look独立审计-20261019收口.md#l20",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "本地Web编辑会话、预览切换和旧写入保护有源码与回归断言支持",
+    "report": "docs/上游/Look独立审计-20261019收口.md#l20",
+    "evidence": [
+     {
+      "kind": "source-or-test-or-log",
+      "path": "web/server.js"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "web/lib/editor-sessions.js"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "web/test/editor.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "web/test/preview-state.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261030-上游适配与落账/验证汇总-20261030.json"
+     }
+    ],
+    "boundaries": [
+     "未做发布部署或非本机真实服务验收",
+     "2026-10-30 上游适配只补本地证据与范围说明，正式/外部接受状态未前移。"
+    ]
+   }
+  },
+  {
+   "id": "L21",
+   "name": "MCP工具、预览桥接与手动时钟",
+   "source": "look",
+   "upstreamPaths": [
+    "mcp"
+   ],
+   "targetPaths": [
+    "mcp"
+   ],
+   "tests": [
+    "mcp/test/protocol.test.mjs",
+    "mcp/test/web-integration.test.mjs",
+    "mcp/test/protocol.upstream.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/Look独立审计-20261019收口.md#l21",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "本地MCP协议、预览桥接、手动时钟和进程间路径行为有源码与回归断言支持",
+    "report": "docs/上游/Look独立审计-20261019收口.md#l21",
+    "evidence": [
+     {
+      "kind": "source-or-test-or-log",
+      "path": "mcp/index.js"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "mcp/lib/preview.js"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "mcp/test/protocol.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "mcp/test/protocol.upstream.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "mcp/test/web-integration.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261030-上游适配与落账/验证汇总-20261030.json"
+     }
+    ],
+    "boundaries": [
+     "功能清单测试路径遗漏protocol.upstream.test.mjs；真实MCP宿主连接未验收",
+     "2026-10-30 上游适配只补本地证据与范围说明，正式/外部接受状态未前移。"
+    ]
+   }
+  },
+  {
+   "id": "L22",
+   "name": "DSH工具、资源路由与生命周期",
+   "source": "look",
+   "upstreamPaths": [
+    "dsh-plugin"
+   ],
+   "targetPaths": [
+    "dsh-plugin"
+   ],
+   "tests": [
+    "dsh-plugin/test/plugin.test.mjs",
+    "dsh-plugin/test/lifecycle.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/Look独立审计-20261019收口.md#l22",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log",
+    "look3-workspace/整合/20261019-收口/跨实例文件保护局部.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "本地DSH资源/管理路由、同宿主会话映射和失败边界有源码及15/15定向证据",
+    "report": "docs/上游/Look独立审计-20261019收口.md#l22",
+    "evidence": [
+     {
+      "kind": "source-or-test-or-log",
+      "path": "dsh-plugin/lib/index.js"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "dsh-plugin/test/archive-management.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "dsh-plugin/test/plugin.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "dsh-plugin/test/lifecycle.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/跨实例文件保护局部.log"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261030-上游适配与落账/上游核对-20261030.json"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261030-上游适配与落账/验证汇总-20261030.json"
+     }
+    ],
+    "boundaries": [
+     "跨进程会话不自动重映射；真实DSH用户会话未验收",
+     "2026-10-30 上游适配只补本地证据与范围说明，正式/外部接受状态未前移。"
+    ]
+   }
+  },
+  {
+   "id": "L23",
+   "name": "独立窗口与受限宿主内嵌试玩",
+   "source": "look",
+   "upstreamPaths": [
+    "editor-ui/play-launcher.js",
+    "dsh-plugin/lib/play.html"
+   ],
+   "targetPaths": [
+    "editor-ui/play-launcher.js",
+    "dsh-plugin/lib/play.html"
+   ],
+   "tests": [
+    "web/test/desktop-play.test.mjs",
+    "web/test/embedded-play-browser.test.mjs",
+    "web/test/play-return.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/Look独立审计-20261019收口.md#l23",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "本地Web/popup/iframe关闭链路有源码与浏览器回归断言支持",
+    "report": "docs/上游/Look独立审计-20261019收口.md#l23",
+    "evidence": [
+     {
+      "kind": "source-or-test-or-log",
+      "path": "editor-ui/play-launcher.js"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "web/test/play-return.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "web/test/embedded-play-browser.test.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
+     }
+    ],
+    "boundaries": [
+     "Electron测试因未配置环境而跳过；真实DSH壳未验收"
+    ]
+   }
+  },
+  {
+   "id": "L24",
+   "name": "七步制作工作流与预设",
+   "source": "look",
+   "upstreamPaths": [
+    "agent",
+    "skill"
+   ],
+   "targetPaths": [
+    "agent",
+    "skill"
+   ],
+   "tests": [
+    "scripts/smoke-installed.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/Look独立审计-20261019收口.md#l24",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log",
+    "look3-workspace/整合/20261019-收口/最终三产品隔离安装.log",
+    "look3-workspace/整合/20261019-收口/官方DSH隔离宿主验证.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "本地Skill/预设交付及两API隔离包、官方DSH临时profile均有运行证据",
+    "report": "docs/上游/Look独立审计-20261019收口.md#l24",
+    "evidence": [
+     {
+      "kind": "source-or-test-or-log",
+      "path": "scripts/smoke-installed.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "agent/wonderland-lua-builder"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/最终三产品隔离安装.log"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/官方DSH隔离宿主验证.log"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261030-上游适配与落账/上游核对-20261030.json"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261030-上游适配与落账/验证汇总-20261030.json"
+     }
+    ],
+    "boundaries": [
+     "尚未验证用户按七步完成玩法；不以新增玩法为本地交付条件；千星或宿主验收未做",
+     "2026-10-30 上游适配只补本地证据与范围说明，正式/外部接受状态未前移。"
+    ]
+   }
+  },
+  {
+   "id": "L25",
+   "name": "三产品构建、独立安装与许可文件",
+   "source": "look",
+   "upstreamPaths": [
+    "scripts",
+    "package.json",
+    "Dockerfile",
+    "compose.yaml"
+   ],
+   "targetPaths": [
+    "scripts",
+    "package.json",
+    "Dockerfile",
+    "compose.yaml"
+   ],
+   "tests": [
+    "scripts/test.mjs",
+    "scripts/smoke-packages.mjs",
+    "scripts/smoke-git-install.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/Look独立审计-20261019收口.md#l25",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log",
+    "look3-workspace/整合/20261019-收口/最终三产品构建.log",
+    "look3-workspace/整合/20261019-收口/最终三产品打包.log",
+    "look3-workspace/整合/20261019-收口/最终三产品隔离安装.log",
+    "look3-workspace/整合/20261019-收口/最终Git源码隔离安装.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "三产品构建打包、两API隔离安装、Git源码安装和包SHA均已验证",
+    "report": "docs/上游/Look独立审计-20261019收口.md#l25",
+    "evidence": [
+     {
+      "kind": "source-or-test-or-log",
+      "path": "scripts/build.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "scripts/pack.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "scripts/smoke-packages.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "scripts/smoke-git-install.mjs"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "release/manifest.json"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/最终三产品构建.log"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/最终三产品打包.log"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/最终三产品隔离安装.log"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/最终Git源码隔离安装.log"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261019-收口/最终完整回归.log"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261030-上游适配与落账/验证汇总-20261030.json"
+     }
+    ],
+    "boundaries": [
+     "安装路径和Harness smoke不证明千星、真实DSH用户环境或项目试玩；不自动改变正式acceptedCommit",
+     "2026-10-30 上游适配只补本地证据与范围说明，正式/外部接受状态未前移。"
+    ]
+   }
+  },
+  {
+   "id": "U-UI01",
+   "name": "同工程1280×720/1920×1080下比对工具栏、四区域与时间轴布局、颜色、字体、间距和选中状态",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/界面资源独立审计-20261019收口.md#u-ui01",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log",
+    "look3-workspace/整合/20261019-收口/界面对照/原Look2-1280x720.png",
+    "look3-workspace/整合/20261019-收口/界面对照/Look3-1280x720.png",
+    "look3-workspace/整合/20261019-收口/界面对照/原Look2-1920x1080.png",
+    "look3-workspace/整合/20261019-收口/界面对照/Look3-1920x1080.png",
+    "look3-workspace/整合/20261019-收口/界面对照/界面量测.json"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "visual-compared-partial",
+    "report": "docs/上游/界面资源独立审计-20261019收口.md#u-ui01",
+    "evidence": [
+     {
+      "kind": "screenshot",
+      "path": "look3-workspace/整合/20261019-收口/界面对照/原Look2-1280x720.png",
+      "result": "同工程原Look2截图，1280x720",
+      "boundary": "仅截图静态状态"
+     },
+     {
+      "kind": "screenshot",
+      "path": "look3-workspace/整合/20261019-收口/界面对照/Look3-1280x720.png",
+      "result": "同工程Look3截图，1280x720",
+      "boundary": "仅截图静态状态"
+     },
+     {
+      "kind": "screenshot",
+      "path": "look3-workspace/整合/20261019-收口/界面对照/原Look2-1920x1080.png",
+      "result": "同工程原Look2截图，1920x1080",
+      "boundary": "仅截图静态状态"
+     },
+     {
+      "kind": "screenshot",
+      "path": "look3-workspace/整合/20261019-收口/界面对照/Look3-1920x1080.png",
+      "result": "同工程Look3截图，1920x1080",
+      "boundary": "仅截图静态状态"
+     },
+     {
+      "kind": "measurement",
+      "path": "look3-workspace/整合/20261019-收口/界面对照/界面量测.json",
+      "result": "四区域/时间轴尺寸、位置、字体、抽样颜色、选中态和溢出检查一致",
+      "boundary": "未做全部工具项逐像素差分；顶层壳层/部分工具文案存在差异"
+     },
+     {
+      "kind": "test",
+      "path": "web/test/look3-editor-browser.test.mjs",
+      "result": "桌面/窄屏页面入口与可见性回归",
+      "boundary": "不替代Look2与Look3视觉差分"
+     }
+    ],
+    "boundaries": [
+     "仅截图静态状态",
+     "未做全部工具项逐像素差分；顶层壳层/部分工具文案存在差异",
+     "不替代Look2与Look3视觉差分"
+    ]
+   }
+  },
+  {
+   "id": "U-UI02",
+   "name": "工具栏工作区、新建、保存、撤销/重做/记录、导入/导出、模板、图片、Lua、设备、缩放入口可操作",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/界面资源独立审计-20261019收口.md#u-ui02",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "behavior-tested-partial",
+    "report": "docs/上游/界面资源独立审计-20261019收口.md#u-ui02",
+    "evidence": [
+     {
+      "kind": "test",
+      "path": "studio/test/editor-workspace-panel.test.mjs",
+      "result": "3/3通过，覆盖工作区面板、筛选、创建/改名路径处理器",
+      "boundary": "不覆盖全部工具栏入口的端到端操作"
+     },
+     {
+      "kind": "test",
+      "path": "studio/test/editor-timeline.test.mjs",
+      "result": "覆盖历史、时间轴和部分真实按钮处理器",
+      "boundary": "导入/导出、模板、图片、Lua、设备入口未组成完整操作矩阵"
+     }
+    ],
+    "boundaries": [
+     "不覆盖全部工具栏入口的端到端操作",
+     "导入/导出、模板、图片、Lua、设备入口未组成完整操作矩阵"
+    ]
+   }
+  },
+  {
+   "id": "U-UI03",
+   "name": "树搜索、父子折叠、隐藏、锁定、删除、复制、拖放改父级及层序，选中与属性/画布联动",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/界面资源独立审计-20261019收口.md#u-ui03",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "behavior-tested-partial",
+    "report": "docs/上游/界面资源独立审计-20261019收口.md#u-ui03",
+    "evidence": [
+     {
+      "kind": "test",
+      "path": "studio/test/editor-hierarchy-selection.test.mjs",
+      "result": "重挂、拖放、选择、失败原子性、撤销/重做断言",
+      "boundary": "不是所有树操作的单一页面流程"
+     },
+     {
+      "kind": "test",
+      "path": "studio/test/editor-selection-visibility.test.mjs",
+      "result": "显隐子树与选中状态断言",
+      "boundary": "搜索/锁定/拖放组合未全覆盖"
+     },
+     {
+      "kind": "test",
+      "path": "studio/test/editor-container-actions.test.mjs",
+      "result": "删除与层序操作断言",
+      "boundary": "外部编辑器验收未做"
+     }
+    ],
+    "boundaries": [
+     "不是所有树操作的单一页面流程",
+     "搜索/锁定/拖放组合未全覆盖",
+     "外部编辑器验收未做"
+    ]
+   }
+  },
+  {
+   "id": "U-UI04",
+   "name": "画布滚轮缩放、中键平移、缩放百分比/增减/适应、坐标与设备尺寸显示",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/界面资源独立审计-20261019收口.md#u-ui04",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "wiring-reviewed",
+    "report": "docs/上游/界面资源独立审计-20261019收口.md#u-ui04",
+    "evidence": [
+     {
+      "kind": "source",
+      "path": "editor-ui/look2.js",
+      "result": "存在滚轮缩放、中键平移、缩放按钮、百分比、坐标和设备尺寸接线",
+      "boundary": "缺编辑画布滚轮/中键真实指针行为断言"
+     },
+     {
+      "kind": "test",
+      "path": "web/test/look3-editor-browser.test.mjs",
+      "result": "验证页面布局和入口可见",
+      "boundary": "Runtime滚轮测试不等同于画布缩放/平移"
+     }
+    ],
+    "boundaries": [
+     "缺编辑画布滚轮/中键真实指针行为断言",
+     "Runtime滚轮测试不等同于画布缩放/平移"
+    ]
+   }
+  },
+  {
+   "id": "U-UI05",
+   "name": "三合一/移动/旋转/大小手柄；父级有旋转/缩放时仍使用正确坐标；锁定对象不能拖动",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/界面资源独立审计-20261019收口.md#u-ui05",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "behavior-tested-partial",
+    "report": "docs/上游/界面资源独立审计-20261019收口.md#u-ui05",
+    "evidence": [
+     {
+      "kind": "test",
+      "path": "studio/test/editor-resize-anchors.test.mjs",
+      "result": "八方向缩放、反向边保持、旋转缩放父级局部几何断言",
+      "boundary": "不覆盖所有设备/锁定/手柄模式的外部真实操作"
+     },
+     {
+      "kind": "test",
+      "path": "studio/test/editor-timeline.test.mjs",
+      "result": "平台变换草稿提交与撤销行为断言",
+      "boundary": "非千星实机验收"
+     }
+    ],
+    "boundaries": [
+     "不覆盖所有设备/锁定/手柄模式的外部真实操作",
+     "非千星实机验收"
+    ]
+   }
+  },
+  {
+   "id": "U-UI06",
+   "name": "骨骼模式、动画面板收起/展开、时间轴高度拖动，窄屏不丢失功能入口",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/界面资源独立审计-20261019收口.md#u-ui06",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "behavior-tested-partial",
+    "report": "docs/上游/界面资源独立审计-20261019收口.md#u-ui06",
+    "evidence": [
+     {
+      "kind": "test",
+      "path": "studio/test/editor-timeline.test.mjs",
+      "result": "面板收起状态断言",
+      "boundary": "没有覆盖每种窄屏/拖动高度组合"
+     },
+     {
+      "kind": "test",
+      "path": "web/test/look3-bones-browser.test.mjs",
+      "result": "骨骼创建、长度手柄、附着、撤销真实指针行为",
+      "boundary": "本地浏览器，不是目标游戏编辑器"
+     },
+     {
+      "kind": "test",
+      "path": "web/test/look3-editor-browser.test.mjs",
+      "result": "桌面及窄屏入口可见性",
+      "boundary": "不是窄屏全状态组合验证"
+     }
+    ],
+    "boundaries": [
+     "没有覆盖每种窄屏/拖动高度组合",
+     "本地浏览器，不是目标游戏编辑器",
+     "不是窄屏全状态组合验证"
+    ]
+   }
+  },
+  {
+   "id": "U-UI07",
+   "name": "属性基础/运行时页、分组展开/复制/重置，四平台变换与锚点预设、3D数值、创建/编辑设置",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/界面资源独立审计-20261019收口.md#u-ui07",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "behavior-tested-partial",
+    "report": "docs/上游/界面资源独立审计-20261019收口.md#u-ui07",
+    "evidence": [
+     {
+      "kind": "test",
+      "path": "studio/test/field-groups.test.mjs",
+      "result": "Inspector字段到布局/动画通道映射断言",
+      "boundary": "不覆盖所有字段页视觉/提交组合"
+     },
+     {
+      "kind": "test",
+      "path": "studio/test/editor-platform-preview.test.mjs",
+      "result": "四平台作者预览和未变Runtime视口断言",
+      "boundary": "非真实游戏视口"
+     },
+     {
+      "kind": "test",
+      "path": "studio/test/editor-timeline.test.mjs",
+      "result": "平台轴草稿处理器断言",
+      "boundary": "全字段矩阵未覆盖"
+     }
+    ],
+    "boundaries": [
+     "不覆盖所有字段页视觉/提交组合",
+     "非真实游戏视口",
+     "全字段矩阵未覆盖"
+    ]
+   }
+  },
+  {
+   "id": "U-UI08",
+   "name": "各控件类型属性显示与提交，颜色、文本、字体、图片、填充、遮罩、软边、按钮状态/模板引用等",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/界面资源独立审计-20261019收口.md#u-ui08",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "behavior-tested-partial",
+    "report": "docs/上游/界面资源独立审计-20261019收口.md#u-ui08",
+    "evidence": [
+     {
+      "kind": "test",
+      "path": "studio/test/gia-observed-fields.test.mjs",
+      "result": "观察到的字段导入/导出及平台语义断言",
+      "boundary": "不是各控件全属性UI矩阵"
+     },
+     {
+      "kind": "test",
+      "path": "studio/test/editor-image-preview.test.mjs",
+      "result": "遮罩/羽化/填充图像预览断言",
+      "boundary": "外部游戏运行语义未验"
+     },
+     {
+      "kind": "test",
+      "path": "studio/test/editor-timeline.test.mjs",
+      "result": "动画属性编辑子集断言",
+      "boundary": "颜色、字体、模板引用等未全覆盖"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261030-上游适配与落账/上游核对-20261030.json"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "look3-workspace/整合/20261030-上游适配与落账/验证汇总-20261030.json"
+     }
+    ],
+    "boundaries": [
+     "不是各控件全属性UI矩阵",
+     "外部游戏运行语义未验",
+     "颜色、字体、模板引用等未全覆盖",
+     "2026-10-30 上游适配只补本地证据与范围说明，正式/外部接受状态未前移。"
+    ]
+   }
+  },
+  {
+   "id": "U-RS01",
+   "name": "本地/网址图片导入，图片随正式工程保存；网址失效后仍可重开",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/界面资源独立审计-20261019收口.md#u-rs01",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "behavior-tested-partial",
+    "report": "docs/上游/界面资源独立审计-20261019收口.md#u-rs01",
+    "evidence": [
+     {
+      "kind": "test",
+      "path": "studio/test/look2-image-source.test.mjs",
+      "result": "网址导入内嵌字节、非法格式拒绝不污染缓存",
+      "boundary": "不等于真实文件选择器/外网服务器验收"
+     },
+     {
+      "kind": "test",
+      "path": "studio/test/look2.test.mjs",
+      "result": "工程资源往返覆盖",
+      "boundary": "外部目标存档未导入"
+     }
+    ],
+    "boundaries": [
+     "不等于真实文件选择器/外网服务器验收",
+     "外部目标存档未导入"
+    ]
+   }
+  },
+  {
+   "id": "U-RS02",
+   "name": "资源搜索、重命名、共享引用/引用数、清除与删除，绑定多个控件并保存重开",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/界面资源独立审计-20261019收口.md#u-rs02",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "behavior-tested-partial",
+    "report": "docs/上游/界面资源独立审计-20261019收口.md#u-rs02",
+    "evidence": [
+     {
+      "kind": "test",
+      "path": "studio/test/editor-resource-options.test.mjs",
+      "result": "单项清除绑定及删除范围断言",
+      "boundary": "引用数显示未单独断言"
+     },
+     {
+      "kind": "test",
+      "path": "studio/test/look2-history.test.mjs",
+      "result": "资源事务撤销/重做断言",
+      "boundary": "全部资源类型UI矩阵未覆盖"
+     },
+     {
+      "kind": "test",
+      "path": "studio/test/look2.test.mjs",
+      "result": "存档往返覆盖",
+      "boundary": "真实设备文件读写未验"
+     }
+    ],
+    "boundaries": [
+     "引用数显示未单独断言",
+     "全部资源类型UI矩阵未覆盖",
+     "真实设备文件读写未验"
+    ]
+   }
+  },
+  {
+   "id": "U-RS03",
+   "name": "椭圆/矩形/三角形拟合：数量、精度、线程、透明选项，恢复默认参数",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/界面资源独立审计-20261019收口.md#u-rs03",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "behavior-tested-partial",
+    "report": "docs/上游/界面资源独立审计-20261019收口.md#u-rs03",
+    "evidence": [
+     {
+      "kind": "test",
+      "path": "studio/test/look2-primitives.test.mjs",
+      "result": "选项归一化/默认值/Worker硬件上限行为断言",
+      "boundary": "不同机器性能与负载未验"
+     },
+     {
+      "kind": "test",
+      "path": "studio/test/editor-resource-options.test.mjs",
+      "result": "逐资源参数读写断言",
+      "boundary": "外部宿主Worker限制未验"
+     }
+    ],
+    "boundaries": [
+     "不同机器性能与负载未验",
+     "外部宿主Worker限制未验"
+    ]
+   }
+  },
+  {
+   "id": "U-RS04",
+   "name": "计算不阻塞编辑器，进度与取消；关闭面板取消剩余计算，已完成结果保留；过期结果不覆盖新资源",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/界面资源独立审计-20261019收口.md#u-rs04",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "behavior-tested-partial",
+    "report": "docs/上游/界面资源独立审计-20261019收口.md#u-rs04",
+    "evidence": [
+     {
+      "kind": "test",
+      "path": "studio/test/look2-primitives.test.mjs",
+      "result": "Worker进度与终止断言",
+      "boundary": "面板真实关闭流程未独立验证"
+     },
+     {
+      "kind": "test",
+      "path": "studio/test/editor-resource-options.test.mjs",
+      "result": "批处理取消、成功/中断/未处理统计、失败后继续断言",
+      "boundary": "浏览器UI生命周期组合待验"
+     }
+    ],
+    "boundaries": [
+     "面板真实关闭流程未独立验证",
+     "浏览器UI生命周期组合待验"
+    ]
+   }
+  },
+  {
+   "id": "U-RS05",
+   "name": "一键生成全部缺失图元不受搜索限制，逐图参数生效，失败与取消结果准确",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/界面资源独立审计-20261019收口.md#u-rs05",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "behavior-tested",
+    "report": "docs/上游/界面资源独立审计-20261019收口.md#u-rs05",
+    "evidence": [
+     {
+      "kind": "test",
+      "path": "studio/test/editor-resource-options.test.mjs",
+      "result": "明确断言批处理不受搜索过滤、逐图参数、失败继续及取消统计",
+      "boundary": "真实大规模图片和宿主性能未测"
+     }
+    ],
+    "boundaries": [
+     "真实大规模图片和宿主性能未测"
+    ]
+   }
+  },
+  {
+   "id": "U-RS06",
+   "name": "原图/拟合显示切换与全局切换；同资源在不同尺寸控件中等比适配",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/界面资源独立审计-20261019收口.md#u-rs06",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "behavior-tested-partial",
+    "report": "docs/上游/界面资源独立审计-20261019收口.md#u-rs06",
+    "evidence": [
+     {
+      "kind": "test",
+      "path": "studio/test/editor-image-preview.test.mjs",
+      "result": "预览、缓存更新和图像行为断言",
+      "boundary": "不同尺寸控件共享资源的视觉比例未单测"
+     },
+     {
+      "kind": "source",
+      "path": "editor-ui/look2.js",
+      "result": "单项/全局预览切换入口存在",
+      "boundary": "不等于浏览器交互全流程"
+     }
+    ],
+    "boundaries": [
+     "不同尺寸控件共享资源的视觉比例未单测",
+     "不等于浏览器交互全流程"
+    ]
+   }
+  },
+  {
+   "id": "U-RS07",
+   "name": "导出/导入纯填充SVG、shaper CSS，支持三种形状与平移/旋转/缩放；透明/白底语义一致",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/界面资源独立审计-20261019收口.md#u-rs07",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "behavior-tested-partial",
+    "report": "docs/上游/界面资源独立审计-20261019收口.md#u-rs07",
+    "evidence": [
+     {
+      "kind": "test",
+      "path": "studio/test/look2-primitives.test.mjs",
+      "result": "纯填充SVG/CSS往返、几何、颜色/透明度及底色映射断言",
+      "boundary": "外部工具边缘格式兼容未验"
+     }
+    ],
+    "boundaries": [
+     "外部工具边缘格式兼容未验"
+    ]
+   }
+  },
+  {
+   "id": "U-RS08",
+   "name": "不支持曲线/描边/渐变/蒙版时明确报错，旧拟合与原图/ID不变；成功覆盖可撤销",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/界面资源独立审计-20261019收口.md#u-rs08",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "behavior-tested-partial",
+    "report": "docs/上游/界面资源独立审计-20261019收口.md#u-rs08",
+    "evidence": [
+     {
+      "kind": "test",
+      "path": "studio/test/look2-primitives.test.mjs",
+      "result": "不支持path/描边/渐变时拒绝并保留旧拟合",
+      "boundary": "成功覆盖的专用导入handler撤销测试不足"
+     },
+     {
+      "kind": "test",
+      "path": "studio/test/look2-history.test.mjs",
+      "result": "共享历史事务有撤销/重做测试",
+      "boundary": "不是每种导入handler的单独撤销证明"
+     }
+    ],
+    "boundaries": [
+     "成功覆盖的专用导入handler撤销测试不足",
+     "不是每种导入handler的单独撤销证明"
+    ]
+   }
+  },
+  {
+   "id": "U-RS09",
+   "name": "参考源在线素材目录/分类/搜索/真实缩略图/边框；已加载项自动缓存，断网仍可读取",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/界面资源独立审计-20261019收口.md#u-rs09",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "behavior-tested-partial",
+    "report": "docs/上游/界面资源独立审计-20261019收口.md#u-rs09",
+    "evidence": [
+     {
+      "kind": "test",
+      "path": "studio/test/look2-image-source.test.mjs",
+      "result": "目录/图片共用请求与离线回退断言",
+      "boundary": "测试端点可控，不是官方在线源"
+     },
+     {
+      "kind": "test",
+      "path": "web/test/editor.test.mjs",
+      "result": "目录/图片/Worker路由及缓存头断言",
+      "boundary": "DSH实际远程请求未验"
+     }
+    ],
+    "boundaries": [
+     "测试端点可控，不是官方在线源",
+     "DSH实际远程请求未验"
+    ]
+   }
+  },
+  {
+   "id": "U-AN01",
+   "name": "动画新增/复制/改名/删除/切换，共享基础控件但关键帧、事件、时长相互独立",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/格式动画独立审计-20261019收口.md#u-an01",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "partial-local-evidence",
+    "report": "docs/上游/格式动画独立审计-20261019收口.md#u-an01",
+    "evidence": [
+     {
+      "kind": "local-test",
+      "path": "studio/test/editor-timeline.test.mjs",
+      "claim": "动画复制隔离、事务失败和撤销路径。"
+     },
+     {
+      "kind": "local-test",
+      "path": "studio/test/editor-animation-names.test.mjs",
+      "claim": "唯一名称、输入边界和失败不改历史。"
+     }
+    ],
+    "boundaries": []
+   }
+  },
+  {
+   "id": "U-AN02",
+   "name": "分组轨道/控件折叠、当前值/插帧、秒/帧刻度、播放头、回起点、播放/暂停、帧率/时长/吸附",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/格式动画独立审计-20261019收口.md#u-an02",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "partial-local-evidence",
+    "report": "docs/上游/格式动画独立审计-20261019收口.md#u-an02",
+    "evidence": [
+     {
+      "kind": "local-test",
+      "path": "studio/test/editor-timeline.test.mjs",
+      "claim": "分组折叠、传输、时长钳制、拒绝事务和关键帧时间吸附。"
+     }
+    ],
+    "boundaries": []
+   }
+  },
+  {
+   "id": "U-AN03",
+   "name": "双击/右键插帧、拖动、关键帧参数、多选、Ctrl+C/V、Delete、轨道删除，撤销恢复",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/格式动画独立审计-20261019收口.md#u-an03",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "partial-local-evidence",
+    "report": "docs/上游/格式动画独立审计-20261019收口.md#u-an03",
+    "evidence": [
+     {
+      "kind": "local-test",
+      "path": "studio/test/editor-timeline.test.mjs",
+      "claim": "组拖动、插帧事务、轨道增删、复制粘贴、删除和撤销。"
+     }
+    ],
+    "boundaries": []
+   }
+  },
+  {
+   "id": "U-AN04",
+   "name": "31种缓动以及阶跃/补间、最后保持、精确边界、颜色/布尔字段的正确编辑与播放",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/格式动画独立审计-20261019收口.md#u-an04",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "partial-local-evidence",
+    "report": "docs/上游/格式动画独立审计-20261019收口.md#u-an04",
+    "evidence": [
+     {
+      "kind": "local-test",
+      "path": "studio/test/look2-player.test.mjs",
+      "claim": "本地 JavaScript/Lua 缓动、相对值、incoming、末帧保持和显隐阶跃。"
+     },
+     {
+      "kind": "source-review",
+      "path": "studio/look2/sampling.js",
+      "claim": "31 个正式公式及 3 个旧名称兼容别名。"
+     }
+    ],
+    "boundaries": []
+   }
+  },
+  {
+   "id": "U-AN05",
+   "name": "位置/大小/缩放的前帧增量；首帧基于初始值，后续基于前一右侧值；跳变入侧值",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/格式动画独立审计-20261019收口.md#u-an05",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "partial-local-evidence",
+    "report": "docs/上游/格式动画独立审计-20261019收口.md#u-an05",
+    "evidence": [
+     {
+      "kind": "local-test",
+      "path": "studio/test/look3-site-interop.test.mjs",
+      "claim": "Clip v4/v5/v6、incoming 值、接边迁移、元数据与输入不变。"
+     },
+     {
+      "kind": "local-test",
+      "path": "studio/test/look2-player.test.mjs",
+      "claim": "本地 JavaScript/Lua Runtime 采样对照。"
+     }
+    ],
+    "boundaries": []
+   }
+  },
+  {
+   "id": "U-AN06",
+   "name": "旋转多圈角度、组透明度0–255、颜色RGBA与首帧前显隐，JS/Lua结果对照",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/格式动画独立审计-20261019收口.md#u-an06",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "partial-local-evidence",
+    "report": "docs/上游/格式动画独立审计-20261019收口.md#u-an06",
+    "evidence": [
+     {
+      "kind": "local-test",
+      "path": "studio/test/look2-animation-interop.test.mjs",
+      "claim": "多圈旋转、颜色、组透明度和跨越事件。"
+     },
+     {
+      "kind": "local-test",
+      "path": "studio/test/look2-player.test.mjs",
+      "claim": "JavaScript/Lua Runtime 采样对照。"
+     }
+    ],
+    "boundaries": []
+   }
+  },
+  {
+   "id": "U-AN07",
+   "name": "事件时间/名称/目标/参数、编辑/删除/排序与最近50条日志；播放触发、seek不触发、同刻顺序稳定",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/格式动画独立审计-20261019收口.md#u-an07",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "partial-local-evidence",
+    "report": "docs/上游/格式动画独立审计-20261019收口.md#u-an07",
+    "evidence": [
+     {
+      "kind": "local-test",
+      "path": "studio/test/editor-timeline.test.mjs",
+      "claim": "零点事件、同刻顺序、50 条日志、事件编辑撤销。"
+     },
+     {
+      "kind": "local-test",
+      "path": "studio/test/look2-player.test.mjs",
+      "claim": "本地 Lua Runtime 的路径调用、异常隔离和 seek 不触发。"
+     }
+    ],
+    "boundaries": []
+   }
+  },
+  {
+   "id": "U-TP01",
+   "name": "模板GIA导入、名称/索引管理、保存重开、引用/实例化及缺失模板提示",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/格式动画独立审计-20261019收口.md#u-tp01",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log",
+    "look3-workspace/整合/20261019-收口/TP01四设备模板GIA/TP01-固定UGC结构-四设备模板.gia",
+    "look3-workspace/整合/20261019-收口/TP01四设备模板GIA/验证结果.json",
+    "look3-workspace/整合/20261019-收口/TP01四设备模板GIA/固定源与哈希.json",
+    "look3-workspace/整合/20261019-收口/TP01四设备模板GIA/运行日志.log",
+    "look3-workspace/整合/20261019-收口/TP01四设备模板GIA/Look3本地回导-四设备模板.gia"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "synthetic-fixed-source-local-roundtrip",
+    "report": "docs/上游/格式动画独立审计-20261019收口.md#u-tp01",
+    "evidence": [
+     {
+      "kind": "synthetic-fixed-source-fixture",
+      "path": "look3-workspace/整合/20261019-收口/TP01四设备模板GIA/TP01-固定UGC结构-四设备模板.gia",
+      "claim": "固定 UGC exporter/converter 生成的四设备模板 GIA；不是网站真实导出。"
+     },
+     {
+      "kind": "local-roundtrip-result",
+      "path": "look3-workspace/整合/20261019-收口/TP01四设备模板GIA/验证结果.json",
+      "claim": "固定 importer 槽位 8/8；Look3 importGia 和 exportGia/importGia 各 48/48 布局值。"
+     },
+     {
+      "kind": "fixed-source-pins-and-hashes",
+      "path": "look3-workspace/整合/20261019-收口/TP01四设备模板GIA/固定源与哈希.json",
+      "claim": "记录固定提交、Git blob 与源码哈希。"
+     },
+     {
+      "kind": "execution-log",
+      "path": "look3-workspace/整合/20261019-收口/TP01四设备模板GIA/运行日志.log",
+      "claim": "固定 exporter、converter 和本地回读链执行摘要。"
+     },
+     {
+      "kind": "look3-local-export",
+      "path": "look3-workspace/整合/20261019-收口/TP01四设备模板GIA/Look3本地回导-四设备模板.gia",
+      "claim": "Look3 本地 exportGia 输出；未做外部 UGC 回导。"
+     }
+    ],
+    "boundaries": []
+   }
+  },
+  {
+   "id": "U-IM01",
+   "name": "站点JSONv12往返保留编辑字段、模板、资源、动画、事件与未编辑元数据",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/格式动画独立审计-20261019收口.md#u-im01",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "partial-local-evidence",
+    "report": "docs/上游/格式动画独立审计-20261019收口.md#u-im01",
+    "evidence": [
+     {
+      "kind": "local-test",
+      "path": "studio/test/look3-site-interop.test.mjs",
+      "claim": "站点 JSON 与旧布局迁移、重开、incoming 和未编辑元数据。"
+     }
+    ],
+    "boundaries": []
+   }
+  },
+  {
+   "id": "U-IM02",
+   "name": "GIA导入/导出/回导保留层序、图元形状/颜色/变换、脚本源码/映射/挂载；源编辑树不被烘焙污染",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/格式动画独立审计-20261019收口.md#u-im02",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "partial-local-evidence",
+    "report": "docs/上游/格式动画独立审计-20261019收口.md#u-im02",
+    "evidence": [
+     {
+      "kind": "local-test",
+      "path": "studio/test/gia-client-order.test.mjs",
+      "claim": "wire 与编辑树层序映射。"
+     },
+     {
+      "kind": "local-test",
+      "path": "studio/test/scripts.test.mjs",
+      "claim": "脚本映射、挂载和模板路径。"
+     },
+     {
+      "kind": "local-test",
+      "path": "studio/test/look2-integration.test.mjs",
+      "claim": "导出烘焙不修改作者源树。"
+     },
+     {
+      "kind": "local-test",
+      "path": "studio/test/upstream-core-integration.test.mjs",
+      "claim": "已观察遮罩字段的 GIA 往返。"
+     }
+    ],
+    "boundaries": []
+   }
+  },
+  {
+   "id": "U-IM03",
+   "name": "PSD图层分组/位置/透明度及网页支持的像素结果，失败时保留原工程",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/格式动画独立审计-20261019收口.md#u-im03",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "partial-local-evidence",
+    "report": "docs/上游/格式动画独立审计-20261019收口.md#u-im03",
+    "evidence": [
+     {
+      "kind": "local-test",
+      "path": "studio/test/look2-assets.test.mjs",
+      "claim": "PSD 图层、mask、像素、取消和损坏 Worker 协议。"
+     },
+     {
+      "kind": "local-test",
+      "path": "studio/test/platform-layout.test.mjs",
+      "claim": "通用失败导入保持既有资产。"
+     }
+    ],
+    "boundaries": []
+   }
+  },
+  {
+   "id": "U-IM04",
+   "name": "Spine3.8层级变换、贴图、动画/曲线/插槽和网页支持边界；失效资源/不支持特性明确报告",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/格式动画独立审计-20261019收口.md#u-im04",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "partial-local-evidence",
+    "report": "docs/上游/格式动画独立审计-20261019收口.md#u-im04",
+    "evidence": [
+     {
+      "kind": "local-test",
+      "path": "studio/test/look2-assets.test.mjs",
+      "claim": "Spine 3.8 层级、Bezier 30Hz、告警、拒绝路径和版本边界。"
+     }
+    ],
+    "boundaries": []
+   }
+  },
+  {
+   "id": "U-LU01",
+   "name": "TimelineData @8及网页支持旧schema导入，追加/替换、指定根/路径、颜色、跳变、事件完整往返",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/格式动画独立审计-20261019收口.md#u-lu01",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "partial-local-evidence",
+    "report": "docs/上游/格式动画独立审计-20261019收口.md#u-lu01",
+    "evidence": [
+     {
+      "kind": "local-test",
+      "path": "studio/test/look2-animation-interop.test.mjs",
+      "claim": "TimelineData @8、旧版本、追加/替换、路径、颜色、incoming 与事件。"
+     }
+    ],
+    "boundaries": []
+   }
+  },
+  {
+   "id": "U-LU02",
+   "name": "TweenTimelineLib.Create(root,data,options)返回可控制序列，数据版本检查、重播、显隐、事件/回调",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/格式动画独立审计-20261019收口.md#u-lu02",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log",
+    "look3-workspace/整合/20261019-续/U-LU02-libversion.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "partial-local-evidence",
+    "report": "docs/上游/格式动画独立审计-20261019收口.md#u-lu02",
+    "evidence": [
+     {
+      "kind": "local-test-log",
+      "path": "look3-workspace/整合/20261019-续/U-LU02-libversion.log",
+      "claim": "版本兼容和 TweenTimelineLib 合约定向测试 13/13。"
+     },
+     {
+      "kind": "known-difference",
+      "path": "docs/上游/格式动画独立审计-20261019收口.md#u-lu02",
+      "claim": "本地版本错误抛 Lua error；固定源记录错误后返回空序列。"
+     }
+    ],
+    "boundaries": []
+   }
+  },
+  {
+   "id": "U-LU03",
+   "name": "PrimitiveData和PrimitiveImageLib.create(root,data,imagePrefabIndex)，销毁/重复生成只影响自身创建图元",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/格式动画独立审计-20261019收口.md#u-lu03",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log",
+    "look3-workspace/整合/20261019-收口/TP01四设备模板GIA/U-LU03定向测试原始输出.log",
+    "look3-workspace/整合/20261019-收口/TP01四设备模板GIA/U-LU03故障恢复验证.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "local-runtime-fault-injection-passed",
+    "report": "docs/上游/格式动画独立审计-20261019收口.md#u-lu03",
+    "evidence": [
+     {
+      "kind": "source-change",
+      "path": "studio/look2/primitives.js",
+      "claim": "逐控件保护、失败保留重试、错误聚合、旧集合失败回滚候选及 owner 保留。"
+     },
+     {
+      "kind": "local-fault-injection-test",
+      "path": "studio/test/look2-primitives.test.mjs",
+      "claim": "单项失败重试、replace 回滚和双重清理失败后旧句柄清理两边残留；9/9。"
+     },
+     {
+      "kind": "test-output",
+      "path": "look3-workspace/整合/20261019-收口/TP01四设备模板GIA/U-LU03定向测试原始输出.log",
+      "claim": "定向测试原始 stdout，9/9。"
+     },
+     {
+      "kind": "summary-log",
+      "path": "look3-workspace/整合/20261019-收口/TP01四设备模板GIA/U-LU03故障恢复验证.log",
+      "claim": "固定源语义、故障序列和非游戏验收边界的摘要。"
+     }
+    ],
+    "boundaries": []
+   }
+  },
+  {
+   "id": "U-ST01",
+   "name": "控件/素材/模板/动画统一事务、版本冲突无副作用、撤销/重做/历史恢复与失败回滚",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/界面资源独立审计-20261019收口.md#u-st01",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "behavior-tested-partial",
+    "report": "docs/上游/界面资源独立审计-20261019收口.md#u-st01",
+    "evidence": [
+     {
+      "kind": "test",
+      "path": "studio/test/look2-history.test.mjs",
+      "result": "原子事务、冲突无副作用、撤销/重做、模板/资源历史断言",
+      "boundary": "未覆盖跨全部资源/动画类型组合"
+     },
+     {
+      "kind": "test",
+      "path": "studio/test/editor-timeline.test.mjs",
+      "result": "真实界面处理器一步撤销断言",
+      "boundary": "不等于全量整合矩阵"
+     }
+    ],
+    "boundaries": [
+     "未覆盖跨全部资源/动画类型组合",
+     "不等于全量整合矩阵"
+    ]
+   }
+  },
+  {
+   "id": "U-ST02",
+   "name": "工作区存档、新建/改名/保存/重开、IndexedDB大图片草稿与恢复，正式文件仅显式保存",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/界面资源独立审计-20261019收口.md#u-st02",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log",
+    "look3-workspace/整合/20261019-收口/文件改名边界局部.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "behavior-tested-partial",
+    "report": "docs/上游/界面资源独立审计-20261019收口.md#u-st02",
+    "evidence": [
+     {
+      "kind": "test",
+      "path": "studio/test/editor-workspace-panel.test.mjs",
+      "result": "当前复跑3/3；工作区、草稿路径映射、显式保存处理器行为",
+      "boundary": "文件管理局部测试使用真实临时目录；用户实际目录/权限与桌面宿主验收仍待验"
+     },
+     {
+      "kind": "test-log",
+      "path": "look3-workspace/整合/20261019-收口/文件改名边界局部.log",
+      "result": "13/13通过；旧路径别名封锁、改回并显式重载恢复保存目标",
+      "boundary": "后端独立代码审查由resume_look负责"
+     }
+    ],
+    "boundaries": [
+     "文件管理局部测试使用真实临时目录；用户实际目录/权限与桌面宿主验收仍待验",
+     "后端独立代码审查由resume_look负责"
+    ]
+   }
+  },
+  {
+   "id": "U-ST03",
+   "name": "2.0.3及原Look旧存档迁移保持效果，原文件不覆盖；原Look目录保持不变",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/格式动画独立审计-20261019收口.md#u-st03",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "partial-local-evidence",
+    "report": "docs/上游/格式动画独立审计-20261019收口.md#u-st03",
+    "evidence": [
+     {
+      "kind": "local-test",
+      "path": "studio/test/platform-layout.test.mjs",
+      "claim": "v1–v3 迁移和输入对象不变。"
+     },
+     {
+      "kind": "local-test",
+      "path": "studio/test/scripts.test.mjs",
+      "claim": "旧存档按资产恢复脚本挂载。"
+     }
+    ],
+    "boundaries": []
+   }
+  },
+  {
+   "id": "U-HT01",
+   "name": "Web/DSH/MCP接口同步、三产品构建、全量回归、资源Worker与在线图片宿主接入",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/界面资源独立审计-20261019收口.md#u-ht01",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log",
+    "look3-workspace/整合/20261019-续/共享资源与宿主局部.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "integration-tested-partial",
+    "report": "docs/上游/界面资源独立审计-20261019收口.md#u-ht01",
+    "evidence": [
+     {
+      "kind": "test",
+      "path": "web/test/editor.test.mjs",
+      "result": "Web会话、资源路由和Worker访问的局部证据",
+      "boundary": "不代表当前全量回归结果"
+     },
+     {
+      "kind": "test-log",
+      "path": "look3-workspace/整合/20261019-续/共享资源与宿主局部.log",
+      "result": "上一轮Web/DSH/MCP局部证据",
+      "boundary": "不作为本次最终全量验收或外部宿主验收"
+     }
+    ],
+    "boundaries": [
+     "不代表当前全量回归结果",
+     "不作为本次最终全量验收或外部宿主验收"
+    ]
+   }
+  },
+  {
+   "id": "U-HT02",
+   "name": "子代理按完整清单独立验收；千星实机状态与自动化结果分别报告",
+   "source": "ui-editor",
+   "upstreamPaths": [
+    "src/views/ClientUIAnimationEditor"
+   ],
+   "targetPaths": [
+    "editor-ui",
+    "studio/look2"
+   ],
+   "tests": [
+    "studio/test/look2.test.mjs"
+   ],
+   "status": "pending",
+   "evidence": [
+    "docs/上游/界面资源独立审计-20261019收口.md#u-ht02",
+    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+   ],
+   "externalAcceptance": "pending",
+   "localReview": {
+    "readingState": "未读",
+    "status": "gate-tested-partial",
+    "report": "docs/上游/界面资源独立审计-20261019收口.md#u-ht02",
+    "evidence": [
+     {
+      "kind": "source",
+      "path": "scripts/acceptance-ledger-core.mjs",
+      "result": "正式条目ID和验收证据类型门禁",
+      "boundary": "门禁不等于功能完成"
+     },
+     {
+      "kind": "test",
+      "path": "studio/test/acceptance-ledger.test.mjs",
+      "result": "断言证据范围和外部验收不可由测试总数替代",
+      "boundary": "本稿仅独立覆盖21项，不是62项整体验收"
+     },
+     {
+      "kind": "manifest",
+      "path": "docs/上游/功能清单.json",
+      "result": "正式状态仍由主代理维护",
+      "boundary": "本次未修改"
+     }
+    ],
+    "boundaries": [
+     "门禁不等于功能完成",
+     "本稿仅独立覆盖21项，不是62项整体验收",
+     "本次未修改"
+    ]
+   }
+  }
+ ],
+ "projectStatus": "local-stage-complete-external-pending",
+ "projectComplete": false,
+ "checkpoint": "look3-workspace/整合/20261030-上游适配与落账/验证汇总-20261030.json",
+ "note": "【未读】2026-10-30落账：3.1.1本地候选完成上游Look 14提交与UI编辑器5提交逐项核对；新增Harness 0.2.1适配（persona去除cwd变量、peer范围、0.2.1包冒烟组）并补editor-ui控件索引号段校验；完整回归832项0失败、三产品构建打包、dsh-tools 0.1.0-rc.6/0.2.0-rc.2/0.2.1-rc.2三组隔离安装冒烟通过。正式/外部验收仍pending，acceptedCommit保持null。",
+ "progressReport": "look3-workspace/整合/20261030-上游适配与落账/验证汇总-20261030.json",
+ "currentLocalEvidence": {
+  "fullRegression": {
+   "command": "node scripts/test.mjs",
+   "exitCode": 0,
+   "scopes": [
+    {
+     "scope": "scripts/upstream-sync",
+     "tests": 3,
+     "pass": 3,
+     "fail": 0,
+     "cancelled": 0,
+     "skipped": 0
+    },
+    {
+     "scope": "client/lua-runtime",
+     "tests": 61,
+     "pass": 61,
+     "fail": 0,
+     "cancelled": 0,
+     "skipped": 0
+    },
+    {
+     "scope": "server",
+     "tests": 11,
+     "pass": 11,
+     "fail": 0,
+     "cancelled": 0,
+     "skipped": 0
+    },
+    {
+     "scope": "studio",
+     "tests": 608,
+     "pass": 608,
+     "fail": 0,
+     "cancelled": 0,
+     "skipped": 0
+    },
+    {
+     "scope": "dsh-plugin",
+     "tests": 58,
+     "pass": 58,
+     "fail": 0,
+     "cancelled": 0,
+     "skipped": 0
+    },
+    {
+     "scope": "mcp",
+     "tests": 19,
+     "pass": 19,
+     "fail": 0,
+     "cancelled": 0,
+     "skipped": 0
+    },
+    {
+     "scope": "web",
+     "tests": 72,
+     "pass": 45,
+     "fail": 0,
+     "cancelled": 0,
+     "skipped": 27
+    }
+   ],
+   "totals": {
+    "tests": 832,
+    "pass": 805,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 27
+   },
+   "skips": [
+    "27 项需真实浏览器或未配置 Electron 的平台条件用例"
+   ],
+   "log": "look3-workspace/整合/20261030-上游适配与落账/完整回归.log",
+   "finalSource": true,
+   "includesBuilds": [
+    "web",
+    "dsh-plugin"
+   ],
+   "note": "并行运行时 web/test/scroll-browser.test.mjs 曾因随机端口触发 undici bad port 失败一次；单跑与整目录重跑均通过，最终基线为 0 失败。"
+  },
+  "browserRegression": {
+   "command": "QXQY_BROWSER=<Edge 可执行文件> node --test --test-concurrency=1 test/*.test.mjs",
+   "tests": 72,
+   "pass": 70,
+   "fail": 0,
+   "skipped": 2,
+   "skips": [
+    "Windows 符号链接 bin 启动平台条件",
+    "未配置 QXQY_ELECTRON 的 Desktop 用例"
+   ],
+   "log": "look3-workspace/整合/20261030-上游适配与落账/浏览器全套.log",
+   "covers": [
+    "遮罩预览",
+    "官方按键输入",
+    "HUD 文本视觉复用",
+    "本地字体",
+    "树/时间轴指针编辑"
+   ]
+  },
+  "build": {
+   "command": "node scripts/build.mjs dsh-plugin",
+   "exitCode": 0,
+   "log": "look3-workspace/整合/20261030-上游适配与落账/三产品打包.log"
+  },
+  "pack": {
+   "command": "node scripts/pack.mjs",
+   "exitCode": 0,
+   "manifest": "look3-workspace/整合/20261030-上游适配与落账/发布清单.json",
+   "artifacts": [
+    {
+     "product": "dsh-plugin",
+     "filename": "look3-dsh-plugin-3.1.1.tgz",
+     "sha256": "53ba1f1dc801c59a63d628604e2d56612a35f99f1a5b3770e8a447fe2bffd2dc"
+    },
+    {
+     "product": "mcp",
+     "filename": "look3-mcp-3.1.1.tgz",
+     "sha256": "eed04ec2451202e5abb0b8b27260c002b44c6fc1ef7fc1c6f981a14f1d33addf"
+    },
+    {
+     "product": "web",
+     "filename": "look3-web-3.1.1.tgz",
+     "sha256": "73b942476b61b41c62594b9fefd95d8ee26dddfc4b83e5d8fc6ba194d1015172"
+    }
+   ]
+  },
+  "installedPackages": {
+   "command": "node scripts/smoke-packages.mjs",
+   "exitCode": 0,
+   "dshToolsVersions": [
+    "0.1.0-rc.6",
+    "0.2.0-rc.2",
+    "0.2.1-rc.2"
+   ],
+   "cordisVersions": [
+    "4.0.1",
+    "4.0.4",
+    "4.0.5"
+   ],
+   "result": "三组各 5 项 PASS：工具注册/执行/输出、控制器+Worker+PNG+GIA+Skill+预设、工具管线与会话隔离、Web HTTP/静态资源、MCP+Web 跨进程保护"
+  },
+  "auditReports": [
+   "look3-workspace/整合/20261030-上游适配与落账/上游核对-20261030.json",
+   "docs/上游/Look独立审计-20261019收口.md",
+   "docs/上游/界面资源独立审计-20261019收口.md",
+   "docs/上游/格式动画独立审计-20261019收口.md"
+  ],
+  "independentReviewComplete": false,
+  "reviewMeaning": "本轮核对与验证由实现方完成，没有独立复核代理；62 项 formal/external 未被本轮推进。",
+  "perFeatureMappingCount": 62,
+  "officialDshTemporaryHost": {
+   "version": "0.2.1-rc.2",
+   "status": "未在本轮重跑完整宿主；本轮以 scripts/smoke-packages.mjs 的 0.2.1-rc.2 隔离安装组代替，完整宿主启动仍以 2026-10-23 记录为准"
+  }
+ },
+ "integrationStageComplete": false,
+ "localImplementationStageComplete": true
 }

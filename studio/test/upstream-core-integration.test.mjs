@@ -10,7 +10,7 @@ test('GUID and sync domains share atomic transactions, history and explicit pers
   const studio = createStudio()
   const before = studio.archiveData()
   assert.throws(() => studio.transaction({ expectedRevision: studio.get().version, ops: [
-    { op: 'setControlGuid', id: 'n2', guid: 19041 },
+    { op: 'setControlGuid', id: 'n2', guid: 1073741941 },
     { op: 'setScriptSync', config },
     { op: 'set', id: 'n2', key: 'unknown-property', value: true },
   ] }), /unknown key/)
@@ -18,7 +18,7 @@ test('GUID and sync domains share atomic transactions, history and explicit pers
   const state = structuredClone(studio.get().look2)
   state.siteExtras = { futureFeature: { enabled: true } }
   studio.transaction({ expectedRevision: studio.get().version, state, ops: [
-    { op: 'setControlGuid', id: 'n2', guid: 19041 }, { op: 'setScriptSync', config },
+    { op: 'setControlGuid', id: 'n2', guid: 1073741941 }, { op: 'setScriptSync', config },
   ] })
   const changed = studio.archiveData()
   assert.equal(changed.controlGuidChanges.length, 1)
@@ -29,7 +29,7 @@ test('GUID and sync domains share atomic transactions, history and explicit pers
   assert.deepEqual(studio.get().controlGuidChanges, [])
   assert.equal(studio.get().scriptSync, null)
   studio.history({ action: 'redo', expectedRevision: studio.get().version })
-  assert.equal(at(studio, 'n2').guid, 19041)
+  assert.equal(at(studio, 'n2').guid, 1073741941)
   assert.deepEqual(studio.get().controlGuidChanges, changed.controlGuidChanges)
   assert.deepEqual(studio.get().scriptSync, config)
   const reopened = createStudio(JSON.parse(Buffer.from(studio.exportData('save').data, 'base64')))

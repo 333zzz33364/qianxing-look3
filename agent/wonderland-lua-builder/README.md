@@ -38,6 +38,8 @@ DSH 0.1.7-rc.1 起，本仓库根包 `look3-dsh-plugin` 在构建时读取这两
 
 通过仓库根目录的 `dsh plugin --profile web add github:1475505/miliastra-beyond-simulator` 安装插件后，在 DSH 的 **设置 → Agent 预设** 中查找本预设；新任务可选择它，已有任务不会自动切换。修改此目录中的主维护源后，在仓库根运行 `pnpm build` 同步包内副本；已安装的用户预设不会自动被覆盖。
 
+Harness 0.2.1 不再注册 `cwd` 提示词变量，`agent.cordis.yml` 的 persona 只保留 `{{model}}`，与旧宿主兼容。0.2.1 的预设改为声明式注册，随包副本以插件包更新为准；旧宿主的目录副本仍按原有方式生效，但不再是新版默认来源。
+
 ## 资料与验证边界
 
 启动前先检查工作区指引、本地知识目录，以及当前 AI 宿主的插件/MCP/Skill 配置和可见能力，寻找 `miliastra-toolbox` 系列或其他知识来源。确认当前能读到官方客户端 2D/Lua API 与使用指南，记录来源、版本和缺项；已有资料直接复用，仅询问仍缺少的内容。详见 [知识库发现与可用性核验](skills/qxqy-game-studio/references/workflow.md#知识库发现与可用性核验)。本工作流不捆绑官方知识库，不能从普通 Lua/UI 或 3D 节点经验猜接口。

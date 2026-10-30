@@ -19,6 +19,8 @@ dsh web
 
 当前 look2.0 未发布 npm 或独立 GitHub 仓库。更新后重启 Harness；用户既有 Agent 预设不会被自动覆盖。新版预设服务通过 bundle 注册，旧宿主以目录复制兼容。
 
+Harness 0.2.1 起不再注册 `cwd` 提示词变量，随包 persona 只引用 `{{model}}`；在 0.2.1 上挂载本预设不会因未解析变量导致提示词渲染失败。`dsh-tools` peer 范围已追加 `^0.2.1-rc.1`，安装 `0.2.1-rc.1`/`0.2.1-rc.2` 不再需要忽略 peer。0.2.1 的 Agent 预设改为声明式注册，更新随包预设要更新插件包，单改旧 `.agent-presets` 目录副本无效。
+
 共用 Studio 工具包含编辑事务、撤销历史、模板管理和动画导出。`look3_animation_export` 支持 site-json、timeline-data、timeline-lib、animation-lua、primitive-data、primitive-lib、primitive-svg、primitive-css、gia、save。索引为控件模板索引，与图片 ID 分开管理。
 
 插件提供同源图元拟合与 PSD Worker，以及在线图片目录、PNG 和边框路由。缓存默认在 `$DSH_HOME/look2-image-cache`（未设置 DSH_HOME 时为用户 `.dsh` 目录），可通过 `LOOK2_ASSET_CACHE` 指定可写路径。首次读取参考源需要网络，已加载项离线读取缓存；网址图片导入后嵌入工程。

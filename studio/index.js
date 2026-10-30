@@ -27,7 +27,7 @@ import { filterLogs } from './log/collect.js'
 import { CANVAS_PRESETS } from './constants.js'
 import { MAX_PLAYERS, PLAYER_SLOTS, normalizePlayerCount, normalizePlayerIndex, normalizeServerLogic } from 'qxqy-server'
 import { exportGia, exportCombinedGia, importGia, inspectGia, validateGiaCompatibility, validateServerGiaCompatibility, exportScriptGia, importScriptGia, isScriptGia } from './gia/codec.js'
-import { collectUsedGuids, isValidGuid, nextFreeGuid } from './gia/guid.js'
+import { collectUsedGuids, isStoredGuid, isValidGuid, nextFreeGuid } from './gia/guid.js'
 import { freshLook2, normalizeLook2, importSiteJson, exportSiteJson } from './look2/site-json.js'
 import { exportTimelineData, importTimelineData, exportTimelineLibrary, luaValue } from './look2/timeline-lua.js'
 import { bakePrimitives, buildPrimitiveData, exportPrimitiveLibrary, renderPrimitiveSvg, exportPrimitiveCss } from './look2/primitives.js'
@@ -90,7 +90,7 @@ function assetKey(assetType) {
 
 function controlGuid(value) {
   const numeric = typeof value === 'number' || (typeof value === 'string' && /^\d+$/.test(value.trim()))
-  if (!numeric || !isValidGuid(value)) throw new Error('控件索引必须是 1–2147483647 范围内的整数')
+  if (!numeric || !isStoredGuid(value)) throw new Error('控件索引必须是 1–2147483647 范围内的整数')
   return Number(value)
 }
 
@@ -249,7 +249,7 @@ export function createStudio(seed, options = {}) {
   }
   function allocateScriptGuid(preferred = 0) {
     refreshUsedGuids()
-    const guid = isValidGuid(preferred) && !usedScriptGuids.has(Number(preferred))
+    const guid = isStoredGuid(preferred) && !usedScriptGuids.has(Number(preferred))
       ? Number(preferred)
       : nextFreeGuid(usedScriptGuids)
     usedScriptGuids.add(guid)
@@ -418,7 +418,7 @@ export function createStudio(seed, options = {}) {
   }
 
   function scriptMountFromGenericSlot(guid) {
-    if (!isValidGuid(guid)) return null
+    if (!isStoredGuid(guid)) return null
     for (const [assetType, project] of [[SERVER_ASSET, projects.server], [CLIENT_ASSET, projects.client]]) {
       let controlId = ''
       walk(project.root, (node) => {
@@ -670,6 +670,7 @@ export function createStudio(seed, options = {}) {
     const node = findNode(project.root, op.id ?? project.selectedId)
     if (!node || node.kind === 'server-container') throw new Error('仅客户端控件或客户端控件模板允许修改索引')
     const guid = controlGuid(op.guid)
+    if (!isValidGuid(guid)) throw new Error('控件索引必须是 1073741824–1077936127 范围内的整数')
     controlGuid(node.guid)
     if (op.autoFillClientGuids !== undefined && typeof op.autoFillClientGuids !== 'boolean') {
       throw new Error('autoFillClientGuids 必须是布尔值')
@@ -680,9 +681,11 @@ export function createStudio(seed, options = {}) {
     }
     const targets = automatic ? collectClientNodes(project, true).map(({ node }) => node) : [node]
     const base = guid - targets.indexOf(node)
-    const mappings = targets.map((target, offset) => ({
-      node: target, oldGuid: controlGuid(target.guid), newGuid: controlGuid(base + offset),
-    }))
+    const mappings = targets.map((target, offset) => {
+      const newGuid = controlGuid(base + offset)
+      if (!isValidGuid(newGuid)) throw new Error('控件索引必须是 1073741824–1077936127 范围内的整数')
+      return { node: target, oldGuid: controlGuid(target.guid), newGuid }
+    })
     const changes = mappings.filter(({ oldGuid, newGuid }) => oldGuid !== newGuid)
     if (!changes.length) return get()
     const remap = new Map(mappings.map(({ oldGuid, newGuid }) => [oldGuid, newGuid]))
