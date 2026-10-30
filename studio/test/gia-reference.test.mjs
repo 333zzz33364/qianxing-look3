@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createStudio } from '../index.js'
 import { importGia, exportGia, inspectGia } from '../gia/codec.js'
+import { createGiaRaw } from '../gia/raw-fields.js'
 
 // Synthetic wire cases, not a claimed native non-empty reference schema.
 // Field 77 is only known to be length-delimited; arbitrary bytes must survive
@@ -256,4 +257,23 @@ test('invalid UI transforms reject import without changing the existing save', (
   const input = envelope(cat(msg(1, reference({ transform: false, mount: true })), msg(2, scriptUnit())))
   assert.throws(() => target.importData('gia', input.toString('base64'), 'invalid.gia'), /缺少多平台变换/)
   assert.deepEqual(target.archiveData(), before)
+})
+
+test('opaque reference payloads stay internal, survive JSON reloads and reject non-base64', () => {
+  const inner = Buffer.from([1, 2, 3, 4]).toString('base64')
+  const outer = Buffer.from([9, 8]).toString('base64')
+  const raw = createGiaRaw('reference', { templateRefSlotBase64: inner, templateRefOuterBase64: outer })
+  assert.equal(raw.templateRefSlotBase64, inner)
+  assert.equal(raw.templateRefOuterBase64, outer)
+
+  // 空字符串表示没有可保留的字节，不写入也不会被当作模板索引。
+  const empty = createGiaRaw('reference', { templateRefSlotBase64: '' })
+  assert.equal(Object.hasOwn(empty, 'templateRefSlotBase64'), false)
+
+  assert.throws(() => createGiaRaw('reference', { templateRefSlotBase64: 'not base64!!' }), /must be base64/)
+  assert.throws(() => createGiaRaw('reference', { templateRefOuterBase64: 42 }), /must be base64/)
+
+  // 只有 reference 保留这些内部字段，其他控件类型忽略它们。
+  const image = createGiaRaw('image', { templateRefSlotBase64: inner })
+  assert.equal(Object.hasOwn(image, 'templateRefSlotBase64'), false)
 })

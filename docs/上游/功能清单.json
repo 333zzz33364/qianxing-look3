@@ -3052,8 +3052,8 @@
     },
     {
      "scope": "studio",
-     "tests": 608,
-     "pass": 608,
+     "tests": 623,
+     "pass": 623,
      "fail": 0,
      "cancelled": 0,
      "skipped": 0
@@ -3076,22 +3076,22 @@
     },
     {
      "scope": "web",
-     "tests": 72,
+     "tests": 73,
      "pass": 45,
      "fail": 0,
      "cancelled": 0,
-     "skipped": 27
+     "skipped": 28
     }
    ],
    "totals": {
-    "tests": 832,
-    "pass": 805,
+    "tests": 848,
+    "pass": 820,
     "fail": 0,
     "cancelled": 0,
-    "skipped": 27
+    "skipped": 28
    },
    "skips": [
-    "27 项需真实浏览器或未配置 Electron 的平台条件用例"
+    "28 项需真实浏览器或未配置 Electron 的平台条件用例"
    ],
    "log": "look3-workspace/整合/20261030-上游适配与落账/完整回归.log",
    "finalSource": true,
@@ -3103,8 +3103,8 @@
   },
   "browserRegression": {
    "command": "QXQY_BROWSER=<Edge 可执行文件> node --test --test-concurrency=1 test/*.test.mjs",
-   "tests": 72,
-   "pass": 70,
+   "tests": 73,
+   "pass": 71,
    "fail": 0,
    "skipped": 2,
    "skips": [
@@ -3117,7 +3117,22 @@
     "官方按键输入",
     "HUD 文本视觉复用",
     "本地字体",
-    "树/时间轴指针编辑"
+    "树/时间轴指针编辑",
+    "界面动效素材库筛选与选择"
+   ],
+   "screenshots": "look3-workspace/整合/20261030-上游适配与落账/浏览器截图/look3-ui-vfx-library.png"
+  },
+  "editorComponentTests": {
+   "command": "node --test studio/test/editor-ui-vfx.test.mjs studio/test/editor-ui-mask-selection.test.mjs",
+   "tests": 14,
+   "pass": 14,
+   "fail": 0,
+   "covers": [
+    "动效素材库：作用域/分类/标签/关键字筛选、计数、选中回调、Escape 与遮罩关闭、失败重试",
+    "动效属性卡片：未选择/已选择、重播、移除提交空值、预览开关、未知编号回退",
+    "C/T 双通道渲染器：左右半幅拆分、同帧去重、奇数列与非 2D canvas 报错、暂停后停止调度",
+    "遮罩分组：无遮罩直出、同遮罩相邻合并、无羽化用白矩形、羽化走位图、嵌套组、不可逆矩阵与零尺寸丢弃",
+    "独立选中层：selectionOnly 分支与遮罩分组分离、层级隐藏控件不进入画布"
    ]
   },
   "build": {
