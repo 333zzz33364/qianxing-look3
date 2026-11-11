@@ -621,31 +621,72 @@ function collectDirtyScene(session, cache) {
   return { changed, removed, count }
 }
 
+// Retain only changed IDs, not a copy of every historical scene. Slow viewers
+// merge against the current nodes; viewers beyond either budget receive a reset.
+const SCENE_HISTORY_REVISIONS = 120
+const SCENE_HISTORY_IDS = 10_000
+
 function sceneView(session, sceneRev) {
-  const cache = session.viewCache || (session.viewCache = {
-    rev: 0,
-    fingerprints: new Map(),
-    childCounts: new Map(),
-    count: 0,
-  })
-  const prevRev = Number(sceneRev)
-  const canPatch = Number.isFinite(prevRev) && prevRev === cache.rev && cache.fingerprints.size > 0
-  if (!canPatch) {
+  const nextRevision = () => (session.sceneRevision = (session.sceneRevision || 0) + 1)
+  let cache = session.viewCache
+  const fresh = !cache
+  if (!cache) {
     const { nodes, childCounts } = collectSceneNodes(session)
-    cache.rev += 1
-    cache.fingerprints = new Map(nodes.map((node) => [node.id, sceneFingerprint(node)]))
+    const rev = nextRevision()
+    cache = session.viewCache = {
+      rev, baseRev: rev, history: [], historyIds: 0,
+      nodes: new Map(nodes.map(node => [node.id, node])),
+      fingerprints: new Map(nodes.map(node => [node.id, sceneFingerprint(node)])),
+      childCounts, count: nodes.length,
+    }
+    session.runtime._playRemoved = []
+  } else {
+    const { changed, removed } = collectDirtyScene(session, cache)
+    if (changed.length || removed.length) {
+      for (const id of removed) cache.nodes.delete(id)
+      for (const node of changed) cache.nodes.set(node.id, node)
+      cache.rev = nextRevision()
+      const ids = [...new Set([...removed, ...changed.map(node => node.id)])]
+      cache.history.push({ revision: cache.rev, ids })
+      cache.historyIds += ids.length
+      while (cache.history.length > SCENE_HISTORY_REVISIONS || cache.historyIds > SCENE_HISTORY_IDS) {
+        const oldest = cache.history.shift()
+        cache.baseRev = oldest.revision
+        cache.historyIds -= oldest.ids.length
+      }
+    }
+  }
+  for (const root of session.runtime.roots) clearPlayDirty(root)
+  const prevRev = Number(sceneRev)
+  if (fresh || !Number.isSafeInteger(prevRev) || prevRev < cache.baseRev || prevRev > cache.rev) {
+    // A reset is the only full snapshot a viewer receives, so it must describe
+    // the live tree. Rebuilding here also covers direct-property consumers that
+    // never mark a control dirty between two reads.
+    const { nodes, childCounts } = collectSceneNodes(session)
+    cache.nodes = new Map(nodes.map(node => [node.id, node]))
+    cache.fingerprints = new Map(nodes.map(node => [node.id, sceneFingerprint(node)]))
     cache.childCounts = childCounts
     cache.count = nodes.length
-    for (const root of session.runtime.roots) clearPlayDirty(root)
-    return { format: 'tree-v1', revision: cache.rev, reset: true, count: nodes.length, nodes }
+    cache.history = []
+    cache.historyIds = 0
+    cache.baseRev = cache.rev
+    session.runtime._playRemoved = []
+    return { format: 'tree-v1', revision: cache.rev, count: cache.count, reset: true, nodes: structuredClone(nodes) }
   }
-  const { changed, removed, count } = collectDirtyScene(session, cache)
-  cache.rev += 1
-  for (const root of session.runtime.roots) clearPlayDirty(root)
-  return { format: 'tree-v1', revision: cache.rev, reset: false, count, changed, removed }
+  const header = { format: 'tree-v1', revision: cache.rev, count: cache.count }
+  const ids = new Set()
+  for (const delta of cache.history) {
+    if (delta.revision > prevRev) for (const id of delta.ids) ids.add(id)
+  }
+  const changed = [], removed = []
+  for (const id of ids) {
+    if (cache.nodes.has(id)) changed.push(cache.nodes.get(id))
+    else removed.push(id)
+  }
+  return { ...header, reset: false, changed: structuredClone(changed), removed }
 }
 
-export function playSnapshot(session, { inspect = false, view = false, paint = false, sceneRev, compact = false } = {}) {
+export function playSnapshot(session, { inspect = false, view = false, paint = false, sceneRev, sceneSessionId, compact = false } = {}) {
   prepareButtonStates(session)
   prepareScroll(session)
   // Direct Runtime consumers/tests may compose a session without startPlay.
@@ -657,12 +698,7 @@ export function playSnapshot(session, { inspect = false, view = false, paint = f
   if (session.server) session.server.setClock(rt.clock.time)
   const clientLogs = compact ? rt.logs.slice(-100) : rt.logs
   const history = historyRows(session)
-  const serverSnapshot = session.server ? session.server.snapshot() : { vars: {}, inbound: [], outbound: [], logs: [] }
-  if (compact) {
-    serverSnapshot.inbound = serverSnapshot.inbound.slice(-100)
-    serverSnapshot.outbound = serverSnapshot.outbound.slice(-100)
-    serverSnapshot.logs = serverSnapshot.logs.slice(-100)
-  }
+  const serverSnapshot = session.server ? session.server.snapshot({ historyLimit: compact ? 100 : Infinity }) : { vars: {}, inbound: [], outbound: [], logs: [] }
   const payload = {
     canvasId: compiled.canvasId,
     platform: compiled.platform,
@@ -702,7 +738,7 @@ export function playSnapshot(session, { inspect = false, view = false, paint = f
     if (inspect) payload.tree = rt.roots.map((r) => controlSnapshot(r, boxes))
     if (paint) payload.paint = paintList(session, boxes)
   }
-  if (view) payload.scene = sceneView(session, sceneRev)
+  if (view) payload.scene = sceneView(session, sceneSessionId && sceneSessionId !== session.audioSessionId ? undefined : sceneRev)
   // payload 全部由本次调用新建（无共享可变对象），只做无损校验，不再 parse/stringify 克隆。
   assertLosslessJson(payload)
   return payload

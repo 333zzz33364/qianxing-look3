@@ -65,7 +65,7 @@
 
       function setView(view) {
         const showLog = view === 'log'
-        if (showLog) void play.releaseKeys()
+        if (showLog) void play.releaseInputs()
         workspace.classList.toggle('hidden', showLog)
         logView.classList.toggle('hidden', !showLog)
         $('viewMode').textContent = showLog ? '页面：日志' : '页面：试玩'

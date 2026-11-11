@@ -96,29 +96,25 @@ export class EditorSessions {
       if (action === 'load-archive' || action === 'import') {
         await controller.play('stop')
         if (action === 'load-archive') return this.load(row, body.path)
-        const result = controller.studio.importData(body.format, body.data, body.filename, { mode: body.mode })
-        controller.archivePath = ''; controller.archiveStamp = ''; controller.savedArchive = ''
-        controller.archiveRelocations.clear()
+        const result = controller.importData(body.format, body.data, body.filename, { mode: body.mode })
         row.path = ''
         row.fileStamp = ''
         row.relocatedPaths?.clear()
         return { ...result, snapshot: this.snapshot(row) }
       }
       if (action === 'save') {
-        if (body.expectedRevision !== controller.get().version) throw new Error('revision conflict: reload before saving')
-        if (row.relocatedPaths?.has(archivePathKey(body.path))) throw new Error('存档已改名，请刷新存档路径后保存')
-        const absolute = resolveWorkspaceOutput(this.workspace, body.path)
+        // Omitting path saves back to the session's current archive; an explicit
+        // path is a save-as and must not land on a file this session never bound.
+        const requested = typeof body.path === 'string' && body.path.trim() ? body.path : row.path
+        if (row.relocatedPaths?.has(archivePathKey(requested))) throw new Error('存档已改名，请刷新存档路径后保存')
+        const absolute = requested ? resolveWorkspaceOutput(this.workspace, requested) : ''
         const original = row.path ? resolveWorkspaceOutput(this.workspace, row.path) : ''
-        if (row.fileStamp && archivePathKey(absolute) === archivePathKey(original) && !existsSync(absolute)) {
+        if (row.fileStamp && absolute && archivePathKey(absolute) === archivePathKey(original) && !existsSync(absolute)) {
           throw new Error('存档文件已移动或删除，请重新加载或另存为新路径')
         }
-        if (existsSync(absolute)) {
-          if (archivePathKey(absolute) !== archivePathKey(original)) throw new Error('保存失败：目标文件已存在，但当前会话未关联此文件。请改用一个未使用的存档文件名保存；如需使用已有文件，请先导出「资产包 JSON（三类合一）」备份当前修改，再从顶部「⤓ 工作区存档」选择该文件。')
-          if (stamp(absolute) !== row.fileStamp) throw new Error('保存失败：磁盘上的存档已被外部修改，当前版本无法直接覆盖。请改用一个未使用的存档文件名保存；如需使用磁盘上的最新版本，请先导出「资产包 JSON（三类合一）」备份当前修改，再从顶部「⤓ 工作区存档」重新选择该文件。')
-        }
-        const result = controller.saveArchive(body.path)
+        const result = controller.saveArchiveChecked(requested, body.expectedRevision)
         row.path = result.path
-        row.fileStamp = stamp(absolute)
+        row.fileStamp = stamp(resolveWorkspaceOutput(this.workspace, result.path))
         return result
       }
     })

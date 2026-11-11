@@ -139,6 +139,7 @@ export class PixiPlayRenderer {
     }
     this.app = null
     this.nodes = new Map()
+    this.clipChildren = new Map()
     this.circleTextures = new Map()
     this.imageTextures = new Map()
     this.disposed = false
@@ -628,13 +629,34 @@ export class PixiPlayRenderer {
     context.putImageData(image, 0, 0)
   }
 
-  refreshReverseMasks() {
-    for (const root of this.nodes.values()) {
+  refreshReverseMasks(candidates = null) {
+    for (const root of candidates || this.nodes.values()) {
       const item = root.__sceneItem
       if (item?.kind !== 'image' || !item.reverseMaskArea || !item.enableMask) continue
       this.updateImageMask(root, item, Math.max(0, finite(item.sourceWidth, finite(item.width))),
         Math.max(0, finite(item.sourceHeight, finite(item.height))), true)
     }
+  }
+
+  // A reverse mask covers the viewport, so only a changed node's own subtree can
+  // shift it. Scanning every node would inspect static artwork the delta never
+  // touched, which the incremental scene contract forbids.
+  reverseMaskCandidates(list) {
+    const seen = new Set()
+    const candidates = new Set()
+    const visit = (item) => {
+      if (!item || item.id == null || seen.has(item.id)) return
+      seen.add(item.id)
+      const root = this.nodes.get(item.id)
+      if (!root || root.destroyed) return
+      candidates.add(root)
+      for (const child of root.children) {
+        if (child.__runtimeId != null) visit(child.__sceneItem)
+      }
+      for (const child of this.clipChildren?.get(item.id) || []) candidates.add(child)
+    }
+    for (const item of list || []) visit(item)
+    return candidates
   }
 
   attachNode(root, item) {
@@ -660,6 +682,20 @@ export class PixiPlayRenderer {
     this.attachNode(root, item)
     root.__sceneItem = item
     root.__flat = false
+    this.trackClipParent(root, item.clipToParent ? item.parent : null)
+  }
+
+  trackClipParent(root, parentId) {
+    parentId ??= null
+    if ((root.__clipParent ?? null) === parentId) return
+    const previous = this.clipChildren?.get(root.__clipParent)
+    previous?.delete(root)
+    if (previous?.size === 0) this.clipChildren.delete(root.__clipParent)
+    root.__clipParent = parentId
+    if (parentId == null) return
+    this.clipChildren ||= new Map()
+    if (!this.clipChildren.has(parentId)) this.clipChildren.set(parentId, new Set())
+    this.clipChildren.get(parentId).add(root)
   }
 
   updateViewportClip(root) {
@@ -692,6 +728,7 @@ export class PixiPlayRenderer {
   removeNode(id) {
     const root = this.nodes.get(id)
     if (!root) return
+    this.trackClipParent(root, null)
     for (const child of [...root.children, ...(root.__imageContent?.children || [])]) {
       if (child.__runtimeId != null) child.parent?.removeChild(child)
     }
@@ -720,7 +757,11 @@ export class PixiPlayRenderer {
       return
     }
     if (scene.reset) this.clearNodes()
-    for (const id of scene.removed || []) this.removeNode(id)
+    const clips = new Set()
+    for (const id of scene.removed || []) {
+      for (const child of this.clipChildren?.get(id) || []) clips.add(child)
+      this.removeNode(id)
+    }
     const list = scene.reset ? scene.nodes : scene.changed
     for (let i = 0; i < (list || []).length; i += 1) {
       const item = list[i]
@@ -728,10 +769,16 @@ export class PixiPlayRenderer {
       if (!this.nodes.has(item.id)) this.createNode(item, { group: item.group === true })
     }
     for (let i = 0; i < (list || []).length; i += 1) this.upsertSceneNode(list[i])
-    for (const root of this.nodes.values()) {
-      if (root.__sceneItem?.clipToParent || root.__sceneItem?.clipPolygons?.length || root.__clipKey !== undefined) this.updateViewportClip(root)
+    // Only changed nodes and children clipped to a changed parent can need a
+    // new viewport mask. Parent-only size changes must still reach those children.
+    for (const item of list || []) {
+      const root = this.nodes.get(item?.id)
+      if (!root) continue
+      if (item.clipToParent || item.clipPolygons?.length || root.__clipKey !== undefined) clips.add(root)
+      for (const child of this.clipChildren?.get(item.id) || []) clips.add(child)
     }
-    this.refreshReverseMasks()
+    for (const root of clips) if (!root.destroyed) this.updateViewportClip(root)
+    this.refreshReverseMasks(this.reverseMaskCandidates(list))
     this.pruneImageTextures()
     this.app.render()
     this.pruneTextKeys()
@@ -755,6 +802,7 @@ export class PixiPlayRenderer {
       this.updateNode(root, item)
       root.__sceneItem = item
       root.__flat = true
+      this.trackClipParent(root, null)
       this.updateViewportClip(root)
       root.zIndex = index
       if (root.parent !== this.app.stage) this.app.stage.addChild(root)

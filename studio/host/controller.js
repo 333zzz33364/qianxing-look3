@@ -106,6 +106,18 @@ export class SimulatorController {
     return { ...metadata, path: String(args.path).replaceAll('\\', '/'), bytes: data.length }
   }
 
+  importData(format, data, filename, options = {}) {
+    // Studio imports roll back through the edit history, so a failed validation
+    // must not detach the save the session is still bound to.
+    const result = this.studio.importData(format, data, filename, options)
+    this.archivePath = ''; this.archiveStamp = ''; this.savedArchive = ''
+    this.archiveRelocations.clear()
+    this.scriptSync.plan = null
+    this.scriptSync.lastResult = null
+    this.controlGuidSync.plan = null
+    return { ...result, snapshot: this.get() }
+  }
+
   scriptSyncAction(action, args = {}) {
     if (action === 'discover') return discoverScriptDirectories()
     if (action === 'status') return { config: this.get().scriptSync, lastResult: this.scriptSync.lastResult }
@@ -114,6 +126,7 @@ export class SimulatorController {
       return this.patch({ op: 'setScriptSync', config: args.config, expectedRevision: args.expectedRevision })
     }
     if (action === 'preview') return this.scriptSync.preview()
+    if (action === 'save') return this.saveArchiveChecked(args.path, args.expectedRevision)
     throw new Error('unknown script sync action (AI 可配置和预览；复制需在编辑器中确认)')
   }
 
@@ -123,7 +136,11 @@ export class SimulatorController {
     if (contentHash(readFileSync(path)) !== this.archiveStamp) throw new Error('存档文件已变化，请重新加载并检查')
   }
 
-  saveForScriptSync(path, expectedRevision) {
+  saveArchiveChecked(path = this.archivePath, expectedRevision) {
+    // Editor saves and script-sync saves share one entry point so both hosts
+    // enforce the same revision, rename-alias and on-disk fingerprint checks.
+    if (!Number.isInteger(expectedRevision)) throw new Error('expectedRevision is required')
+    if (typeof path !== 'string' || !path.trim()) throw new Error('save requires a workspace-relative path for a new archive')
     if (expectedRevision !== this.get().version) throw new Error('revision conflict: reload before saving')
     if (this.archiveRelocations.has(archivePathKey(path))) throw new Error('存档已改名，请刷新存档路径后保存')
     const absolute = resolveWorkspaceOutput(this.activeWorkspacePath(), path)
@@ -182,7 +199,7 @@ export class SimulatorController {
     this.archiveStamp = contentHash(bytes)
     this.savedArchive = JSON.stringify(this.studio.archiveData())
     this.archiveRelocations.clear()
-    return result
+    return { ...result, snapshot: this.get() }
   }
 
   deleteArchive(path) {

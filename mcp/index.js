@@ -248,7 +248,7 @@ async function callTool(name, args = {}, signal) {
   const controller = controllerFor(args.handle)
   return controller.exclusive(async () => {
     if (name === 'look3_project_save') return {
-      ...controller.saveForScriptSync(args.path || controller.archivePath || 'look3-simulator.save.json', controller.get().version),
+      ...controller.saveArchiveChecked(args.path || controller.archivePath || 'look3-simulator.save.json', controller.get().version),
       preview: { status: 'not-requested', message: 'Saved to disk. Call look3_preview_open with the returned path to switch or confirm the Web preview.' },
     }
     if (name === 'look3_studio_get') return controller.get()

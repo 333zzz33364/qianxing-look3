@@ -59,10 +59,7 @@ export class SimulatorController extends SharedSimulatorController {
 
   importData(format, data, filename, options = {}) {
     this.touch()
-    const result = this.studio.importData(format, data, filename, options)
-    this.archivePath = ''; this.archiveStamp = ''; this.savedArchive = ''
-    this.archiveRelocations.clear()
-    return { ...result, snapshot: this.get() }
+    return super.importData(format, data, filename, options)
   }
 
   listArchives() {
@@ -614,7 +611,7 @@ function registerApi(ctx, registry) {
         else if (action === 'delete-archive') value = controller.deleteArchive(body.path)
         else if (action === 'reveal-archive') value = controller.revealArchive(body.path)
         else if (action === 'load-archive') value = controller.loadArchive(body.path)
-        else if (action === 'save') value = controller.saveForScriptSync(body.path, body.expectedRevision)
+        else if (action === 'save') value = controller.saveArchiveChecked(body.path, body.expectedRevision)
         else if (action === 'script-sync') value = controller.scriptSyncAction(body.action, body.args || {})
         else if (action === 'script-sync-apply') value = controller.scriptSync.apply(body)
         else if (action === 'image-refresh') {
