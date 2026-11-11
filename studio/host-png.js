@@ -333,7 +333,7 @@ function sceneLocalMatrix(node) {
  * (`zIndex = -treePosition`, not Lua GetSiblingIndex), and a node's own visual
  * sits behind its children. Lua indices map inversely to this stored list.
  */
-export function flattenScenePaint(scene) {
+export function flattenScenePaint(scene, options = {}) {
   const nodes = Array.isArray(scene?.nodes) ? scene.nodes : []
   const children = new Map()
   for (const node of nodes) {
@@ -379,7 +379,10 @@ export function flattenScenePaint(scene) {
           y: parentWorld.b * x + parentWorld.d * y + parentWorld.ty,
         }))]
       }
-      const spec = imageMaskSpec(node, world)
+      const spec = imageMaskSpec(node, world, {
+        contour: options.contour === true,
+        imageKey: imageAssetKey(node.imageId, node.imageSource),
+      })
       const nextMasks = spec ? [...masks, spec] : masks
       if (node.kind !== 'grid') emit(node, world, itemClips, nextMasks)
       visit(String(node.id), world, node, itemClips, nextMasks)
@@ -391,7 +394,38 @@ export function flattenScenePaint(scene) {
 }
 
 export function renderScenePng(scene, canvasWidth, canvasHeight, options = {}) {
-  return renderPaintPng(flattenScenePaint(scene), canvasWidth, canvasHeight, options)
+  return renderPaintPng(flattenScenePaint(scene, options), canvasWidth, canvasHeight, options)
+}
+
+// Contour masks multiply the rectangle coverage by the source texture alpha, so
+// the mask group needs the owning image's pixels in mask-local coordinates.
+function samplingCanvas(assets, imageKey) {
+  const image = assets?.images?.get(imageKey)
+  if (!image) return null
+  const cached = assets.alphaCache?.get(imageKey)
+  if (cached) return cached
+  const width = Math.max(1, image.naturalWidth || image.width || 0)
+  const height = Math.max(1, image.naturalHeight || image.height || 0)
+  const canvas = loadCanvas().createCanvas(width, height)
+  const ctx = canvas.getContext('2d')
+  ctx.drawImage(image, 0, 0, width, height)
+  let data = null
+  try { data = ctx.getImageData(0, 0, width, height).data }
+  catch { data = null }
+  const entry = data ? { width, height, data } : null
+  if (!assets.alphaCache) assets.alphaCache = new Map()
+  assets.alphaCache.set(imageKey, entry)
+  return entry
+}
+
+function contourAlpha(assets, mask, localX, localY) {
+  if (!mask.imageKey || !(mask.width > 0 && mask.height > 0)) return 255
+  const sampled = samplingCanvas(assets, mask.imageKey)
+  if (!sampled) return 255
+  const u = Math.min(0.999999, Math.max(0, localX / mask.width + 0.5))
+  const v = Math.min(0.999999, Math.max(0, 0.5 - localY / mask.height))
+  const x = Math.floor(u * sampled.width), y = Math.floor(v * sampled.height)
+  return sampled.data[(y * sampled.width + x) * 4 + 3]
 }
 
 function maskPixelBounds(mask, target, size) {
@@ -408,7 +442,7 @@ function maskPixelBounds(mask, target, size) {
   return right > x && bottom > y ? { x, y, width: right - x, height: bottom - y } : null
 }
 
-function compositeMaskedGroup(target, layer, mask, size) {
+function compositeMaskedGroup(target, layer, mask, size, assets) {
   const width = layer.canvas.width, height = layer.canvas.height
   const src = layer.ctx.getImageData(0, 0, width, height).data
   const dx = layer.x - target.x, dy = layer.y - target.y
@@ -424,7 +458,8 @@ function compositeMaskedGroup(target, layer, mask, size) {
       const worldX = (layer.x + x + 0.5) / size.pixelRatio
       const localX = inverse ? inverse.a * worldX + inverse.c * worldY + inverse.tx : 0
       const localY = inverse ? inverse.b * worldX + inverse.d * worldY + inverse.ty : 0
-      const coverage = inverse ? imageMaskCoverage(localX, localY, mask) : mask.reverse ? 1 : 0
+      let coverage = inverse ? imageMaskCoverage(localX, localY, mask) : mask.reverse ? 1 : 0
+      if (coverage && mask.contour) coverage *= contourAlpha(assets, mask, localX, localY) / 255
       const sa = Math.round(src[i + 3] * coverage) / 255
       if (!sa) continue
       const da = dst[i + 3] / 255, outA = sa + da * (1 - sa)
@@ -450,7 +485,7 @@ function drawPaintGroups(target, entries, size, assets, drawItem = drawPaintItem
     ctx.setTransform(size.pixelRatio, 0, 0, size.pixelRatio, -bounds.x, -bounds.y)
     const layer = { canvas, ctx, x: bounds.x, y: bounds.y }
     drawPaintGroups(layer, entry.children, size, assets, drawItem)
-    compositeMaskedGroup(target, layer, entry.mask, size)
+    compositeMaskedGroup(target, layer, entry.mask, size, assets)
   }
 }
 

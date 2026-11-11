@@ -73,6 +73,12 @@ let editorImageRefreshPending = false
 
 const playRenderer = new PixiPlayRenderer(elements.stageCanvas, { fontReady: loadBrowserFont() })
 
+// The host owns the mask rule so playback matches PNG and the author preview.
+fetch('/api/render-settings')
+  .then(response => response.ok ? response.json() : null)
+  .then(body => { if (body?.ok && body.value?.maskContour === 'contour') playRenderer.contourMask = true })
+  .catch(() => {})
+
 function applyTheme(theme) {
   const next = theme === 'light' ? 'light' : 'dark'
   document.documentElement.dataset.theme = next

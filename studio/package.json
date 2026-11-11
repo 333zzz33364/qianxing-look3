@@ -17,7 +17,8 @@
     "./host/image-assets": "./host/image-assets.js",
     "./host/audio-assets": "./host/audio-assets.js",
     "./host/ui-vfx-assets": "./host/ui-vfx-assets.js",
-    "./host/local-font": "./host/local-font.js"
+    "./host/local-font": "./host/local-font.js",
+    "./host/render-settings": "./host/render-settings.js"
   },
   "files": [
     "index.js",

@@ -10,6 +10,7 @@ import { serveImageAsset } from 'qxqy-studio/host/image-assets'
 import { serveAudioAsset } from 'qxqy-studio/host/audio-assets'
 import { serveUIVfxAsset } from 'qxqy-studio/host/ui-vfx-assets'
 import { localFont, serveLocalFont } from 'qxqy-studio/host/local-font'
+import { readRenderSettings, writeRenderSettings } from 'qxqy-studio/host/render-settings'
 import { createUpdateChecker } from '../../studio/host/updates.js'
 import { localLanguageRequest, systemLanguage } from '../../studio/host/system-language.js'
 
@@ -596,6 +597,7 @@ function registerApi(ctx, registry) {
         const value = await controller.exclusive(async () => {
         let value
         if (action === 'get') value = controller.get()
+        else if (action === 'render-settings') value = body.maskContour ? writeRenderSettings({ maskContour: body.maskContour }) : readRenderSettings()
         else if (action === 'patch') value = controller.patch(body.op)
         else if (action === 'look2') value = controller.studio.setLook2(body.state, body.expectedRevision)
         else if (action === 'transaction') value = controller.studio.transaction(body)

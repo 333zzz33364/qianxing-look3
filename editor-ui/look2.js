@@ -334,7 +334,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
     const style = document.createElement('style'); style.id = STYLE_ID; style.textContent = `${CSS}\n${FONT_SETTINGS_CSS}\n${PARTIAL_EXPORT_CSS}`; document.head.append(style)
   }
   const primitivePreviewSource = createPrimitivePreviewSource()
-  function StageImage({ src, tint, imageType = 'Basic', borderUrl = '', sharedImage = null, fitContain = false, maskBox = {}, contentOpacity = 1, label = '', children }) {
+  function StageImage({ src, tint, imageType = 'Basic', borderUrl = '', sharedImage = null, fitContain = false, maskBox = {}, contourMask = false, contentOpacity = 1, label = '', children }) {
     const canvasRef = React.useRef(null)
     const [failed, setFailed] = React.useState(false)
     const [border, setBorder] = React.useState(null)
@@ -404,7 +404,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
         drawSource()
         if (maskBox.enableMask || [tint?.r, tint?.g, tint?.b].some(value => value != null && value !== 255)) {
           const pixels = context.getImageData(0, 0, width, height)
-          const coverage = applyStageImageMask(pixels, maskBox, tint)
+          const coverage = applyStageImageMask(pixels, maskBox, tint, { contour: contourMask })
           context.putImageData(pixels, 0, 0)
           if (coverage) {
             const maskCanvas = document.createElement('canvas')
@@ -493,6 +493,24 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
     const [archiveManageBusy, setArchiveManageBusy] = React.useState(false)
     const [draft, setDraft] = React.useState(null)
     const [showWorkspace, setShowWorkspace] = React.useState(false)
+    const [renderSettings, setRenderSettings] = React.useState({ maskContour: 'geometry' })
+    React.useEffect(() => {
+      let cancelled = false
+      Promise.resolve()
+        .then(() => api('render-settings'))
+        .then(value => {
+          if (cancelled || !value?.maskContour) return
+          setRenderSettings({ maskContour: value.maskContour })
+        })
+        .catch(() => {})
+      return () => { cancelled = true }
+    }, [])
+    const saveRenderSettings = value => {
+      setRenderSettings({ maskContour: value })
+      void Promise.resolve()
+        .then(() => api('render-settings', { maskContour: value }))
+        .catch(() => setMessage('本机渲染设置未保存；当前页面仍按所选规则显示'))
+    }
     const [showResources, setShowResources] = React.useState(false)
     const [showTemplates, setShowTemplates] = React.useState(false)
     const [partialExportOpen, setPartialExportOpen] = React.useState(false)
@@ -2307,7 +2325,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
         const { src, borderUrl, original, sharedImage, fitContain } = stageImageSource(box)
         const tint = colorParts(box.imageColor)
         const imageType = String(original?.properties?.imageType ?? box.imageType ?? box.base?.imageType ?? 'Basic').toLowerCase() === 'stretch' ? 'Stretch' : 'Basic'
-        return h(StageImage, { src, tint, imageType, borderUrl, sharedImage, fitContain, maskBox: box, contentOpacity: stageBoxAlpha(box),
+        return h(StageImage, { src, tint, imageType, borderUrl, sharedImage, fitContain, maskBox: box, contourMask: renderSettings.maskContour === 'contour', contentOpacity: stageBoxAlpha(box),
           label: `${box.name}${box.imageId != null ? ` · ${box.imageId}` : ''}` }, children)
       }
       if (box.kind === 'button') {
@@ -3038,6 +3056,12 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
           onCommit: name => patch({ op: 'renameSave', name }, '修改工程名称'),
           readCommitted: next => next.save.name }),
         h('span', null, '存档路径'), h('input', { className: 'file-name', type: 'text', 'aria-label': '项目存档路径', value: filePath, onChange: event => setFilePath(event.target.value), title: filePath }), h('button', { onClick: () => void save() }, '保存')),
+      h('div', { className: 'look2-workspace-row' },
+        h('span', null, '遮罩覆盖规则'),
+        h('select', { 'aria-label': '遮罩覆盖规则', value: renderSettings.maskContour, onChange: event => saveRenderSettings(event.target.value) },
+          h('option', { value: 'geometry' }, '几何矩形（矩形 / 填充 / 软边）'),
+          h('option', { value: 'contour' }, '透明轮廓（跟随图片 alpha）')),
+        h('span', { style: { opacity: .72 } }, '作者预览、试玩与 PNG 共用这一规则；保存到本机，不写入工程存档')),
       h('details', { className: 'look2-usage' }, h('summary', null, '使用说明'),
         h('ol', { className: 'look2-usage-list' }, LOOK2_USAGE_STEPS.map((step, index) => h('li', { key: index }, step)))),
       h('div', { className: 'look2-workspace-row look2-workspace-actions' },

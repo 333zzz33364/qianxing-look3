@@ -15,21 +15,23 @@ export function stageMaskKey(box = {}) {
   ])
 }
 
-function stageMaskSpec(box) {
+function stageMaskSpec(box, options = {}) {
   return imageMaskSpec({
     ...box,
     kind: 'image',
     sourceWidth: finite(box.width, 0),
     sourceHeight: finite(box.height, 0),
-  }, IDENTITY)
+  }, IDENTITY, { contour: options.contour === true })
 }
 
 // Mutate the visual once, and return independent descendant coverage. The
 // texture's alpha must not be multiplied into its own visual a second time.
-export function applyStageImageMask(image, box = {}, tint = {}) {
+// With contour off the descendant coverage follows the control rectangle only.
+export function applyStageImageMask(image, box = {}, tint = {}, options = {}) {
   const { width, height, data } = image
   const mask = box.enableMask ? new Uint8ClampedArray(data.length) : null
-  const spec = mask ? stageMaskSpec(box) : null
+  const spec = mask ? stageMaskSpec(box, options) : null
+  const contour = options.contour === true
   const red = clamp(finite(tint.r, 255), 0, 255) / 255
   const green = clamp(finite(tint.g, 255), 0, 255) / 255
   const blue = clamp(finite(tint.b, 255), 0, 255) / 255
@@ -40,7 +42,7 @@ export function applyStageImageMask(image, box = {}, tint = {}) {
       const localYUp = (0.5 - (y + 0.5) / height) * spec.height
       const effect = imageMaskBaseCoverage(localX, localYUp, spec)
       const sourceAlpha = data[i + 3]
-      let coverage = Math.round(sourceAlpha * effect)
+      let coverage = contour ? Math.round(sourceAlpha * effect) : Math.round(effect * 255)
       if (spec.reverse) coverage = coverage > 0 ? 0 : 255
       mask[i] = mask[i + 1] = mask[i + 2] = 255
       mask[i + 3] = coverage

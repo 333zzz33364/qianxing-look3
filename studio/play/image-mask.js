@@ -22,7 +22,7 @@ const nonnegative = value => Number.isFinite(Number(value)) ? Math.max(0, Number
 const normalized = value => String(value?.Name ?? value?.name ?? value ?? '').toLowerCase()
 const clampRange = value => Math.max(0, Math.min(100, Number.isFinite(Number(value)) ? Number(value) : 85))
 
-export function imageMaskSpec(item, matrix) {
+export function imageMaskSpec(item, matrix, options = {}) {
   if (!item || item.kind !== 'image' || item.enableMask !== true || !matrix) return null
   const width = nonnegative(item.sourceWidth ?? item.width)
   const height = nonnegative(item.sourceHeight ?? item.height)
@@ -48,6 +48,8 @@ export function imageMaskSpec(item, matrix) {
     featherY: !soft ? 0 : percent ? height * (100 - rangeY) / 200 : rawY,
     composition: percent ? 'multiply' : 'min',
     reverse: item.reverseMaskArea === true || item.reverseMask === true,
+    contour: options.contour === true,
+    imageKey: options.contour === true && typeof options.imageKey === 'string' ? options.imageKey : '',
     fill,
   }
 }

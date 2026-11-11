@@ -18,23 +18,26 @@ const alphas = data => Array.from(data).filter((_, index) => index % 4 === 3)
 
 test('texture alpha masks descendants once and ignores image tint alpha', () => {
   const source = image([0, 1, 128, 255])
-  const mask = applyStageImageMask(source, box(), { r: 128, g: 255, b: 0, a: 0 })
+  const mask = applyStageImageMask(source, box(), { r: 128, g: 255, b: 0, a: 0 }, { contour: true })
   assert.deepEqual(alphas(mask), [0, 1, 128, 255])
   assert.deepEqual(alphas(source.data), [0, 1, 128, 255])
   assert.deepEqual(Array.from(source.data.slice(8, 12)), [100, 100, 0, 128])
+  const geometry = applyStageImageMask(image([0, 1, 128, 255]), box(), { r: 128, g: 255, b: 0, a: 0 })
+  assert.deepEqual(alphas(geometry), [255, 255, 255, 255], 'geometry keeps the rectangle coverage regardless of texture alpha')
   assert.equal(applyStageImageMask(image([128]), { enableMask: false }), null)
 })
 
 test('reverse mask promotes nonzero 8-bit coverage after fill and feathering', () => {
+  const contour = { contour: true }
   const source = image([0, 1, 128, 255])
-  const mask = applyStageImageMask(source, box({ reverseMaskArea: true }))
+  const mask = applyStageImageMask(source, box({ reverseMaskArea: true }), {}, contour)
   assert.deepEqual(alphas(mask), [255, 0, 0, 0])
   assert.deepEqual(alphas(source.data), [0, 0, 0, 0])
   const filled = image([0, 255, 128, 255])
-  assert.deepEqual(alphas(applyStageImageMask(filled, box({ enableFill: true, fillType: 'Horizontal', fillAmount: .5, reverseMaskArea: true }))), [255, 0, 255, 255])
+  assert.deepEqual(alphas(applyStageImageMask(filled, box({ enableFill: true, fillType: 'Horizontal', fillAmount: .5, reverseMaskArea: true }), {}, contour)), [255, 0, 255, 255])
   assert.deepEqual(alphas(filled.data), [0, 0, 128, 255])
   const feathered = image([1, 255, 255, 255])
-  assert.deepEqual(alphas(applyStageImageMask(feathered, box({ enableSoftEdge: true, softEdgeMode: 'Pixel', softEdgeWidthX: 4, softEdgeWidthY: 0, reverseMaskArea: true }))), [255, 0, 0, 0])
+  assert.deepEqual(alphas(applyStageImageMask(feathered, box({ enableSoftEdge: true, softEdgeMode: 'Pixel', softEdgeWidthX: 4, softEdgeWidthY: 0, reverseMaskArea: true }), {}, contour)), [255, 0, 0, 0])
 })
 
 test('pixel and percentage feather widths retain overlapping fades', () => {
@@ -116,14 +119,16 @@ test('mask uses the stretched texture and nested descendant masks multiply', () 
   const stretched = rasterizeSlices(source, meta, 9, 5, createCanvas)
   const pixels = stretched.getContext('2d').getImageData(0, 0, 9, 5)
   const before = new Uint8ClampedArray(pixels.data)
-  const mask = applyStageImageMask(pixels, box({ width: 9, height: 5 }))
+  const mask = applyStageImageMask(pixels, box({ width: 9, height: 5 }), {}, { contour: true })
   assert.deepEqual(alphas(mask), alphas(before))
   assert.equal(mask[(2 * 9 + 4) * 4 + 3], 0)
   assert.equal(mask[3], 255)
   const child = image([128]), parent = image([128])
-  const parentMask = applyStageImageMask(parent, box())
-  const childMask = applyStageImageMask(child, box())
+  const parentMask = applyStageImageMask(parent, box(), {}, { contour: true })
+  const childMask = applyStageImageMask(child, box(), {}, { contour: true })
   assert.equal(Math.round(parentMask[3] * childMask[3] / 255), 64)
+  const geometryMask = applyStageImageMask(image([128]), box())
+  assert.equal(geometryMask[3], 255, 'geometry mode ignores the stretched texture alpha')
 })
 
 test('mask redraw key ignores movement and tint but tracks coverage edits', () => {
@@ -183,7 +188,7 @@ test('StageImage draws texture coverage for children while its own tint alpha st
   const source = createCanvas(4, 1), context = source.getContext('2d')
   const pixels = context.createImageData(4, 1)
   pixels.data.set(image([0, 128, 255, 255]).data); context.putImageData(pixels, 0, 0)
-  const props = { src: source.toDataURL(), tint: { r: 255, g: 255, b: 255, a: 0 }, maskBox: box(), children: 'descendant' }
+  const props = { src: source.toDataURL(), tint: { r: 255, g: 255, b: 255, a: 0 }, maskBox: box(), contourMask: true, children: 'descendant' }
   let rendered = StageImage(props)
   const canvas = createCanvas(4, 1); canvas.clientWidth = 4; canvas.clientHeight = 1
   // A transformed bounding box must never determine mask raster dimensions.

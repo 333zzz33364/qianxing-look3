@@ -14,6 +14,7 @@ import { serveImageAsset, sharedImageAssets } from 'qxqy-studio/host/image-asset
 import { serveAudioAsset, sharedAudioAssets } from 'qxqy-studio/host/audio-assets'
 import { serveUIVfxAsset, sharedUIVfxAssets } from 'qxqy-studio/host/ui-vfx-assets'
 import { localFont, serveLocalFont } from 'qxqy-studio/host/local-font'
+import { readRenderSettings, writeRenderSettings } from 'qxqy-studio/host/render-settings'
 
 const moduleDir = fileURLToPath(new URL('.', import.meta.url))
 // Keep the bundled/temporary server entry self-contained; bump with the root package version.
@@ -186,6 +187,17 @@ export async function createWebServer(options = {}) {
         response.writeHead(200, { ...headers(result.mimeType), 'cache-control': 'public, max-age=3600', 'x-look2-cache': result.cache })
         response.end(result.data)
         return
+      }
+      if (requestUrl.pathname === '/api/render-settings') {
+        if (request.method === 'GET') {
+          sendJson(response, 200, { ok: true, value: readRenderSettings() })
+          return
+        }
+        if (request.method === 'POST') {
+          const body = await readBody(request)
+          sendJson(response, 200, { ok: true, value: writeRenderSettings(body) })
+          return
+        }
       }
       if (request.method === 'GET' && requestUrl.pathname === '/api/state') {
         if (requestUrl.searchParams.get('refresh') === '1') session.archives(true)

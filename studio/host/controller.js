@@ -10,6 +10,7 @@ import { ScriptSync, contentHash, discoverScriptDirectories } from './script-syn
 import { sharedImageAssets } from './image-assets.js'
 import { ControlGuidSync } from './control-guid-sync.js'
 import { localFont } from './local-font.js'
+import { maskContourEnabled, readRenderSettings } from './render-settings.js'
 import { DEFAULT_PLAY_FPS, validatePlayFps } from '../play/frame-rate.js'
 import { archivePathKey, createArchiveWorkspace, listArchiveWorkspaces, remapArchivePath, renameArchiveWorkspace, renameWorkspaceArchive } from './archive-management.js'
 
@@ -29,9 +30,15 @@ function validateClockMode(value) {
   return value
 }
 
+// A broken local setting must not stop the host; fall back to the device rule.
+function safeRenderSettings() {
+  try { return readRenderSettings() } catch { return { maskContour: 'geometry' } }
+}
+
 export class SimulatorController {
   constructor(workspacePath = '', { imageAssets = sharedImageAssets(), clockMode = 'realtime' } = {}) {
     localFont()
+    this.renderSettings = safeRenderSettings()
     // The DSH adapter can begin before its host exposes a workspace.  Keep the
     // controller usable in that state instead of silently binding it to the
     // process cwd; Web and MCP always pass an explicit workspace.
@@ -401,7 +408,10 @@ export class SimulatorController {
       return this.request('get', { view: true }, signal, SCREENSHOT_TIMEOUT_MS)
     })
     const assets = await this.imageAssets.prepare(snapshot.scene?.nodes, signal)
-    const image = renderScenePng(snapshot.scene, snapshot.canvasWidth, snapshot.canvasHeight, assets)
+    const image = renderScenePng(snapshot.scene, snapshot.canvasWidth, snapshot.canvasHeight, {
+      ...assets,
+      contour: maskContourEnabled(this.renderSettings),
+    })
     return {
       data: image.data,
       canvasId: String(snapshot.canvasId || ''),

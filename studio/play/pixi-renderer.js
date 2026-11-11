@@ -129,8 +129,9 @@ export function createCircleTexture(size) {
  * the flattened paint list remains for tests and fallbacks.
  */
 export class PixiPlayRenderer {
-  constructor(canvas, { fontReady = null } = {}) {
+  constructor(canvas, { fontReady = null, contourMask = false } = {}) {
     this.canvas = canvas
+    this.contourMask = contourMask === true
     if (canvas?.parentElement && typeof document !== 'undefined') {
       this.effectHost = document.createElement('div')
       canvas.parentElement.style.isolation = 'isolate'
@@ -550,7 +551,10 @@ export class PixiPlayRenderer {
   }
 
   updateImageMask(root, item, width, height, placed = false) {
-    const spec = item.kind === 'image' ? imageMaskSpec({ ...item, sourceWidth: width, sourceHeight: height }, { a: 1, b: 0, c: 0, d: 1, tx: 0, ty: 0 }) : null
+    const spec = item.kind === 'image' ? imageMaskSpec({ ...item, sourceWidth: width, sourceHeight: height }, { a: 1, b: 0, c: 0, d: 1, tx: 0, ty: 0 }, {
+      contour: this.contourMask,
+      imageKey: imageAssetKey(item.imageId, item.imageSource),
+    }) : null
     // Reverse masks cover the viewport. Parent assignment/updates must finish
     // before the root's global matrix can be used to rasterize their cutout.
     if (spec?.reverse && !placed) return
@@ -572,6 +576,9 @@ export class PixiPlayRenderer {
     const determinant = global ? global.a * global.d - global.b * global.c : 1
     content.visible = !spec || ((spec.reverse || (width > 0 && height > 0)) && Math.abs(determinant) > 1e-8)
     const soft = spec && (spec.reverse || spec.fill || spec.featherX > 0 || spec.featherY > 0)
+    // Contour masks must be rasterised so the source texture alpha can be applied.
+    const contour = Boolean(spec?.contour && spec.imageKey && !spec.reverse)
+    const raster = Boolean(soft) || contour
     const maskWidth = spec?.reverse ? this.canvasWidth : width
     const maskHeight = spec?.reverse ? this.canvasHeight : height
     const textureWidth = Math.min(2048, Math.max(1, Math.ceil(maskWidth)))
@@ -579,10 +586,11 @@ export class PixiPlayRenderer {
     const previous = root.__imageMask
     // Width-only Tween updates reuse a bounded texture rather than creating a
     // GPU resource every frame. Viewport clipping stays on the outer root.
-    if (soft && content.visible && previous instanceof Sprite
+    if (raster && content.visible && previous instanceof Sprite
         && previous.__viewportMask === Boolean(spec.reverse)
         && previous.texture.source.resource.width === textureWidth && previous.texture.source.resource.height === textureHeight) {
       if (spec.reverse) this.paintViewportMask(previous.texture.source.resource, spec, global)
+      else if (contour) this.paintContourMask(previous.texture.source.resource, spec)
       else paintMaskCanvas(previous.texture.source.resource, spec)
       previous.texture.source.update()
       previous.width = maskWidth
@@ -594,9 +602,10 @@ export class PixiPlayRenderer {
     root.__imageMask = null
     if (!spec || !content.visible) return
     let clip
-    if (soft) {
+    if (raster) {
       const canvas = DOMAdapter.get().createCanvas(textureWidth, textureHeight)
       if (spec.reverse) this.paintViewportMask(canvas, spec, global)
+      else if (contour) this.paintContourMask(canvas, spec)
       else paintMaskCanvas(canvas, spec)
       clip = new Sprite({ texture: new Texture({ source: new CanvasSource({ resource: canvas }) }), anchor: spec.reverse ? 0 : 0.5 })
       clip.width = maskWidth
@@ -627,6 +636,20 @@ export class PixiPlayRenderer {
       }
     }
     context.putImageData(image, 0, 0)
+  }
+
+  paintContourMask(canvas, spec) {
+    paintMaskCanvas(canvas, spec)
+    const source = this.imageTextures.get(spec.imageKey)?.texture?.source?.resource
+    if (!source) return
+    const context = canvas.getContext('2d')
+    const mask = context.getImageData(0, 0, canvas.width, canvas.height)
+    const scratch = DOMAdapter.get().createCanvas(canvas.width, canvas.height)
+    const scratchContext = scratch.getContext('2d')
+    scratchContext.drawImage(source, 0, 0, canvas.width, canvas.height)
+    const alpha = scratchContext.getImageData(0, 0, canvas.width, canvas.height).data
+    for (let i = 3; i < mask.data.length; i += 4) mask.data[i] = Math.round(mask.data[i] * alpha[i] / 255)
+    context.putImageData(mask, 0, 0)
   }
 
   refreshReverseMasks(candidates = null) {

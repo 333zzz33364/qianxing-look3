@@ -3,8 +3,9 @@ import { createHash } from 'node:crypto'
 import { SimulatorController } from 'qxqy-studio/host/controller'
 import { resolveWorkspaceFile, resolveWorkspaceOutput } from 'qxqy-studio/host/workspace'
 import { archivePathKey, remapArchivePath } from '../../studio/host/archive-management.js'
+import { readRenderSettings, writeRenderSettings } from '../../studio/host/render-settings.js'
 
-const ACTIONS = new Set(['get', 'patch', 'look2', 'transaction', 'history', 'template', 'image-url', 'import', 'export', 'export-list', 'export-preview', 'archives', 'archive-manage', 'load-archive', 'delete-archive', 'reveal-archive', 'save', 'play', 'script-sync', 'script-sync-apply', 'image-refresh'])
+const ACTIONS = new Set(['get', 'patch', 'look2', 'transaction', 'history', 'template', 'image-url', 'import', 'export', 'export-list', 'export-preview', 'archives', 'archive-manage', 'load-archive', 'delete-archive', 'reveal-archive', 'save', 'play', 'script-sync', 'script-sync-apply', 'image-refresh', 'render-settings'])
 const stamp = path => createHash('sha256').update(readFileSync(path)).digest('hex')
 
 // One trusted operator, with independent editor tabs and their play windows.
@@ -49,6 +50,7 @@ export class EditorSessions {
     const controller = row.controller
     return controller.exclusive(async () => {
       if (action === 'get') return this.snapshot(row)
+      if (action === 'render-settings') return body.maskContour ? writeRenderSettings({ maskContour: body.maskContour }) : readRenderSettings()
       if (action === 'image-refresh') {
         await controller.imageAssets.refresh(body.imageId, { imageSource: body.imageSource })
         return { imageId: body.imageId, imageSource: body.imageSource || 'StaticReference', refreshed: true }

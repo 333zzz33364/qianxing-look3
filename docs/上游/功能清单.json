@@ -1402,13 +1402,21 @@
     "look3-workspace/整合/20261019-收口/界面对照/Look3-1280x720.png",
     "look3-workspace/整合/20261019-收口/界面对照/原Look2-1920x1080.png",
     "look3-workspace/整合/20261019-收口/界面对照/Look3-1920x1080.png",
-    "look3-workspace/整合/20261019-收口/界面对照/界面量测.json"
+    "look3-workspace/整合/20261019-收口/界面对照/界面量测.json",
+    "look3-workspace/整合/20261111-像素差分/像素差分报告.md",
+    "look3-workspace/整合/20261019-收口/界面对照/像素差分-1280x720.json",
+    "look3-workspace/整合/20261019-收口/界面对照/像素差分-1920x1080.json",
+    "look3-workspace/整合/20261111-像素差分/当前Look3-1280x720.png",
+    "look3-workspace/整合/20261111-像素差分/当前Look3-1920x1080.png",
+    "look3-workspace/整合/20261111-像素差分/当前Look3-量测.json",
+    "look3-workspace/整合/20261111-像素差分/差分-历史Look3对比当前-1280x720.json",
+    "look3-workspace/整合/20261111-像素差分/差分-历史Look3对比当前-1920x1080.json"
    ],
    "externalAcceptance": "pending",
    "localReview": {
     "readingState": "未读",
-    "status": "visual-compared-partial",
-    "report": "docs/上游/界面资源独立审计-20261019收口.md#u-ui01",
+    "status": "visual-diff-quantified-partial",
+    "report": "look3-workspace/整合/20261111-像素差分/像素差分报告.md",
     "evidence": [
      {
       "kind": "screenshot",
@@ -1445,12 +1453,72 @@
       "path": "web/test/look3-editor-browser.test.mjs",
       "result": "桌面/窄屏页面入口与可见性回归",
       "boundary": "不替代Look2与Look3视觉差分"
+     },
+     {
+      "kind": "pixel-diff",
+      "path": "look3-workspace/整合/20261111-像素差分/像素差分报告.md",
+      "result": "1280×720 整屏 mean 1.5883、5.80% 像素变化；1920×1080 整屏 mean 1.3229、5.86%；控件树、工具栏、面板标题、两类选中行在两尺寸均 0 差异",
+      "boundary": "原 Look2 与 Look3 的对照基于 2026-10-19 归档截图，原 Look2 目录已删除，不能重拍"
+     },
+     {
+      "kind": "pixel-diff",
+      "path": "look3-workspace/整合/20261019-收口/界面对照/像素差分-1280x720.json",
+      "result": "原 Look2 对归档 Look3，1280×720 分区统计"
+     },
+     {
+      "kind": "pixel-diff",
+      "path": "look3-workspace/整合/20261019-收口/界面对照/像素差分-1920x1080.json",
+      "result": "原 Look2 对归档 Look3，1920×1080 分区统计；属性面板 15.88% 差异待逐字段核对"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "scripts/ui-screenshot-diff.mjs",
+      "result": "纯 Node 像素差分工具，支持区域框、阈值与热图"
+     },
+     {
+      "kind": "test",
+      "path": "scripts/test/ui-screenshot-diff.test.mjs",
+      "result": "8/8 通过（含 RGBA 往返、区域裁剪、尺寸不一致拒绝、热图）"
+     },
+     {
+      "kind": "source-or-test-or-log",
+      "path": "scripts/capture-editor-screenshots.mjs",
+      "result": "按固定存档重拍 Look3 编辑器截图并导出量测 JSON"
+     },
+     {
+      "kind": "screenshot",
+      "path": "look3-workspace/整合/20261111-像素差分/当前Look3-1280x720.png",
+      "result": "当前 HEAD 1280×720 自回归基线",
+      "boundary": "headless Edge，deviceScaleFactor 1"
+     },
+     {
+      "kind": "screenshot",
+      "path": "look3-workspace/整合/20261111-像素差分/当前Look3-1920x1080.png",
+      "result": "当前 HEAD 1920×1080 自回归基线",
+      "boundary": "headless Edge，deviceScaleFactor 1"
+     },
+     {
+      "kind": "measurement",
+      "path": "look3-workspace/整合/20261111-像素差分/当前Look3-量测.json",
+      "result": "当前截图对应的区域框、颜色、字体与溢出量测"
+     },
+     {
+      "kind": "pixel-diff",
+      "path": "look3-workspace/整合/20261111-像素差分/差分-历史Look3对比当前-1280x720.json",
+      "result": "历史 Look3 对当前 Look3：整屏 mean 11.6886，时间轴 23.707；差异源于工具栏新增入口导致舞台缩放 30%→27% 的整体位移"
+     },
+     {
+      "kind": "pixel-diff",
+      "path": "look3-workspace/整合/20261111-像素差分/差分-历史Look3对比当前-1920x1080.json",
+      "result": "历史 Look3 对当前 Look3：整屏 mean 7.5889，时间轴 22.4961；舞台缩放 70%→67%"
      }
     ],
     "boundaries": [
-     "仅截图静态状态",
-     "未做全部工具项逐像素差分；顶层壳层/部分工具文案存在差异",
-     "不替代Look2与Look3视觉差分"
+     "仅对照 2026-10-19 归档截图；原 Look2 目录已于 2026-11-10 删除，无法重拍原 Look2 侧",
+     "控件树、工具栏、面板标题与两类选中行逐像素相同，画布/时间轴差异为绘制内容与缩放位移，不是结构差异",
+     "1920×1080 属性面板 15.88% 差异未逐字段核对，暂按字段顺序/间距差异记录，不得据此认定无缺陷",
+     "390×844 窄屏未做像素差分：历史对照未采集该尺寸的原 Look2 截图",
+     "像素差分只证明画面是否一致，不证明控件行为、导出内容或千星实机表现"
     ]
    }
   },
@@ -1466,12 +1534,14 @@
     "studio/look2"
    ],
    "tests": [
-    "studio/test/look2.test.mjs"
+    "studio/test/look2.test.mjs",
+    "web/test/look3-toolbar-tree-matrix-browser.test.mjs"
    ],
    "status": "pending",
    "evidence": [
     "docs/上游/界面资源独立审计-20261019收口.md#u-ui02",
-    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+    "look3-workspace/整合/20261019-收口/最终完整回归.log",
+    "web/test/look3-toolbar-tree-matrix-browser.test.mjs"
    ],
    "externalAcceptance": "pending",
    "localReview": {
@@ -1490,12 +1560,21 @@
       "path": "studio/test/editor-timeline.test.mjs",
       "result": "覆盖历史、时间轴和部分真实按钮处理器",
       "boundary": "导入/导出、模板、图片、Lua、设备入口未组成完整操作矩阵"
+     },
+     {
+      "kind": "test",
+      "path": "web/test/look3-toolbar-tree-matrix-browser.test.mjs",
+      "result": "真实 Edge 下一条流程串起工具栏入口矩阵（新建/保存/撤销/重做/历史/导入/导出下拉清单/控件模板/图片资源/Lua 工具/画布尺寸/缩放/适应画布/字体设置/试玩目标与人数）、客户端模板切换后的入口启停、画布尺寸切换与撤销重做、树搜索、锁定、锁定态拖放、真实拖放改父级、右键复制/删除、画布隐藏与工具栏保存",
+      "boundary": "导出与导入只断言下拉清单与入口可达，实际落盘由其他用例覆盖；拖放使用 DOM DragEvent 合成，不是 CDP 真实指针拖拽"
      }
     ],
     "boundaries": [
-     "不覆盖全部工具栏入口的端到端操作",
-     "导入/导出、模板、图片、Lua、设备入口未组成完整操作矩阵"
-    ]
+     "导出/导入只验证下拉清单与入口可达，未逐个触发落盘动作",
+     "模板、图片、Lua、设备入口的完整操作矩阵仍未覆盖：本轮只验证入口启停与弹窗开合",
+     "试玩目标与人数只验证控件存在，未触发真实试玩",
+     "非千星实机验收"
+    ],
+    "note": "工具栏入口矩阵与撤销重做已进浏览器组合流程"
    }
   },
   {
@@ -1510,12 +1589,14 @@
     "studio/look2"
    ],
    "tests": [
-    "studio/test/look2.test.mjs"
+    "studio/test/look2.test.mjs",
+    "web/test/look3-toolbar-tree-matrix-browser.test.mjs"
    ],
    "status": "pending",
    "evidence": [
     "docs/上游/界面资源独立审计-20261019收口.md#u-ui03",
-    "look3-workspace/整合/20261019-收口/最终完整回归.log"
+    "look3-workspace/整合/20261019-收口/最终完整回归.log",
+    "web/test/look3-toolbar-tree-matrix-browser.test.mjs"
    ],
    "externalAcceptance": "pending",
    "localReview": {
@@ -1540,13 +1621,21 @@
       "path": "studio/test/editor-container-actions.test.mjs",
       "result": "删除与层序操作断言",
       "boundary": "外部编辑器验收未做"
+     },
+     {
+      "kind": "test",
+      "path": "web/test/look3-toolbar-tree-matrix-browser.test.mjs",
+      "result": "真实 Edge 下一条流程串起工具栏入口矩阵（新建/保存/撤销/重做/历史/导入/导出下拉清单/控件模板/图片资源/Lua 工具/画布尺寸/缩放/适应画布/字体设置/试玩目标与人数）、客户端模板切换后的入口启停、画布尺寸切换与撤销重做、树搜索、锁定、锁定态拖放、真实拖放改父级、右键复制/删除、画布隐藏与工具栏保存",
+      "boundary": "导出与导入只断言下拉清单与入口可达，实际落盘由其他用例覆盖；拖放使用 DOM DragEvent 合成，不是 CDP 真实指针拖拽"
      }
     ],
     "boundaries": [
-     "不是所有树操作的单一页面流程",
-     "搜索/锁定/拖放组合未全覆盖",
-     "外部编辑器验收未做"
-    ]
+     "拖放改父级使用 DOM DragEvent 合成（React 的 HTML5 拖放处理器），不是 CDP 真实指针拖拽",
+     "锁定态只验证拖放不改变锁与选中项，未验证所有编辑入口在锁定下都被拦截",
+     "复制/删除验证树数量变化，未逐字段核对复制内容",
+     "外部编辑器与实机验收未做"
+    ],
+    "note": "搜索、锁定、锁定态拖放、拖放改父级、复制、删除、隐藏已串成一条浏览器流程"
    }
   },
   {
@@ -2224,7 +2313,12 @@
       "claim": "唯一名称、输入边界和失败不改历史。"
      }
     ],
-    "boundaries": []
+    "boundaries": [
+     "证据层级：仅本地源码与单元断言，无浏览器操作流程，无千星实机",
+     "未单独验证「共享基础控件但关键帧/事件/时长互不影响」的组合场景",
+     "未验证删除当前动画、切换动画时播放头与选中关键帧的重置行为"
+    ],
+    "note": "证据为 studio 单元测试，本轮只补边界说明"
    }
   },
   {
@@ -2258,7 +2352,12 @@
       "claim": "分组折叠、传输、时长钳制、拒绝事务和关键帧时间吸附。"
      }
     ],
-    "boundaries": []
+    "boundaries": [
+     "证据层级：仅本地源码与单元断言，无浏览器操作流程，无千星实机",
+     "轨道/控件折叠、秒与帧刻度切换、吸附开关的真实指针操作未逐项验证",
+     "播放/暂停与帧率、时长修改的联动未做组合验证"
+    ],
+    "note": "证据为 studio 单元测试，本轮只补边界说明"
    }
   },
   {
@@ -2292,7 +2391,12 @@
       "claim": "组拖动、插帧事务、轨道增删、复制粘贴、删除和撤销。"
      }
     ],
-    "boundaries": []
+    "boundaries": [
+     "证据层级：仅本地源码与单元断言；浏览器侧只由既有关键帧用例覆盖套用/拖动/撤销",
+     "双击插帧、右键插帧、关键帧参数编辑未在浏览器中逐项验证",
+     "多选、Ctrl+C/V、Delete、轨道删除的组合流程未覆盖"
+    ],
+    "note": "证据为 studio 单元测试，本轮只补边界说明"
    }
   },
   {
@@ -2331,7 +2435,12 @@
       "claim": "31 个正式公式及 3 个旧名称兼容别名。"
      }
     ],
-    "boundaries": []
+    "boundaries": [
+     "证据层级：仅本地源码与单元断言，无实机",
+     "31 种缓动未逐个对照目标运行时结果，只按本地播放语义断言",
+     "阶跃/补间、最后保持、精确边界在颜色与布尔字段上的组合未穷举"
+    ],
+    "note": "证据为 studio 单元测试，本轮只补边界说明"
    }
   },
   {
@@ -2370,7 +2479,11 @@
       "claim": "本地 JavaScript/Lua Runtime 采样对照。"
      }
     ],
-    "boundaries": []
+    "boundaries": [
+     "证据层级：仅本地源码与单元断言，无实机",
+     "首帧基于初始值、后续基于前一右侧值、跳变入侧值的组合未逐字段矩阵覆盖"
+    ],
+    "note": "证据为 studio 单元测试，本轮只补边界说明"
    }
   },
   {
@@ -2409,7 +2522,11 @@
       "claim": "JavaScript/Lua Runtime 采样对照。"
      }
     ],
-    "boundaries": []
+    "boundaries": [
+     "证据层级：仅本地源码与单元断言，无实机",
+     "旋转多圈角度、组透明度 0–255、颜色 RGBA 与首帧前显隐未做 JS/Lua 结果逐项对照"
+    ],
+    "note": "证据为 studio 单元测试，本轮只补边界说明"
    }
   },
   {
@@ -2448,7 +2565,12 @@
       "claim": "本地 Lua Runtime 的路径调用、异常隔离和 seek 不触发。"
      }
     ],
-    "boundaries": []
+    "boundaries": [
+     "证据层级：本地单元与既有浏览器用例，无实机",
+     "事件时间/目标/参数编辑、删除与排序未在浏览器中逐项验证（既有用例只覆盖名称与参数提交）",
+     "最近 50 条日志上限与同刻顺序稳定性未单独断言"
+    ],
+    "note": "证据为 studio 单元测试与既有关键帧事件浏览器用例"
    }
   },
   {
@@ -2541,7 +2663,11 @@
       "claim": "站点 JSON 与旧布局迁移、重开、incoming 和未编辑元数据。"
      }
     ],
-    "boundaries": []
+    "boundaries": [
+     "证据层级：仅本地单元与往返断言，无外部工具与实机",
+     "未编辑元数据的保留只按本地字段集合断言，未与真实站点 JSON 样本逐字段对照"
+    ],
+    "note": "证据为 studio 单元测试，本轮只补边界说明"
    }
   },
   {
@@ -2590,7 +2716,12 @@
       "claim": "已观察遮罩字段的 GIA 往返。"
      }
     ],
-    "boundaries": []
+    "boundaries": [
+     "证据层级：本地往返与夹具断言，无千星编辑器导入与实机",
+     "层序、图元形状/颜色/变换的保真只覆盖夹具范围，未覆盖真实项目导出样本",
+     "脚本源码/映射/挂载的回读断言不证明挂载在真机生效"
+    ],
+    "note": "证据为 studio 单元测试，本轮只补边界说明"
    }
   },
   {
@@ -2629,7 +2760,11 @@
       "claim": "通用失败导入保持既有资产。"
      }
     ],
-    "boundaries": []
+    "boundaries": [
+     "证据层级：本地解析与视图断言，无 Photoshop 原始文件与实机",
+     "PSD 图层分组/位置/透明度只覆盖已有夹具，失败保留原工程只验证本地回滚"
+    ],
+    "note": "证据为 studio 单元测试，本轮只补边界说明"
    }
   },
   {
@@ -2663,7 +2798,11 @@
       "claim": "Spine 3.8 层级、Bezier 30Hz、告警、拒绝路径和版本边界。"
      }
     ],
-    "boundaries": []
+    "boundaries": [
+     "证据层级：本地解析与视图断言，无 Spine 编辑器和实机",
+     "3.8 层级变换、贴图、动画/曲线/插槽只覆盖固定样本，失效资源与不支持特性只验证本地报错"
+    ],
+    "note": "证据为 studio 单元测试，本轮只补边界说明"
    }
   },
   {
@@ -2697,7 +2836,11 @@
       "claim": "TimelineData @8、旧版本、追加/替换、路径、颜色、incoming 与事件。"
      }
     ],
-    "boundaries": []
+    "boundaries": [
+     "证据层级：本地单元断言，无真实旧存档与实机",
+     "TimelineData @8 的旧 schema 导入只按夹具断言，追加/替换、指定根/路径的组合未穷举"
+    ],
+    "note": "证据为 studio 单元测试，本轮只补边界说明"
    }
   },
   {
@@ -2737,7 +2880,11 @@
       "claim": "本地版本错误抛 Lua error；固定源记录错误后返回空序列。"
      }
     ],
-    "boundaries": []
+    "boundaries": [
+     "证据层级：本地单元断言，无实机",
+     "TweenTimelineLib.Create 的返回序列控制、版本检查、重播、显隐与回调未做组合流程"
+    ],
+    "note": "证据为 studio 单元测试，本轮只补边界说明"
    }
   },
   {
@@ -2916,7 +3063,11 @@
       "claim": "旧存档按资产恢复脚本挂载。"
      }
     ],
-    "boundaries": []
+    "boundaries": [
+     "证据层级：本地迁移断言，无真实 2.0.3 / 原 Look 旧存档",
+     "旧存档迁移后的效果一致性只在夹具范围成立，原文件不覆盖只按本地文件操作断言"
+    ],
+    "note": "证据为 studio 单元测试，本轮只补边界说明"
    }
   },
   {
