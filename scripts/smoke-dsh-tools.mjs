@@ -24,22 +24,31 @@ export async function smokeDshTools(workspace) {
     },
   })
   const tools = new ToolRuntime(ctx)
+  const batchApi = typeof tools.setExecutor === 'function'
+  if (batchApi) {
+    const { NativeToolExecutor } = await import('@deepseek-ai/dsh-tool-executor-native')
+    tools.setExecutor(new NativeToolExecutor(ctx))
+  }
   const owner = ctx.plugin(plugin)
   await owner
   const registeredRouteCount = routes.size
   assert.ok(registeredRouteCount > 0, 'The plugin must register its HTTP routes')
   const agent = { id: 'package-smoke', session: { header: { cwd: workspace } } }
   let callId = 0
+  const execute = async (name, args, caller, timeoutMs = 15_000) => {
+    const id = `smoke-${++callId}`
+    const signal = AbortSignal.timeout(timeoutMs)
+    return batchApi
+      ? (await tools.execute({ calls: [{ type: 'tool-call', id, name, arguments: JSON.stringify(args) }], agent: caller, signal })).results[0].result
+      : tools.execute({ callId: id, name, arguments: args, agent: caller, signal })
+  }
   const call = async (name, args = {}, caller = agent) => {
-    const result = await tools.execute({
-      callId: `smoke-${++callId}`, name, arguments: args, agent: caller,
-      signal: AbortSignal.timeout(15_000),
-    })
+    const result = await execute(name, args, caller)
     assert.equal(result.isError, false, JSON.stringify(result))
     return result
   }
   try {
-    assert.equal(tools.schemas().filter(tool => tool.name.startsWith('look3_')).length, 12)
+    assert.equal(tools.schemas().filter(tool => tool.name.startsWith('look3_')).length, 13)
     const before = (await call('look3_studio_get')).value
     assert.equal(before.workspace.path, workspace)
     await call('look3_studio_patch', { op: { op: 'renameSave', name: 'Tool pipeline', expectedRevision: before.version } })
@@ -55,17 +64,13 @@ export async function smokeDshTools(workspace) {
     await call('look3_studio_play', { action: 'step', args: { dt: 1 / 30 } })
     assert.ok((await call('look3_studio_play_screenshot')).content.some(block => block.type === 'image'))
     await call('look3_studio_play', { action: 'stop' })
-    const stale = await tools.execute({
-      callId: `smoke-${++callId}`, name: 'look3_studio_patch', agent,
-      arguments: { op: { op: 'set', id: 'n2', key: 'text', value: 'stale', expectedRevision: before.version } },
-      signal: AbortSignal.timeout(5_000),
-    })
+    const stale = await execute('look3_studio_patch', { op: { op: 'set', id: 'n2', key: 'text', value: 'stale', expectedRevision: before.version } }, agent, 5_000)
     assert.equal(stale.isError, true)
     assert.match(JSON.stringify(stale), /revision conflict/)
     for (let cycle = 0; cycle < 2; cycle++) {
       await owner.restart()
       assert.equal(routes.size, registeredRouteCount)
-      assert.equal(tools.schemas().filter(tool => tool.name.startsWith('look3_')).length, 12)
+      assert.equal(tools.schemas().filter(tool => tool.name.startsWith('look3_')).length, 13)
       assert.equal((await call('look3_studio_get')).value.save.name, '未命名存档')
     }
   } finally {

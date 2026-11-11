@@ -13,12 +13,19 @@ export function apply(ctx, config) {
   ctx.webServer.register({ kind: 'exact', path: '/qxqy-smoke', async handler(_request, response) {
     response.setHeader('content-type', 'application/json')
     const sessionId = 'harness-smoke'
-    const session = ctx.sessions.get(sessionId) || ctx.sessions.create(sessionId, { meta: { cwd: config.workspace } })
-    const agent = { id: sessionId, session }
+    let owned
+    let agent
+    const presetId = 'wonderland-lua-builder'
+    const agentOptions = { provider: 'deepseek', model: 'deepseek-chat' }
+    const setup = async agentCtx => { await ctx.agentPresets.mount(agentCtx, presetId) }
     let callId = 0
     const checks = []
     const call = async (name, args = {}) => {
-      const result = await ctx.tools.execute({ callId: `smoke-${++callId}`, name, arguments: args, agent, signal: AbortSignal.timeout(10_000) })
+      const id = `smoke-${++callId}`
+      const signal = AbortSignal.timeout(10_000)
+      const result = typeof ctx.tools.setExecutor === 'function'
+        ? (await ctx.tools.execute({ calls: [{ type: 'tool-call', id, name, arguments: JSON.stringify(args) }], agent, signal })).results[0].result
+        : await ctx.tools.execute({ callId: id, name, arguments: args, agent, signal })
       assert.equal(result.isError, false, JSON.stringify(result))
       return result
     }
@@ -51,10 +58,13 @@ export function apply(ctx, config) {
         assert.match(skill.content, /PREFLIGHT/)
         assert.equal(skill.resourceBase.kind, 'directory')
         assert.match(await readFile(join(skill.resourceBase.path, 'references/workflow.md'), 'utf8'), /PREFLIGHT/)
+        for (const name of ['list_agents', 'send_message', 'subagent', 'qxqy_studio_get']) {
+          assert.equal(ctx.tools.schemas(lease.key).filter(tool => tool.name === name).length, 1, `${name} is available exactly once in the preset`)
+        }
       } finally { await lease[Symbol.asyncDispose]() }
       assert.ok(await ctx.skills.get('look3-simulator'))
       checks.push('compatibility-preset-skill')
-      assert.equal(ctx.tools.schemas().filter(tool => tool.name.startsWith('look3_')).length, 12)
+      assert.equal(ctx.tools.schemas().filter(tool => tool.name.startsWith('look3_')).length, 13)
       const before = (await call('look3_studio_get')).value
       assert.equal(before.workspace.path, config.workspace)
       await call('look3_studio_patch', { op: { op: 'set', id: 'n2', key: 'text', value: 'Harness 0.2', expectedRevision: before.version } })
@@ -118,7 +128,7 @@ export function apply(ctx, config) {
         // is replaced. Previously the very first restart hit duplicate prefix.
         await call('look3_studio_play', { action: 'start' })
         await owners[0].restart()
-        assert.equal(ctx.tools.schemas().filter(tool => tool.name.startsWith('look3_')).length, 12)
+        assert.equal(ctx.tools.schemas().filter(tool => tool.name.startsWith('look3_')).length, 13)
         const beforeRestartEdit = (await call('look3_studio_get')).value
         await call('look3_studio_patch', { op: { op: 'renameSave', name: `restart-${cycle}`, expectedRevision: beforeRestartEdit.version } })
         const reloaded = await (await fetch(`${url}/look3-simulator/api/get`, {
@@ -136,6 +146,6 @@ export function apply(ctx, config) {
     } catch (error) {
       response.statusCode = 500
       response.end(JSON.stringify({ ok: false, error: error.stack || String(error) }))
-    }
+    } finally { await owned?.dispose() }
   } })
 }

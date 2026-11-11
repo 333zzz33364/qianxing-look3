@@ -24,8 +24,9 @@ test('PNG stretches circle and ring across both axes while retaining their disti
 })
 
 test('rotation applies to the stretched ellipse and rectangle', async () => {
+  // Z 旋转正值按屏幕顺时针（与实机一致）：长轴朝下倾 30°
   for (const primitive of ['circle', 'rect']) {
-    assert.equal(await colored(primitive, 225, 82, 30), true, `${primitive} follows the rotated long axis`)
+    assert.equal(await colored(primitive, 225, 158, 30), true, `${primitive} follows the rotated long axis`)
     assert.equal(await colored(primitive, 225, 120, 30), false, `${primitive} leaves the unrotated long axis`)
   }
 })

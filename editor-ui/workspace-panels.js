@@ -103,7 +103,7 @@ export function createWorkspacePanels(React, {
     return value
   }
 
-  function WorkspaceInspector({ mode = 'base', snap, patch, applyFieldGroup, transformPlatform, extraTransformFields, transformHeader, onError, onDiscardInputError, setDockTab }) {
+  function WorkspaceInspector({ mode = 'base', snap, patch, applyFieldGroup, transformPlatform, extraTransformFields, transformHeader, exportFile, onError, onDiscardInputError, setDockTab }) {
     const workspace = useWorkspace()
     const [propertyClipboard, setPropertyClipboard] = React.useState(null)
     workspace.environmentRef.current = { ...workspace.environmentRef.current, snap, patch, onError }
@@ -231,6 +231,11 @@ export function createWorkspacePanels(React, {
       setDockTab?.('sync')
     }
     return h(React.Fragment, null,
+      exportFile && targetAsset === 'client-control-template' && snap.inspector.kind !== 'server-container'
+        ? h('section', { className: 'look2-guid-editor', 'aria-label': '客户端控件导出' },
+          h('button', { className: 'qxsim-action qxsim-export-single', title: '导出当前客户端控件及其子树', onClick: () => {
+            void exportFile('gia-partial', 'client-control-template', { controlIds: [selectedId], includeScripts: true }).catch(() => {})
+          } }, '导出 GIA')) : null,
       ControlGuidEditor && targetAsset === 'client-control-template' && snap.inspector.kind !== 'server-container'
         ? h('section', { className: 'look2-guid-editor', 'aria-label': '客户端控件索引' },
           h('strong', null, '客户端控件索引'),

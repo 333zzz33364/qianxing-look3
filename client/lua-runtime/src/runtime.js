@@ -9,6 +9,8 @@ import { packRgba, unpackRgba } from './color.js'
 import { buildEnumTree, makeEnumItem, canonicalEnumItem } from './enums.js'
 
 const ENUM_FIELDS = {
+  keyboardKeyCode: 'KeyboardKeyCode',
+  controllerKeyCode: 'ControllerKeyCode',
   horizontalAlignment: 'TextHorizontalAlignment',
   verticalAlignment: 'TextVerticalAlignment',
   imageSource: 'ImageSource',
@@ -22,8 +24,6 @@ const ENUM_FIELDS = {
   layer: 'UIAnimationLayer',
   scrollDirection: 'ScrollDirection',
   layoutConstraint: 'ScrollLayoutConstraint',
-  keyboardKeyCode: 'KeyboardKeyCode',
-  controllerKeyCode: 'ControllerKeyCode',
 }
 
 const LUA_REGISTRYINDEX = lua.LUA_REGISTRYINDEX
@@ -31,7 +31,7 @@ const LUA_MULTRET = lua.LUA_MULTRET
 
 // Control fields documented as integers by the client API. Other numeric
 // fields are exposed as Lua floats, while packed colors retain their encoding.
-const INTEGER_FIELDS = new Set(['Id', 'prefabIndex', 'imageId', 'fontSize', 'minimumFontSize', 'clickAudioId',
+const INTEGER_FIELDS = new Set(['id', 'Id', 'prefabIndex', 'imageId', 'fontSize', 'minimumFontSize', 'clickAudioId',
   'itemCount', 'itemPrefabIndex', 'animationId', 'referencedPrefabIndex'])
 const COLOR_FIELDS = new Set(['imageColor', 'fontColor', 'bgColor', 'outlineColor'])
 
@@ -692,6 +692,8 @@ export class LuaRuntime {
     for (const child of control.children.slice()) this._destroyControlTree(child)
     control.alive = false
     this.scrollControls?.delete(control)
+    this.buttonControls?.delete(control)
+    this.uiAnimations?.delete(control)
     this._playRemoved.push(control.Id)
     if (control.parent) {
       const parent = control.parent
@@ -1039,6 +1041,12 @@ export class LuaRuntime {
             throw new Error(`bad argument #2 to '${key}' (integer expected, got ${valueType})`)
           }
           const enumType = ENUM_FIELDS[key]
+          if ((key === 'keyboardKeyCode' || key === 'controllerKeyCode') && val?.EnumType !== enumType) {
+            throw new Error(`${key} requires Enum.${enumType}`)
+          }
+          if (key === 'animationId' && !Number.isSafeInteger(val)) throw new Error('animationId requires an integer')
+          if (key === 'playSoundEffect' && typeof val !== 'boolean') throw new Error('playSoundEffect requires a boolean')
+          if (key === 'layer' && (val?.EnumType !== 'UIAnimationLayer' || !['AboveAllControls', 'BelowAllControls'].includes(val.Name))) throw new Error('layer requires Enum.UIAnimationLayer')
           if (key === 'imageType' && (val?.EnumType !== 'ImageType' || !['Basic', 'Stretch'].includes(val.Name))) {
             throw new Error('imageType requires Enum.ImageType.Basic or Stretch')
           }

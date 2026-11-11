@@ -187,9 +187,11 @@ export function localRectMatrix(box, transform) {
   const scaleY = num(scale?.y, 1)
   const pivotX = box.left + box.width * num(pivot?.x, 0.5)
   const pivotY = box.bottom + box.height * num(pivot?.y, 0.5)
-  const a = clean(cy * cos + sy * sx * sin) * scaleX
-  const b = clean(cx * sin) * scaleX
-  const c = clean(-cy * sin + sy * sx * cos) * scaleY
+  // Z 旋转按屏幕坐标（Y 向下）取正：与千星实机和 CSS 的顺时针语义一致。
+  // 因此 Rz 的 sin 项取反（等价 Rz(-θ)）；rx/ry 的投影公式保持不变。
+  const a = clean(cy * cos - sy * sx * sin) * scaleX
+  const b = clean(-cx * sin) * scaleX
+  const c = clean(cy * sin + sy * sx * cos) * scaleY
   const d = clean(cx * cos) * scaleY
   return {
     a,
@@ -226,7 +228,8 @@ export function transformedRectMetrics(box, matrix) {
     height,
     centerX: center.x,
     centerY: center.y,
-    rotationZ: Math.atan2(matrix.b, matrix.a) * 180 / Math.PI,
+    // 屏幕坐标（Y 向下）的顺时针角，与 localRectMatrix 的 Z 正方向一致。
+    rotationZ: -Math.atan2(matrix.b, matrix.a) * 180 / Math.PI,
   }
 }
 

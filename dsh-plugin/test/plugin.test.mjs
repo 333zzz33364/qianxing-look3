@@ -352,6 +352,7 @@ test('plugin registers screenshot capture, API and standalone Pixi play routes, 
     'look3_studio_template',
     'look3_animation_set',
     'look3_animation_export',
+    'look3_studio_export',
     'look3_script_sync',
     'look3_studio_get',
     'look3_studio_play_screenshot',
@@ -403,7 +404,7 @@ test('plugin registers screenshot capture, API and standalone Pixi play routes, 
   const loop = readFileSync(new URL('../../studio/play/browser-session.js', import.meta.url), 'utf8')
   assert.match(loop, /light: true/)
   assert.match(loop, /view: true/)
-  assert.match(loop, /PLAY_POLL_INTERVAL_MS = 33/)
+  assert.match(loop, /PLAY_POLL_INTERVAL_MS = Math\.floor\(1000 \/ DEFAULT_PLAY_FPS\)/)
   assert.match(loop, /renderer\.render\(next\.paint/)
   assert.doesNotMatch(body, /\.innerHTML\s*=/)
   assert.doesNotMatch(body, /试玩流程|flow-step|<span>编辑<\/span>/)
@@ -434,6 +435,7 @@ test('plugin registers screenshot capture, API and standalone Pixi play routes, 
     assert.ok(workerBody.length > 1000, worker)
     assert.match(workerBody, /postMessage/, worker)
   }
+  assert.ok(routes.some(route => route.path === '/qxqy-vfx'))
   const assetRoute = routes.find((item) => item.path === '/look2-assets/')
   assert.ok(assetRoute, 'online asset route registered')
   let assetStatus = 0
@@ -597,7 +599,7 @@ test('host tool runtime is supplied by Harness instead of bundled twice', () => 
   assert.equal(manifest.dependencies?.['@deepseek-ai/dsh-tools'], undefined)
   const supportedPeerRanges = (manifest.peerDependencies?.['@deepseek-ai/dsh-tools'] || '')
     .split('||').map((range) => range.trim()).filter(Boolean).sort()
-  assert.deepEqual(supportedPeerRanges, ['^0.1.0-rc.6', '^0.2.0-rc.1', '^0.2.1-rc.1'].sort())
+  assert.deepEqual(supportedPeerRanges, ['^0.1.0-rc.6', '^0.2.0-rc.1', '^0.2.1-rc.1', '^0.2.2-rc.1'].sort())
   assert.equal(manifest.devDependencies?.['@deepseek-ai/dsh-tools'], '0.2.0-rc.2')
   assert.equal(pluginManifest.devDependencies?.['@deepseek-ai/dsh-tools'], '0.2.0-rc.2')
 })

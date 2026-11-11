@@ -4,7 +4,7 @@ import { SimulatorController } from 'qxqy-studio/host/controller'
 import { resolveWorkspaceFile, resolveWorkspaceOutput } from 'qxqy-studio/host/workspace'
 import { archivePathKey, remapArchivePath } from '../../studio/host/archive-management.js'
 
-const ACTIONS = new Set(['get', 'patch', 'look2', 'transaction', 'history', 'template', 'image-url', 'import', 'export', 'archives', 'archive-manage', 'load-archive', 'delete-archive', 'reveal-archive', 'save', 'play', 'script-sync', 'script-sync-apply', 'image-refresh'])
+const ACTIONS = new Set(['get', 'patch', 'look2', 'transaction', 'history', 'template', 'image-url', 'import', 'export', 'export-list', 'export-preview', 'archives', 'archive-manage', 'load-archive', 'delete-archive', 'reveal-archive', 'save', 'play', 'script-sync', 'script-sync-apply', 'image-refresh'])
 const stamp = path => createHash('sha256').update(readFileSync(path)).digest('hex')
 
 // One trusted operator, with independent editor tabs and their play windows.
@@ -82,7 +82,9 @@ export class EditorSessions {
         if (!this.imageSource) throw new Error('在线图片服务未配置')
         return this.imageSource.importUrl(body.url)
       }
-      if (action === 'export') return controller.studio.exportData(body.format, body.assetType)
+      if (action === 'export') return controller.exportData(body.format, body.assetType, body)
+      if (action === 'export-list') return controller.exportAction('list')
+      if (action === 'export-preview') return controller.exportAction('preview', body)
       if (action === 'reveal-archive') return controller.revealArchive(body.path)
       if (action === 'delete-archive') {
         const result = controller.deleteArchive(body.path)
@@ -111,9 +113,8 @@ export class EditorSessions {
           throw new Error('存档文件已移动或删除，请重新加载或另存为新路径')
         }
         if (existsSync(absolute)) {
-          if (archivePathKey(absolute) !== archivePathKey(original) || stamp(absolute) !== row.fileStamp) {
-            throw new Error('File changed or already exists; load it again or save under a new path')
-          }
+          if (archivePathKey(absolute) !== archivePathKey(original)) throw new Error('保存失败：目标文件已存在，但当前会话未关联此文件。请改用一个未使用的存档文件名保存；如需使用已有文件，请先导出「资产包 JSON（三类合一）」备份当前修改，再从顶部「⤓ 工作区存档」选择该文件。')
+          if (stamp(absolute) !== row.fileStamp) throw new Error('保存失败：磁盘上的存档已被外部修改，当前版本无法直接覆盖。请改用一个未使用的存档文件名保存；如需使用磁盘上的最新版本，请先导出「资产包 JSON（三类合一）」备份当前修改，再从顶部「⤓ 工作区存档」重新选择该文件。')
         }
         const result = controller.saveArchive(body.path)
         row.path = result.path

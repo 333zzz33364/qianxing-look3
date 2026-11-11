@@ -224,6 +224,6 @@ test('image-local fill rotates with its parent and does not clip child controls'
   assert.deepEqual(at(140, 100), [255, 0, 0, 255], 'child in the cropped half remains visible')
   f.root.SetLocalRotation(0, 0, 90)
   at = await pixels(renderScenePng(f.scene(), 240, 160))
-  assert.equal(isWhite(at(100, 80)), true, 'local top turns to stage left after a 90-degree rotation')
-  assert.equal(isWhite(at(140, 80)), false)
+  assert.equal(isWhite(at(140, 80)), true, 'local top turns to stage right after a clockwise 90-degree rotation')
+  assert.equal(isWhite(at(100, 80)), false)
 })

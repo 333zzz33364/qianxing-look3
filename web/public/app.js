@@ -16,6 +16,7 @@ const elements = {
   device: byId('device-select'),
   playControls: byId('play-controls'),
   playStart: byId('play-start'),
+  playFps: byId('play-fps'),
   playKeys: byId('play-keys'),
   playAudio: byId('play-audio'),
   playPause: byId('play-pause'),
@@ -29,6 +30,7 @@ const elements = {
   stageShell: byId('stage-shell'),
   stageImage: byId('stage-image'),
   stageCanvas: byId('stage-canvas'),
+  stagePlay: byId('stage-play'),
   stageEmpty: byId('stage-empty'),
   stageLoading: byId('stage-loading'),
   activePath: byId('active-path'),
@@ -214,6 +216,8 @@ function renderStage() {
   const showPlay = hasArchive && mode === 'play' && Boolean(model?.play?.running)
   elements.stageImage.hidden = !showEditor
   elements.stageCanvas.hidden = !showPlay
+  elements.stagePlay.hidden = !showPlay
+  resizePlayStage()
   elements.stageEmpty.hidden = showEditor || showPlay
   elements.stageShell.classList.toggle('playing', mode === 'play' && Boolean(model?.play?.running))
   if (!hasArchive) {
@@ -238,6 +242,17 @@ function renderStage() {
       : '等待启动 Runtime'
     : '编辑器静态预览 · 磁盘自动刷新'
 }
+
+// The video planes and transparent Pixi canvas share this exact viewport, not
+// the padded workspace around it. Keep letterboxing and clipping in one place.
+function resizePlayStage() {
+  const width = model?.play?.width || 1600, height = model?.play?.height || 900
+  const scale = Math.max(0.01, Math.min((elements.stageShell.clientWidth - 70) / width, (elements.stageShell.clientHeight - 80) / height))
+  elements.stagePlay.style.width = `${width * scale}px`
+  elements.stagePlay.style.height = `${height * scale}px`
+}
+const stageResize = new ResizeObserver(resizePlayStage)
+stageResize.observe(elements.stageShell)
 
 function refreshEditorImage() {
   if (!model?.activePath) return
@@ -282,6 +297,7 @@ function applyPlayStatus(next) {
     height: Number(next.canvasHeight || previous.height || 0),
     frame: Number(next.frame || 0),
     time: Number(next.time || 0),
+    fps: next.fps ?? previous.fps,
     logs: Array.isArray(next.logs) ? next.logs.slice(-100) : previous.logs,
   }
 }
@@ -304,6 +320,7 @@ function syncPlayPolling() {
 
 async function onPlaySnapshot(next) {
   applyPlayStatus(next)
+  resizePlayStage()
   updatePlayChrome()
 }
 
@@ -314,6 +331,8 @@ function renderControls() {
   elements.modePlay.classList.toggle('active', mode === 'play')
   elements.playControls.classList.toggle('visible', mode === 'play')
   elements.playStart.disabled = busy || !hasArchive || running
+  elements.playFps.disabled = busy
+  elements.playFps.value = String(play.fps)
   elements.playPause.disabled = busy || !running
   elements.playResume.disabled = busy || !running
   elements.playStep.disabled = busy || !running
@@ -387,8 +406,8 @@ const play = createPlaySession({
   onStatus: (next) => { applyPlayStatus(next); updatePlayChrome() },
   onError: (error) => notify(error.message, true),
   onAudioStatus: status => {
-    elements.playAudio.textContent = !status.unlocked ? '开启声音' : status.muted ? '声音已关闭' : '声音已开启'
-    elements.playAudio.title = status.error || (!status.unlocked ? '点击或在画布内操作以解锁音效' : '切换静音')
+    elements.playAudio.textContent = status.muted ? '声音已关闭' : !status.unlocked ? '开启声音' : '声音已开启'
+    elements.playAudio.title = status.error || (status.muted || status.unlocked ? '切换静音' : '点击或在画布内操作以解锁音效')
   },
   isActive: () => mode === 'play',
 })
@@ -400,6 +419,10 @@ elements.playKeys.addEventListener('click', () => {
   if (play.keyInputEnabled) elements.stageShell.focus()
 })
 elements.playAudio.addEventListener('click', () => play.audio?.toggle())
+elements.playFps.addEventListener('change', () => {
+  const fps = Number(elements.playFps.value)
+  void run(() => play.setFps(fps))
+})
 
 elements.archive.addEventListener('change', () => run(async () => {
   if (play.running) await play.stop().catch(() => {})
@@ -468,7 +491,7 @@ elements.playStart.addEventListener('click', () => run(async () => {
 }))
 elements.playPause.addEventListener('click', () => void play.act('pause'))
 elements.playResume.addEventListener('click', () => void play.act('resume'))
-elements.playStep.addEventListener('click', () => void play.act('step', { dt: 1 / 30 }))
+elements.playStep.addEventListener('click', () => void play.act('step'))
 elements.playStop.addEventListener('click', () => run(async () => {
   await play.stop()
   applyPlayStatus({ running: false, logs: [] })
@@ -495,5 +518,5 @@ events.addEventListener('state', (event) => {
 })
 
 setInterval(() => { void refreshState({ quiet: true }) }, 5000)
-addEventListener('pagehide', () => play.destroy())
+addEventListener('pagehide', () => { stageResize.disconnect(); play.destroy() })
 void refreshState()

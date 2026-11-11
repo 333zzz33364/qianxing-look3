@@ -124,7 +124,8 @@ export function maskedPaintScene(items) {
         const item = entry.item
         const width = item.sourceWidth ?? item.width ?? 0, height = item.sourceHeight ?? item.height ?? 0
         const angle = (item.rotationZ || 0) * Math.PI / 180
-        const world = item.matrix || { a: Math.cos(angle), b: Math.sin(angle), c: -Math.sin(angle), d: Math.cos(angle),
+        // 与 layout.js 一致：Z 旋转按屏幕坐标取正（顺时针），sin 项取反。
+        const world = item.matrix || { a: Math.cos(angle), b: -Math.sin(angle), c: Math.sin(angle), d: Math.cos(angle),
           tx: (item.left || 0) + width / 2, ty: (item.bottom || 0) + height / 2 }
         const inverse = invertMatrix(parentWorld)
         const clips = (item.clipPolygons || []).map(polygon => polygon.map(point => inverse ? applyMatrix(inverse, point.x, point.y) : point))

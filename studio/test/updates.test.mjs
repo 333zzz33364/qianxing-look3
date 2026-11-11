@@ -14,7 +14,7 @@ test('release metadata filters unsafe and prerelease assets and picks highest st
 
 test('update checker caches metadata and reports current or available status', async () => {
   let calls = 0; let clock = 0
-  const check = createUpdateChecker({ packageName: 'look3-web', currentVersion: '3.1.1', now: () => clock, fetch: async () => { calls++; return { ok: true, json: async () => [release('3.2.0')] } } })
+  const check = createUpdateChecker({ packageName: 'look3-web', currentVersion: '3.2.0', now: () => clock, fetch: async () => { calls++; return { ok: true, json: async () => [release('3.3.0')] } } })
   assert.equal((await check()).status, 'available')
   assert.equal((await check()).status, 'available')
   assert.equal(calls, 1)

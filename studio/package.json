@@ -13,8 +13,10 @@
     "./host/workspace": "./host/workspace.js",
     "./host/worker": "./host/worker.js",
     "./play/renderer": "./play/pixi-renderer.js",
+    "./play/audio-policy": "./play/audio-policy.js",
     "./host/image-assets": "./host/image-assets.js",
     "./host/audio-assets": "./host/audio-assets.js",
+    "./host/ui-vfx-assets": "./host/ui-vfx-assets.js",
     "./host/local-font": "./host/local-font.js"
   },
   "files": [

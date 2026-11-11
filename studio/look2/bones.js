@@ -108,7 +108,8 @@ function decomposeLinear(matrix) {
   const scaleYLength = Math.hypot(matrix.c, matrix.d)
   if (scaleX < EPSILON || scaleYLength < EPSILON) return null
   if (Math.abs(matrix.a * matrix.c + matrix.b * matrix.d) > 1e-6 * Math.max(1, scaleX * scaleYLength)) return null
-  const rotation = Math.atan2(matrix.b, matrix.a)
+  // 矩阵按 Y-up 构造（Z 正向为屏幕顺时针），还原出的角度要取反才是控件 rotation.z 的语义。
+  const rotation = -Math.atan2(matrix.b, matrix.a)
   const scaleY = (matrix.a * matrix.d - matrix.b * matrix.c) / scaleX
   if (!Number.isFinite(scaleY) || Math.abs(scaleY) < EPSILON) return null
   return { rotation: rotation * 180 / Math.PI, scaleX, scaleY }

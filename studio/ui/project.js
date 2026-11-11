@@ -1,5 +1,4 @@
 import { CANVAS_PRESETS, DEFAULT_CANVAS_ID, CANONICAL_CANVAS_BY_PLATFORM, PLATFORMS, LAYOUT_SCHEMA_VERSION } from '../constants.js'
-import { normalizeKeyCode } from './keyhint.js'
 import { toJson } from '../json.js'
 import {
   addChild,
@@ -31,6 +30,7 @@ import { migrateLayout } from './migrate-layout.js'
 import { ensureClientAssetIndices } from '../gia/asset-indices.js'
 import { getPlatformTransform } from './transforms.js'
 import { projectCanvas, customCanvas } from './canvas.js'
+import { KEY_HINT_DEVICES, normalizeKeyHintCode } from '../key-hints.js'
 
 function parentBoxOf(project, nodeId, boxes, canvasId = project.canvasId) {
   const parent = findParent(project.root, nodeId)
@@ -86,6 +86,7 @@ export function createProject(seed, { warnings = [] } = {}) {
         : {}),
     },
     canvasId: seed.canvasId && CANVAS_PRESETS[seed.canvasId] ? seed.canvasId : DEFAULT_CANVAS_ID,
+    keyHintDevice: KEY_HINT_DEVICES.includes(seed.keyHintDevice) ? seed.keyHintDevice : 'auto',
     selectedId: seed.selectedId === '' ? '' : seed.selectedId || base.selectedId,
     root,
   }
@@ -153,7 +154,7 @@ function visibleBoxesForProject(project, boxes) {
 }
 
 export function snapshotProject(project) {
-  const { canvas, boxes } = layoutTree(project.root, projectCanvas(project))
+  const { canvas, boxes } = layoutTree(project.root, projectCanvas(project), undefined, project.keyHintDevice)
   const guidById = assignGuids(project, new Set(), { preserveLegacy: true })
   const selected = findNode(project.root, project.selectedId)
   const selectedBox = selected ? boxes[selected.id] : null
@@ -162,6 +163,7 @@ export function snapshotProject(project) {
     version: project.version,
     meta: { ...project.meta },
     canvasId: project.canvasId,
+    keyHintDevice: project.keyHintDevice || 'auto',
     canvas: {
       id: project.canvasId,
       width: canvas.width,
@@ -222,11 +224,11 @@ const DIRECT_FIELDS = new Set([
   'softEdgeWidthX', 'softEdgeWidthY', 'horizontalSoftRange', 'verticalSoftRange',
   'enableFill', 'fillClockwise', 'fillType', 'fillHorizontalType', 'fillVerticalType',
   'fillRadial90Type', 'fillRadialType', 'fillAmount', 'reverseMaskArea',
-  'raycastTarget', 'interactable', 'clickAudioId', 'unavailableChildId',
-  'hoverChildId', 'pressedChildId', 'selectedChildId',
+  'raycastTarget', 'interactable', 'clickAudioId', 'defaultChildId',
+  'hoverChildId', 'pressedChildId', 'unavailableChildId',
   'showScrollBar', 'cellSizeX', 'cellSizeY', 'spacingX', 'spacingY',
   'padding1X', 'padding1Y', 'padding2X', 'padding2Y', 'previewCount',
-  'scrollProgress', 'scrollDirection', 'layoutConstraint', 'layoutConstraintFixedCount', 'itemPrefabId', 'referencedPrefabId', 'animationId',
+  'scrollProgress', 'scrollDirection', 'layoutConstraint', 'layoutConstraintFixedCount', 'itemPrefabId', 'referencedPrefabId', 'animationId', 'playSoundEffect', 'layer',
   'keyboardKeyCode', 'controllerKeyCode',
 ])
 
@@ -271,6 +273,7 @@ const BOOLEAN_FIELDS = new Set([
   'disableKeyEventPassthrough', 'disableCursorEventPassthrough', 'showCursor',
   'adaptiveFontSize', 'enableOutline', 'enableMask', 'enableSoftEdge',
   'enableFill', 'fillClockwise', 'reverseMaskArea', 'raycastTarget', 'interactable', 'showScrollBar',
+  'playSoundEffect',
 ])
 const STRING_FIELDS = new Set([
   'name', 'imageSource', 'horizontalAlignment', 'verticalAlignment', 'text', 'softEdgeMode',
@@ -278,9 +281,10 @@ const STRING_FIELDS = new Set([
   'scrollDirection', 'layoutConstraint', 'referencedPrefabId', 'animationId',
 ])
 const STATE_NODE_FIELDS = new Set([
-  'unavailableChildId', 'hoverChildId', 'pressedChildId', 'selectedChildId',
+  'defaultChildId', 'hoverChildId', 'pressedChildId', 'unavailableChildId',
 ])
 const ENUM_VALUES = {
+  layer: ['AboveAllControls', 'BelowAllControls'],
   scrollDirection: ['Vertical', 'Horizontal'],
   layoutConstraint: ['AutoWrap', 'Fixed'],
   imageType: ['Basic', 'Stretch', null],
@@ -326,6 +330,11 @@ function applyPatchMutating(project, op) {
     }
     return project
   }
+  if (type === 'setKeyHintDevice') {
+    if (!KEY_HINT_DEVICES.includes(op.device)) throw new Error(`unknown key hint preview device: ${op.device}`)
+    project.keyHintDevice = op.device
+    return project
+  }
   if (type === 'setScript') {
     throw new Error('脚本由存档统一管理，请使用 addScript / updateScript / removeScript 操作')
   }
@@ -336,6 +345,7 @@ function applyPatchMutating(project, op) {
     project.version = next.version
     project.meta = next.meta
     project.canvasId = next.canvasId
+    project.keyHintDevice = 'auto'
     project.selectedId = next.selectedId
     project.root = next.root
     return project
@@ -480,12 +490,17 @@ function applyPatchMutating(project, op) {
       return project
     }
     if (DIRECT_FIELDS.has(key)) {
-      if (key === 'keyboardKeyCode' || key === 'controllerKeyCode') value = normalizeKeyCode(value, key === 'keyboardKeyCode' ? 'KeyboardKeyCode' : 'ControllerKeyCode')
+      if (key === 'keyboardKeyCode' || key === 'controllerKeyCode') {
+        if (node.kind !== 'keyhint') throw new Error(`${key} requires a key hint control`)
+        value = normalizeKeyHintCode(value, key === 'keyboardKeyCode' ? 'keyboard' : 'controller')
+      }
+      if (key === 'layer' && node.kind !== 'animation') throw new Error('layer is only available on UI animations')
+      if (key === 'playSoundEffect' && !['animation', 'fullscreen'].includes(node.kind)) throw new Error('playSoundEffect requires an animation control')
       if (key.endsWith('Color')) value = parseColor(value)
       if (NUMBER_FIELDS.has(key)) {
         value = finiteNumber(value, key)
         if (value < 0) throw new Error(`${key} must not be negative`)
-        if (key === 'imageId' || key === 'clickAudioId' || key === 'keyboardKeyCode' || key === 'controllerKeyCode') value = Math.trunc(value)
+        if (key === 'imageId' || key === 'clickAudioId') value = Math.trunc(value)
         if (['fillAmount', 'scrollProgress'].includes(key) && value > 1) throw new Error(`${key} must be between 0 and 1`)
       }
       if (BOOLEAN_FIELDS.has(key)) value = booleanValue(value)
@@ -499,6 +514,8 @@ function applyPatchMutating(project, op) {
       if (ENUM_VALUES[key] && !ENUM_VALUES[key].includes(value)) {
         throw new Error(`invalid ${key}`)
       }
+      if (key === 'layer' && node.kind !== 'animation') throw new Error('layer is only available on UI animations')
+      if (key === 'playSoundEffect' && !['animation', 'fullscreen'].includes(node.kind)) throw new Error('playSoundEffect requires an animation control')
       if (STATE_NODE_FIELDS.has(key)) {
         if (value === '' || value === undefined || value === null) value = null
         else {
@@ -534,8 +551,9 @@ function applyPatchMutating(project, op) {
       if (node.kind === 'image' && key === 'imageType') node.giaRaw.imageSlotType = value === 'Stretch' ? 1 : 0
       if (node.kind === 'reference' && key === 'referencedPrefabId') node.giaRaw.templateRefSlot = value
       if (node.kind === 'grid' && key === 'previewCount') node.giaRaw.gridField511 = Math.trunc(value)
-      if (node.kind === 'keyhint' && key === 'keyboardKeyCode' && typeof value !== 'string') node.giaRaw.keyHintField502 = value ?? 0
-      if (node.kind === 'keyhint' && key === 'controllerKeyCode') node.giaRaw.keyHintField501 = value ?? 0
+      if (node.kind === 'keyhint' && (key === 'keyboardKeyCode' || key === 'controllerKeyCode') && typeof value === 'number') {
+        node.giaRaw[key === 'keyboardKeyCode' ? 'keyHintField502' : 'keyHintField501'] = value
+      }
       if ((node.kind === 'animation' || node.kind === 'fullscreen') && key === 'animationId') {
         node.giaRaw[node.kind === 'animation' ? 'effectSlot' : 'fullscreenEffectSlot'] = value
       }

@@ -1,4 +1,4 @@
-// Boot the current 0.2 CLI with a release tarball in a disposable profile.
+// Boot the current CLI with a release tarball in a disposable profile.
 // An optional CLI path reuses an existing installation; DSH_HOME stays isolated.
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
@@ -23,7 +23,7 @@ try {
   await writeFile(join(temporary, 'package.json'), JSON.stringify({ private: true, type: 'module' }))
   let cli = process.argv[2] && resolve(process.argv[2])
   if (!cli) {
-    npm(['install', '--no-audit', '--no-fund', '--no-package-lock', '@deepseek-ai/dsh@0.2.1-rc.2'], {
+    npm(['install', '--no-audit', '--no-fund', '--no-package-lock', '@deepseek-ai/dsh@0.2.2-rc.1'], {
       cwd: temporary, stdio: 'inherit', timeout: 300_000,
     })
     cli = join(temporary, 'node_modules/@deepseek-ai/dsh/lib/bin.js')

@@ -17,9 +17,11 @@ import { textWindowMetrics, clamp } from './scroll.js'
 import { textLayout } from './text-layout.js'
 import { scrollBarGeometry } from './scroll-geometry.js'
 import { audioDuration } from '../assets/audio-catalog.js'
+import { uiVfxAsset } from '../assets/ui-vfx-catalog.js'
 import { imageSourceName, canSelectImageType } from '../assets/catalog.js'
 import { centerMaskMatrix, imageMaskSpec } from './image-mask.js'
 import { randomUUID } from 'node:crypto'
+import { KEY_HINT_DEVICES, keyHintCode, resolveKeyHint } from '../key-hints.js'
 
 function prepareScroll(session) {
   for (const control of session.runtime.scrollControls || []) {
@@ -132,6 +134,10 @@ export function controlSnapshot(control, boxes) {
     imageId: control.kind === 'image' ? (control.imageId ?? 0) : null,
     imageSource: control.kind === 'image' ? imageSourceName(control.imageSource) : null,
     imageType: control.kind === 'image' ? (control.imageType == null ? null : enumName(control.imageType)) : null,
+    ...(control.kind === 'keyhint' ? {
+      keyboardKeyCode: keyHintCode(control.keyboardKeyCode, 'keyboard'),
+      controllerKeyCode: keyHintCode(control.controllerKeyCode, 'controller'),
+    } : {}),
     primitive: control.kind === 'image' ? imagePrimitive(control.imageId, control.imageSource) : null,
     imageColor: control.kind === 'image' ? control.imageColor : null,
     enableMask: control.kind === 'image' ? control.enableMask === true : null,
@@ -169,8 +175,6 @@ function emptyPlayerView() {
     pointerHoverControl: null,
     pointerScroll: null,
     hoveredControl: null,
-    selectedControl: null,
-    stateRestores: new Map(),
     viewCache: null,
   }
 }
@@ -184,6 +188,7 @@ function createPlayerRuntime(compiled, templateBundle, scripts, language) {
     canSelectImageType,
     ...(language ? { language } : {}),
   })
+  rt.keyHintDevice = compiled.keyHintDevice
   for (const template of [...(compiled.templates || []), ...(templateBundle?.templates || [])]) {
     if (Number.isSafeInteger(template.prefabIndex) && template.prefabIndex >= 0) {
       rt.registerTemplate(template.prefabIndex, template)
@@ -199,7 +204,7 @@ function createPlayerRuntime(compiled, templateBundle, scripts, language) {
 
 const VIEW_FIELDS = [
   'pointerDownControl', 'pointerDownPosition', 'pointerLastPosition', 'pointerDragging',
-  'pointerHoverControl', 'pointerScroll', 'hoveredControl', 'selectedControl', 'stateRestores', 'viewCache',
+  'pointerHoverControl', 'pointerScroll', 'hoveredControl', 'viewCache',
 ]
 
 function bindCurrentView(session) {
@@ -218,10 +223,12 @@ function bindCurrentView(session) {
   }
 }
 
-export function startPlay(project, { templatesProject = null, extraTemplates = [], scripts = [], sceneScripts = null, templateScripts = null, serverConfig = null, canvasId = '', playerCount = 1, viewPlayerIndex = 1, templateRootId = '', language = '' } = {}) {
+export function startPlay(project, { templatesProject = null, extraTemplates = [], scripts = [], sceneScripts = null, templateScripts = null, serverConfig = null, canvasId = '', playerCount = 1, viewPlayerIndex = 1, templateRootId = '', language = '', keyHintDevice = project.keyHintDevice || 'auto' } = {}) {
+  if (!KEY_HINT_DEVICES.includes(keyHintDevice)) throw new Error(`unknown key hint preview device: ${keyHintDevice}`)
   const sceneList = sceneScripts || scripts
   const templateList = templateScripts || scripts
   const compiled = compileProject(project, sceneList, canvasId, { templateRootId })
+  compiled.keyHintDevice = keyHintDevice
   const templateBundle = templatesProject ? compileProject(templatesProject, templateList, canvasId) : null
   if (extraTemplates.length) {
     if (!templateBundle) throw new Error('Extra templates require templatesProject')
@@ -231,6 +238,7 @@ export function startPlay(project, { templatesProject = null, extraTemplates = [
   const view = normalizePlayerIndex(viewPlayerIndex, count)
   const server = createServer({ playerCount: count, viewPlayerIndex: view })
   if (serverConfig) server.loadConfig({ ...serverConfig, playerCount: count, viewPlayerIndex: view })
+  server.initializeEntities()
   const runtimes = []
   for (let i = 0; i < count; i += 1) runtimes.push(createPlayerRuntime(compiled, templateBundle, scripts, language))
   server.attachRuntimes(runtimes)
@@ -278,7 +286,7 @@ function historyRows(session) {
   return session?.history?.events || []
 }
 
-const PAINT_KINDS = new Set(['image', 'textbox', 'textwindow', 'button', 'grid'])
+const PAINT_KINDS = new Set(['image', 'textbox', 'textwindow', 'button', 'grid', 'keyhint'])
 
 // Pixi receives an affine matrix so nested non-uniform scale and rotation do
 // not lose information through a single angle/size decomposition.
@@ -289,7 +297,8 @@ function paintTransform(box, matrix) {
     centerY: center.y,
     scaleX: Math.hypot(matrix.a, matrix.b),
     scaleY: Math.hypot(matrix.c, matrix.d),
-    rotationZ: Math.atan2(matrix.b, matrix.a) * 180 / Math.PI,
+    // 屏幕坐标（Y 向下）的顺时针角，与 localRectMatrix 的 Z 正方向一致。
+    rotationZ: -Math.atan2(matrix.b, matrix.a) * 180 / Math.PI,
     matrix: {
       a: matrix.a,
       b: matrix.b,
@@ -360,6 +369,7 @@ function compactPaint(control, box, transform) {
     item.horizontalAlignment = enumName(control.horizontalAlignment)
     item.verticalAlignment = enumName(control.verticalAlignment)
   }
+  if (control.kind === 'keyhint') item.keyHint = resolveKeyHint(control, control.runtime.device, control.runtime.keyHintDevice)
   return item
 }
 
@@ -433,6 +443,7 @@ function visualFields(control, box) {
     fields.horizontalAlignment = enumName(control.horizontalAlignment)
     fields.verticalAlignment = enumName(control.verticalAlignment)
   }
+  if (control.kind === 'keyhint') fields.keyHint = resolveKeyHint(control, control.runtime.device, control.runtime.keyHintDevice)
   return fields
 }
 
@@ -463,7 +474,7 @@ function sceneFingerprint(node) {
     node.text, node.fontSize, node.fontColor, node.bgColor,
     node.adaptiveFontSize, node.minimumFontSize, JSON.stringify(node.textLayout),
     node.enableOutline, node.outlineColor, node.horizontalAlignment, node.verticalAlignment,
-    JSON.stringify(node.scroll), node.clipToParent,
+    JSON.stringify(node.scroll), node.clipToParent, JSON.stringify(node.keyHint),
   ].join('\t')
 }
 
@@ -635,6 +646,7 @@ function sceneView(session, sceneRev) {
 }
 
 export function playSnapshot(session, { inspect = false, view = false, paint = false, sceneRev, compact = false } = {}) {
+  prepareButtonStates(session)
   prepareScroll(session)
   // Direct Runtime consumers/tests may compose a session without startPlay.
   // Give those sessions a stable output identity too, never undefined in JSON.
@@ -655,6 +667,7 @@ export function playSnapshot(session, { inspect = false, view = false, paint = f
     canvasId: compiled.canvasId,
     platform: compiled.platform,
     device: rt.device,
+    keyHintDevice: rt.keyHintDevice || 'auto',
     canvasWidth: w,
     canvasHeight: h,
     canvasPresets: CANVAS_PRESET_LIST,
@@ -670,6 +683,7 @@ export function playSnapshot(session, { inspect = false, view = false, paint = f
     paused: !!session.debugPaused,
     levelTimePaused: !!rt.clock.paused,
     audio: { sessionId: session.audioSessionId, playerIndex: session.viewPlayerIndex || 1, ...rt.audioSnapshot() },
+    effects: uiVfxSnapshot(session),
     mountError: session.mountError || rt.mountErrors[0] || null,
     logs: clientLogs.map((l) => ({ source: 'client', level: l.level, text: l.text, time: l.time })),
     tree: [],
@@ -692,6 +706,37 @@ export function playSnapshot(session, { inspect = false, view = false, paint = f
   // payload 全部由本次调用新建（无共享可变对象），只做无损校验，不再 parse/stringify 克隆。
   assertLosslessJson(payload)
   return payload
+}
+
+// Non-consuming side channel: independent instances and logical timestamps survive
+// scene deltas, browser attachment, pauses and repeated screenshot/get calls.
+export function uiVfxSnapshot(session) {
+  const configured = control => control._uiAnimation?.playing && control.animationId != null && String(control.animationId).trim() !== '' && Number(control.animationId) !== 0
+  if (![...(session.runtime.uiAnimations || [])].some(configured)) return []
+  const boxes = runtimeLayout(session), matrices = runtimeTransforms(session, boxes), out = []
+  const visit = (control, masks = []) => {
+    const box = boxes.get(control.Id), matrix = matrices.get(control.Id)
+    if (!box || !matrix || !box.activeInHierarchy || control.visible === false) return
+    const ownMask = control.kind === 'image' && control.enableMask === true
+      ? imageMaskSpec({ ...control, id: control.Id, sourceWidth: box.width, sourceHeight: box.height }, centerMaskMatrix(matrix, box.centerX, box.centerY)) : null
+    const next = ownMask ? [...masks, ownMask] : masks
+    const state = control._uiAnimation
+    if (configured(control)) {
+      const asset = uiVfxAsset(control.animationId, control.kind)
+      const audioPath = asset?.audio.length ? asset.audio[(control.Id + state.generation - 1) % asset.audio.length] : null
+      out.push({ id: control.Id, kind: control.kind, animationId: control.animationId ?? null,
+        generation: state.generation, startedAt: state.startedAt, playSoundEffect: control.playSoundEffect !== false,
+        audioPath, layer: control.kind === 'fullscreen' ? 'BelowAllControls' : enumName(control.layer) || 'AboveAllControls',
+        matrix: centerMaskMatrix(matrix, box.centerX, box.centerY), masks: next })
+    }
+    for (const child of [...control.children].reverse()) {
+      const clip = control._gridItems?.includes(child) ? { id: `viewport:${control.Id}`, matrix: centerMaskMatrix(matrix, box.centerX, box.centerY),
+        width: box.width, height: box.height, featherX: 0, featherY: 0 } : null
+      visit(child, clip ? [...next, clip] : next)
+    }
+  }
+  for (const root of session.runtime.roots) visit(root)
+  return out
 }
 
 export function stepPlay(session, dt = 1 / 30) {
@@ -732,10 +777,10 @@ function findButtonStateChild(button, authoringId) {
 }
 
 const BUTTON_STATE_KEYS = {
-  unavailable: 'unavailableChildId',
+  default: 'defaultChildId',
   hover: 'hoverChildId',
   pressed: 'pressedChildId',
-  selected: 'selectedChildId',
+  unavailable: 'unavailableChildId',
 }
 
 function buttonStateChildren(_session, control) {
@@ -748,33 +793,25 @@ function buttonStateChildren(_session, control) {
 }
 
 function prepareButtonStates(session) {
-  for (const root of session.runtime.roots) {
-    walk(root, (control) => {
-      if (control.kind !== 'button') return
-      for (const { child } of buttonStateChildren(session, control)) {
-        if (!session.stateRestores.has(child.Id)) {
-          session.stateRestores.set(child.Id, { child, active: child.active, visible: child.visible })
-        }
-        child.active = true
-        child.visible = false
-        if (typeof child.markPlayDirty === 'function') child.markPlayDirty(true)
-      }
-      refreshButtonState(session, control)
-    })
-  }
+  for (const control of session.runtime.buttonControls || []) refreshButtonState(session, control)
 }
 
 function refreshButtonState(session, control) {
   if (!control || control.kind !== 'button') return
-  let state = null
+  let state = 'default'
   if (control.interactable === false) state = 'unavailable'
   else if (control.pressed === true) state = 'pressed'
   else if (session.hoveredControl === control) state = 'hover'
-  else if (session.selectedControl === control) state = 'selected'
-  for (const item of buttonStateChildren(session, control)) {
-    item.child.active = true
-    item.child.visible = item.state === state
-    if (typeof item.child.markPlayDirty === 'function') item.child.markPlayDirty(true)
+  const states = buttonStateChildren(session, control)
+  const visibleChild = states.find(item => item.state === state)?.child
+  // Resolve the active slot first, then update each distinct child only once:
+  // another slot referencing the same child must not hide the active state.
+  for (const child of new Set(states.map(item => item.child))) {
+    const visible = child === visibleChild
+    if (child.active === true && child.visible === visible) continue
+    child.active = true
+    child.visible = visible
+    if (typeof child.markPlayDirty === 'function') child.markPlayDirty(true)
   }
 }
 
@@ -802,6 +839,13 @@ function pointerRecursesInto(control) {
   return control.kind === 'container' || control.kind === 'grid' || control.kind === 'textwindow' || control.kind === 'reference' || control.kind === 'button'
 }
 
+function clipsPlayChildren(control) {
+  // Scroll viewports clip their content, the masked case in Unity terms: a grid
+  // item that scrolled out of view must stay unclickable. Everything else is a
+  // plain layout host and only masks itself, never its descendants.
+  return control.kind === 'grid' || control.kind === 'textwindow'
+}
+
 function subtreeCanHit(control, memo) {
   const id = control.Id
   const cached = memo.get(id)
@@ -821,6 +865,7 @@ function subtreeCanHit(control, memo) {
 }
 
 export function hitPlayControl(session, x, y) {
+  prepareButtonStates(session)
   prepareScroll(session)
   const rootBox = canvasBox({ width: session.runtime.canvasWidth, height: session.runtime.canvasHeight })
   const memo = new Map()
@@ -832,8 +877,14 @@ export function hitPlayControl(session, x, y) {
     const inverse = invertMatrix(matrix)
     if (!inverse) return null
     const local = applyMatrix(inverse, x, y)
-    if (local.x < box.left || local.x > box.right || local.y < box.bottom || local.y > box.top) return null
-    if (scrollUsable(control)) {
+    const inside = local.x >= box.left && local.x <= box.right && local.y >= box.bottom && local.y <= box.top
+    // A layout host forwards the pointer to its children even when the pointer is
+    // outside its own rect: on device only a mask clips raycasts, so a zero-size
+    // anchor container must not swallow hits on children that overflow it. The
+    // control itself is still accepted only inside its own rect, and scroll
+    // viewports keep clipping the content they mask.
+    if (!inside && (!pointerRecursesInto(control) || clipsPlayChildren(control))) return null
+    if (inside && scrollUsable(control)) {
       const bar = scrollBarGeometry(control._scroll, box.width, box.height)?.track
       const bx = local.x - box.centerX, by = box.centerY - local.y
       if (bar && bx >= bar.x && bx <= bar.x + bar.width && by >= bar.y && by <= bar.y + bar.height) return control
@@ -844,6 +895,7 @@ export function hitPlayControl(session, x, y) {
         if (child) return child
       }
     }
+    if (!inside) return null
     return acceptsPlayPointer(control) ? control : null
   }
   const identity = identityMatrix()
@@ -1028,9 +1080,6 @@ export function injectPlayPointer(session, type, x, y, options = {}) {
         if (!session.pointerScroll) session.runtime.injectCursor(down, 'CursorEndDrag', data)
       } else if (hit === down && !session.pointerScroll?.bar) {
         session.runtime.injectCursor(down, 'CursorClick', data)
-        const previous = session.selectedControl
-        session.selectedControl = down.kind === 'button' ? down : null
-        if (previous && previous !== session.selectedControl) refreshButtonState(session, previous)
       }
       setPressed(session, down, false)
     }

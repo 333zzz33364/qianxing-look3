@@ -10,6 +10,7 @@ import { ScriptSync, contentHash, discoverScriptDirectories } from './script-syn
 import { sharedImageAssets } from './image-assets.js'
 import { ControlGuidSync } from './control-guid-sync.js'
 import { localFont } from './local-font.js'
+import { DEFAULT_PLAY_FPS, validatePlayFps } from '../play/frame-rate.js'
 import { archivePathKey, createArchiveWorkspace, listArchiveWorkspaces, remapArchivePath, renameArchiveWorkspace, renameWorkspaceArchive } from './archive-management.js'
 
 // Keep the interactive default short, but allow project replay runners to raise
@@ -50,6 +51,7 @@ export class SimulatorController {
     this.imageAssets = imageAssets
     this.defaultClockMode = validateClockMode(clockMode)
     this.playClockMode = this.defaultClockMode
+    this.playFps = DEFAULT_PLAY_FPS
   }
 
   /** Serialize calls for one project handle, including worker operations. */
@@ -82,6 +84,28 @@ export class SimulatorController {
     return { ...this.studio.get(), storage: { path: this.archivePath } }
   }
 
+  exportData(format, assetType, options = {}) {
+    return this.studio.exportData(format, assetType, options)
+  }
+
+  exportAction(action, args = {}) {
+    if (action === 'list') return this.studio.exportChoices()
+    if (action === 'preview') return this.studio.exportPreview(args)
+    if (action !== 'export') throw new Error(`unknown export action: ${action}`)
+    const result = this.exportData(args.format || 'gia-partial', args.assetType || '', args)
+    if (!args.path) return result
+    if (!this.activeWorkspacePath()) throw new Error('workspace is not bound')
+    if (result.files) throw new Error('path requires a single-file export format')
+    const absolute = resolveWorkspaceOutput(this.activeWorkspacePath(), args.path)
+    mkdirSync(dirname(absolute), { recursive: true })
+    // Explicit file output only. Never overwrite a save, source or previous
+    // export by accident; agents can choose a new output name.
+    const data = Buffer.from(result.data, 'base64')
+    writeFileSync(absolute, data, { flag: 'wx' })
+    const { data: _data, ...metadata } = result
+    return { ...metadata, path: String(args.path).replaceAll('\\', '/'), bytes: data.length }
+  }
+
   scriptSyncAction(action, args = {}) {
     if (action === 'discover') return discoverScriptDirectories()
     if (action === 'status') return { config: this.get().scriptSync, lastResult: this.scriptSync.lastResult }
@@ -108,7 +132,8 @@ export class SimulatorController {
       throw new Error('存档文件已移动或删除，请重新加载或另存为新路径')
     }
     if (existsSync(absolute)) {
-      if (archivePathKey(absolute) !== archivePathKey(original) || contentHash(readFileSync(absolute)) !== this.archiveStamp) throw new Error('File changed or already exists; load it again or save under a new path')
+      if (archivePathKey(absolute) !== archivePathKey(original)) throw new Error('保存失败：目标文件已存在，但当前会话未关联此文件。请改用一个未使用的存档文件名保存；如需使用已有文件，请先导出「资产包 JSON（三类合一）」备份当前修改，再从顶部「⤓ 工作区存档」选择该文件。')
+      if (contentHash(readFileSync(absolute)) !== this.archiveStamp) throw new Error('保存失败：磁盘上的存档已被外部修改，当前版本无法直接覆盖。请改用一个未使用的存档文件名保存；如需使用磁盘上的最新版本，请先导出「资产包 JSON（三类合一）」备份当前修改，再从顶部「⤓ 工作区存档」重新选择该文件。')
     }
     return this.saveArchive(path)
   }
@@ -314,8 +339,10 @@ export class SimulatorController {
       // the active play session untouched so the caller can refresh its view.
       this.assertExpectedRevision(args)
       const clockMode = validateClockMode(args.clockMode ?? this.defaultClockMode)
-      const payload = this.startPayload({ ...args, clockMode })
+      const fps = validatePlayFps(args.fps ?? DEFAULT_PLAY_FPS)
+      const payload = this.startPayload({ ...args, clockMode, fps })
       this.playClockMode = clockMode
+      this.playFps = fps
       await this.terminateWorker()
       return this.startWorker(payload, signal)
     }
@@ -326,8 +353,10 @@ export class SimulatorController {
         throw new Error(`unknown canvas preset: ${canvasId || '(empty)'} (available: ${Object.keys(CANVAS_PRESETS).join(', ')})`)
       }
       const clockMode = validateClockMode(args.clockMode ?? this.playClockMode)
-      const payload = this.startPayload({ ...args, canvasId, clockMode })
+      const fps = validatePlayFps(args.fps ?? this.playFps)
+      const payload = this.startPayload({ ...args, canvasId, clockMode, fps })
       this.playClockMode = clockMode
+      this.playFps = fps
       await this.terminateWorker()
       return this.startWorker(payload, signal)
     }
@@ -340,6 +369,12 @@ export class SimulatorController {
       }
     }
     if (!this.worker) throw new Error('play session has not started')
+    if (action === 'fps') {
+      const fps = validatePlayFps(args.fps)
+      const value = await this.request(action, { ...args, fps }, signal)
+      this.playFps = fps
+      return value
+    }
     return this.request(action, args, signal)
   }
 
@@ -356,11 +391,13 @@ export class SimulatorController {
       frame: Number.isFinite(Number(snapshot.frame)) ? Number(snapshot.frame) : 0,
       time: Number.isFinite(Number(snapshot.time)) ? Number(snapshot.time) : 0,
       clockMode: snapshot.clockMode,
+      fps: snapshot.fps,
       width: image.width,
       height: image.height,
       pixelWidth: image.pixelWidth,
       pixelHeight: image.pixelHeight,
-      assetWarnings: assets.warnings,
+      assetWarnings: [...assets.warnings, ...(snapshot.effects || []).map(effect => ({ animationId: effect.animationId,
+        error: 'UI effect video frames are available in browser playback only; omitted from this PNG' }))],
     }
   }
 
@@ -375,7 +412,8 @@ export class SimulatorController {
       height: image.height,
       pixelWidth: image.pixelWidth,
       pixelHeight: image.pixelHeight,
-      assetWarnings: assets.warnings,
+      assetWarnings: [...assets.warnings, ...snapshot.boxes.filter(box => ['animation', 'fullscreen'].includes(box.kind) && box.visibleInHierarchy !== false && box.animationId)
+        .map(box => ({ animationId: box.animationId, error: 'UI effect video frames are available in browser playback only; omitted from this PNG' }))],
     }
   }
 

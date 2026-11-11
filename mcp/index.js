@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { SimulatorController } from './lib/controller.js'
+import { agentPlayArgs } from 'qxqy-studio/play/audio-policy'
 import { listWorkspaceArchives, resolveWorkspaceRoot } from './lib/workspace.js'
 import { createPreviewClient } from './lib/preview.js'
 import manifest from './package.json' with { type: 'json' }
@@ -121,17 +122,30 @@ const tools = [
     }, ['handle', 'format']),
   },
   {
+    name: 'look3_studio_export',
+    description: '导出 GIA/JSON/Lua。list 列出客户端控件与 revision；preview 传 controlIds 预览子树；export 默认 gia-partial，以 controlIds 勾选部分组合。父子同时选自动去重，子控件在副本中提升为独立模板，原存档不变。includeScripts 默认 true（包含挂载脚本和未挂载模块）。支持原有 gia/gia-combined/save 等 format。可选 path 写入工作区新文件，不覆盖已有文件；省略则返回 base64。',
+    inputSchema: objectSchema({ ...handleProperty,
+      action: { type: 'string', enum: ['list', 'preview', 'export'] },
+      args: { type: 'object', properties: {
+        format: { type: 'string' }, assetType: { type: 'string' },
+        controlIds: { type: 'array', items: { type: 'string' }, minItems: 1 },
+        includeScripts: { type: 'boolean' }, expectedRevision: { type: 'integer' },
+        canvasId: { type: 'string' }, path: { type: 'string' },
+      }, additionalProperties: false },
+    }, ['handle', 'action']),
+  },
+  {
     name: 'look3_studio_play',
-    description: '控制指定工程的Lua 试玩 Worker：start、step、输入、暂停/继续、设备/多人视角、服务端变量/信号和用例回放。start 可用 args.asset 选择 server 完整界面或 client 模板；client 可指定 templateRootId，animationId 可指定客户端模板实例的启动动画。expectedRevision 可选，传入时必须等于当前工程 revision。start 后才能进行输入和 step；stop 是确定性回收方式。',
+    description: '控制指定工程的Lua 试玩 Worker：start、step、输入、暂停/继续、设备/多人视角、服务端变量/信号和用例回放。start 可用 args.asset 选择 server 完整界面或 client 模板；client 可指定 templateRootId，animationId 可指定客户端模板实例的启动动画。expectedRevision 可选，传入时必须等于当前工程 revision。start 后才能进行输入和 step；stop 是确定性回收方式。工具启动的试玩默认关闭浏览器音效，显式 muteAudio:false 可打开。',
     inputSchema: objectSchema({
       ...handleProperty,
       action: {
         type: 'string',
-        enum: ['start', 'device', 'view', 'get', 'step', 'pointer', 'key', 'click', 'pause', 'resume', 'stop', 'serverGet', 'serverSet', 'serverSend', 'history', 'saveCase', 'runCase'],
+        enum: ['start', 'device', 'fps', 'view', 'get', 'step', 'pointer', 'key', 'click', 'pause', 'resume', 'stop', 'serverGet', 'serverSet', 'serverSend', 'history', 'saveCase', 'runCase'],
       },
       args: {
         type: 'object',
-        description: '动作参数。start 可选 asset(server|client)、templateRootId、animationId、expectedRevision、canvasId、playerCount、viewPlayerIndex；device 使用 canvasId；pointer 使用 type/x/y/deltaX/deltaY；start/device 可传 clockMode；step 使用 dt；serverSet 使用 entityType/name/value。省略 asset 时沿用工程当前自动分流规则。',
+        description: '动作参数。start 可选 asset(server|client)、templateRootId、animationId、expectedRevision、canvasId、playerCount、viewPlayerIndex；start/device 可传 fps:30|60（start 默认 30，device 省略则保留），fps 动作用 fps:30|60 原地切换；device 使用 canvasId；pointer 使用 type/x/y/deltaX/deltaY；start/device 可传 clockMode；start/device 默认 muteAudio:true，传 false 才让浏览器出声；step 使用 dt（省略则推进当前帧率的一帧）；serverSet 使用 entityType/name/value。省略 asset 时沿用工程当前自动分流规则。',
         properties: {
           clockMode: { type: 'string', enum: ['manual', 'realtime'] },
           asset: { type: 'string', enum: ['server', 'client'] },
@@ -245,7 +259,8 @@ async function callTool(name, args = {}, signal) {
     if (name === 'look3_studio_template') return controller.studio.template(args)
     if (name === 'look3_animation_set') return controller.studio.setLook2(args.state, args.expectedRevision)
     if (name === 'look3_animation_export') return controller.studio.exportData(args.format, args.format === 'gia' ? 'client-control-template' : args.rootId)
-    if (name === 'look3_studio_play') return controller.play(args.action, args.args || {}, signal)
+    if (name === 'look3_studio_export') return controller.exportAction(args.action, args.args || {})
+    if (name === 'look3_studio_play') return controller.play(args.action, agentPlayArgs(args.action, args.args || {}), signal)
     if (name === 'look3_studio_ui_screenshot') return controller.uiScreenshot(signal)
     if (name === 'look3_studio_play_screenshot') return controller.playScreenshot(signal)
     if (name === 'look3_studio_load') {

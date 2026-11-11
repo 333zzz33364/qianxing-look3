@@ -8,6 +8,8 @@ import { imageAssetKey, imageSourceName } from '../assets/catalog.js'
 export { loadBrowserFont } from './browser-font.js'
 import { DEFAULT_FONT } from '../fonts.js'
 import { paintRichTextCanvas } from './rich-text-paint.js'
+import { keyHintSize, paintKeyHintCanvas } from './key-hint-paint.js'
+import { BrowserUIVfxPlayer } from './ui-vfx-player.js'
 // Pixi's default uniform sync uses Function().  Local Web intentionally has a
 // restrictive CSP, so register Pixi's static sync implementation instead.
 import 'pixi.js/unsafe-eval'
@@ -19,7 +21,7 @@ import 'pixi.js/unsafe-eval'
 const TRI_POINTS = [0, -0.5, 0.5, 0.5, -0.5, 0.5]
 const STAR4_POINTS = [0, -0.5, 0.12, -0.12, 0.5, 0, 0.12, 0.12, 0, 0.5, -0.12, 0.12, -0.5, 0, -0.12, -0.12]
 const STAR5_POINTS = [0, -0.5, 0.11, -0.15, 0.48, -0.15, 0.18, 0.07, 0.29, 0.41, 0, 0.2, -0.29, 0.41, -0.18, 0.07, -0.48, -0.15, -0.11, -0.15]
-const PAINT_KINDS = new Set(['image', 'textbox', 'textwindow', 'button', 'grid'])
+const PAINT_KINDS = new Set(['image', 'textbox', 'textwindow', 'button', 'grid', 'keyhint'])
 
 function argb(value, fallback = 0xffffffff) {
   const raw = Number(value == null ? fallback : value) >>> 0
@@ -102,7 +104,7 @@ function visualKeyOf(item, width, height) {
     item.text, item.fontSize, item.fontColor, item.bgColor, item.enableOutline,
     item.adaptiveFontSize, item.minimumFontSize, JSON.stringify(item.textLayout),
     item.outlineColor, item.horizontalAlignment, item.verticalAlignment, item.pressed,
-    JSON.stringify(item.scroll),
+    JSON.stringify(item.scroll), JSON.stringify(item.keyHint),
   ].join('\t')
 }
 
@@ -129,6 +131,12 @@ export function createCircleTexture(size) {
 export class PixiPlayRenderer {
   constructor(canvas, { fontReady = null } = {}) {
     this.canvas = canvas
+    if (canvas?.parentElement && typeof document !== 'undefined') {
+      this.effectHost = document.createElement('div')
+      canvas.parentElement.style.isolation = 'isolate'
+      canvas.parentElement.append(this.effectHost)
+      this.effects = new BrowserUIVfxPlayer(this.effectHost)
+    }
     this.app = null
     this.nodes = new Map()
     this.circleTextures = new Map()
@@ -174,6 +182,9 @@ export class PixiPlayRenderer {
     this.app.renderer.resize(w, h)
   }
 
+  syncEffects(snapshot) { this.effects?.sync(snapshot) }
+  resetEffects() { this.effects?.reset() }
+
   createNode(item, { group = false } = {}) {
     const root = new Container({ isRenderGroup: !!group })
     root.label = `runtime:${item.id}`
@@ -199,10 +210,12 @@ export class PixiPlayRenderer {
     // the timed GC pool after animated sizes/colors replace the visual.
     const geometry = root.__visual.__sliceGeometry
     const richTexture = root.__visual.__richText?.texture
+    const keyHintTexture = root.__visual.__keyHint?.texture
     // Each TextStyle is owned here. Text.destroy() unloads its managed GPU
     // reference in Pixi 8.20; image/circle textures belong to shared caches.
     root.__visual.destroy({ children: true, context: true, style: true })
     richTexture?.destroy(true)
+    keyHintTexture?.destroy(true)
     if (managed && uid !== undefined && managed[uid] === null) delete managed[uid]
     if (oldKey) this.retireTextKey(oldKey)
     geometry?.destroy(true)
@@ -279,6 +292,18 @@ export class PixiPlayRenderer {
     }
     if (!visual.__scrollBar) visual.addChild(graphic)
     visual.__scrollBar = graphic
+  }
+
+  updateKeyHintVisual(root, item, width, height) {
+    const sprite = root.__visual?.__keyHint
+    if (item.kind !== 'keyhint' || !sprite) return false
+    const size = keyHintSize(item, width, height)
+    // A resized CanvasSource requires a new Texture frame. Same-size key swaps
+    // repaint in place, with no per-frame GPU allocations.
+    if (!size.width || sprite.width !== size.width || sprite.height !== size.height) return false
+    paintKeyHintCanvas(sprite.texture.source.resource, item, width, height, this.app?.renderer?.resolution || 1)
+    sprite.texture.source.update()
+    return true
   }
 
   circleTexture(diameter) {
@@ -383,10 +408,22 @@ export class PixiPlayRenderer {
         visual.addChild(clip, text)
       }
       visual.__textChromeKey = textChromeKey(item, width, height)
+    } else if (item.kind === 'keyhint') {
+      const size = keyHintSize(item, width, height)
+      if (size.width) {
+        const canvas = DOMAdapter.get().createCanvas(1, 1)
+        paintKeyHintCanvas(canvas, item, width, height, this.app?.renderer?.resolution || 1)
+        const sprite = new Sprite({ texture: new Texture({ source: new CanvasSource({ resource: canvas }) }), anchor: 0.5 })
+        sprite.width = size.width
+        sprite.height = size.height
+        visual.__keyHint = sprite
+        visual.addChild(sprite)
+      }
     } else if (item.kind === 'button') {
       const graphic = new Graphics()
-      graphic.roundRect(-width / 2, -height / 2, width, height, 6).fill({ color: 0x3268cf, alpha: 1 })
-      graphic.roundRect(-width / 2, -height / 2, width, height, 6).stroke({ color: 0x70a0ff, alpha: 0.8, width: 1 })
+      // Simulator placeholder, not an exported native button skin.
+      graphic.roundRect(-width / 2, -height / 2, width, height, 6).fill({ color: 0x202020, alpha: 1 })
+      graphic.roundRect(-width / 2, -height / 2, width, height, 6).stroke({ color: 0x555555, alpha: 0.8, width: 1 })
       if (item.pressed) graphic.roundRect(-width / 2, -height / 2, width, height, 6).fill({ color: 0x000000, alpha: 0.28 })
       visual.addChild(graphic)
     } else if (item.kind === 'image' && item.primitive === 'sprite' && this.imageTexture(item.imageId, item.imageSource).texture) {
@@ -470,7 +507,8 @@ export class PixiPlayRenderer {
       const height = Math.max(0, finite(item.sourceHeight, finite(item.height)))
       root.x = finite(item.left) + width / 2
       root.y = this.canvasHeight - finite(item.bottom) - height / 2
-      root.rotation = -finite(item.rotationZ) * Math.PI / 180
+      // rotationZ 按屏幕坐标取正（顺时针），与实机一致；Pixi 的 rotation 正值也是顺时针。
+      root.rotation = finite(item.rotationZ) * Math.PI / 180
       root.scale.set(1)
       return
     }
@@ -488,7 +526,7 @@ export class PixiPlayRenderer {
     const height = Math.max(0, finite(item.sourceHeight, finite(item.height)))
     const visualKey = visualKeyOf(item, width, height)
     if (root.__visualKey !== visualKey) {
-      if (!this.updateTextVisual(root, item, width, height)) this.replaceVisual(root, item, width, height)
+      if (!this.updateTextVisual(root, item, width, height) && !this.updateKeyHintVisual(root, item, width, height)) this.replaceVisual(root, item, width, height)
       // replaceVisual clears the previous key while disposing its Graphics.
       // Commit the new key afterwards so movement does not keep destroying
       // and recreating the same geometry after a size/color update.
@@ -732,6 +770,8 @@ export class PixiPlayRenderer {
   }
 
   destroy() {
+    this.effects?.destroy()
+    this.effectHost?.remove()
     this.disposed = true
     this.unsubscribeImages?.()
     this.clearNodes()

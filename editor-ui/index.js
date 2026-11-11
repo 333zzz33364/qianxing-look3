@@ -11,6 +11,7 @@ import { imageMaskFields } from './image-mask-fields.js'
 import { createUIVfxField } from './ui-vfx-field.js'
 import { controlTransformStyle } from './control-transform.js'
 import { createTextPreview } from './text-preview.js'
+import { createKeyHintPreview } from './key-hint-preview.js'
 import { createMaskedControls } from './mask-preview.js'
 import { GUID_MIN, GUID_MAX, isValidGuid } from '../studio/gia/guid.js'
 import { isRemoteImage, imageAssetKey } from '../studio/assets/catalog.js'
@@ -485,9 +486,13 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false, upd
     function sanitizeLogic(draft) {
       return {
         version: 1,
+        ...(draft?.enabled === false ? { enabled: false } : {}),
         rules: (draft?.rules || []).map((rule) => ({
           id: String(rule.id || ''),
-          signalName: String(rule.signalName || '').trim(),
+          ...(rule.enabled === false ? { enabled: false } : {}),
+          ...(rule.event === 'entityCreated'
+            ? { event: 'entityCreated', entityType: normalizeLogicEntity(rule.entityType) }
+            : { signalName: String(rule.signalName || '').trim() }),
           actions: (rule.actions || []).map((action) => action?.kind === 'sendClientScriptSignal'
             ? { kind: 'sendClientScriptSignal', target: normalizeLogicTarget(action.target), signalName: String(action.signalName || '').trim(), params: Array.isArray(action.params) ? action.params : [] }
             : { kind: 'setCustomVariable', entityType: normalizeLogicEntity(action?.entityType), name: String(action?.name || '').trim(), value: action && Object.prototype.hasOwnProperty.call(action, 'value') ? action.value : 0 }),
@@ -497,7 +502,7 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false, upd
     function logicDraftIssues(draft) {
       const issues = []
       for (const [index, rule] of (draft?.rules || []).entries()) {
-        if (!String(rule.signalName || '').trim()) issues.push(`规则 ${index + 1} 需要监听信号名`)
+        if (rule.event !== 'entityCreated' && !String(rule.signalName || '').trim()) issues.push(`规则 ${index + 1} 需要监听信号名`)
         const actions = rule.actions || []
         if (!actions.length) issues.push(`规则 ${index + 1} 至少需要一个动作`)
         for (const [actionIndex, action] of actions.entries()) {
@@ -532,7 +537,7 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false, upd
         value,
       }
     }
-    function LogicValueField({ label, value, onChange }) {
+    function LogicValueField({ label, value, onChange, allowSignalParams = true }) {
       const param = isSignalParamRef(value)
       const [draft, setDraft] = React.useState(() => param ? '' : stringifyLogicValue(value))
       React.useEffect(() => {
@@ -540,10 +545,10 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false, upd
       }, [value])
       return e('label', { className: 'qxsim-field' },
         e('span', { className: 'qxsim-field-label' }, label),
-        e('select', { value: param ? 'param' : 'literal', 'aria-label': `${label}来源`, onChange: (event) => {
+        allowSignalParams ? e('select', { value: param ? 'param' : 'literal', 'aria-label': `${label}来源`, onChange: (event) => {
           if (event.target.value === 'param') onChange({ fromSignalParam: Number(value?.fromSignalParam) || 0 })
           else onChange(parseLogicValue(draft || '0'))
-        } }, e('option', { value: 'literal' }, '字面量（JSON）'), e('option', { value: 'param' }, '引用监听信号参数')),
+        } }, e('option', { value: 'literal' }, '字面量（JSON）'), e('option', { value: 'param' }, '引用监听信号参数')) : null,
         param
           ? e('input', { type: 'number', min: 0, step: 1, value: Number(value.fromSignalParam) || 0, 'aria-label': `${label}参数序号`, onChange: (event) => onChange({ fromSignalParam: Math.max(0, Math.trunc(Number(event.target.value) || 0)) }) })
           : e('textarea', { className: 'qxsim-logic-json', value: draft, spellCheck: false, 'aria-label': `${label}字面量`, onBlur: () => onChange(parseLogicValue(draft)), onChange: (event) => setDraft(event.target.value) }))
@@ -557,13 +562,20 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false, upd
           e('button', { className: 'qxsim-iconbtn', title: '删除参数', onClick: () => onChange(rows.filter((_, rowIndex) => rowIndex !== index)) }, '✕'))) : e('div', { className: 'qxsim-muted' }, '暂无参数，可发送空参数列表'),
         e('button', { className: 'qxsim-action', style: { marginTop: 4 }, onClick: () => onChange(rows.concat([0])) }, '＋ 添加参数'))
     }
+    function LogicEnabledSwitch({ label, checked, onChange }) {
+      return e('label', { className: 'qxsim-switch-row', style: { margin: 0, whiteSpace: 'nowrap' } },
+        e('span', null, label),
+        e('span', { className: 'qxsim-switch' },
+          e('input', { type: 'checkbox', checked, 'aria-label': label, onChange: event => onChange(event.target.checked) }),
+          e('span', { className: 'qxsim-switch-track' })))
+    }
     function ServerLogicPage({ snap, draft, setDraft, saveLogic, notice, error }) {
       const rules = draft?.rules || []
       function commit(nextRules) {
-        setDraft({ version: 1, rules: nextRules, dirty: true })
+        setDraft({ ...draft, version: 1, rules: nextRules, dirty: true })
       }
-      function addRule() {
-        commit(rules.concat([{ id: `signal-${Date.now().toString(36)}`, signalName: '', actions: [defaultLogicAction('setCustomVariable')] }]))
+      function addRule(event = 'signal') {
+        commit(rules.concat([{ id: `${event}-${Date.now().toString(36)}`, enabled: true, event, entityType: 'PlayerSelf', signalName: '', actions: [defaultLogicAction('setCustomVariable')] }]))
       }
       function updateRule(index, fields) {
         commit(rules.map((rule, ruleIndex) => ruleIndex === index ? { ...rule, ...fields } : rule))
@@ -576,23 +588,45 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false, upd
       function replaceAction(ruleIndex, actionIndex, kind) {
         updateAction(ruleIndex, actionIndex, defaultLogicAction(kind))
       }
+      function setRuleEvent(index, event) {
+        const rule = rules[index]
+        updateRule(index, {
+          event,
+          actions: event === 'entityCreated' ? rule.actions.map(action => action.kind !== 'setCustomVariable'
+            ? { ...defaultLogicAction('setCustomVariable'), entityType: rule.entityType === 'Level' ? 'Level' : 'PlayerSelf' }
+            : { ...action, entityType: rule.entityType === 'Level' && action.entityType === 'PlayerSelf' ? 'Level' : action.entityType, value: isSignalParamRef(action.value) ? 0 : action.value }) : rule.actions,
+        })
+      }
+      function setCreatedEntity(index, entityType) {
+        const rule = rules[index]
+        updateRule(index, { entityType, actions: rule.actions.map(action => entityType === 'Level' && action.entityType === 'PlayerSelf' ? { ...action, entityType: 'Level' } : action) })
+      }
       return e('div', { className: 'qxsim-server-logic' },
         e('div', { className: 'qxsim-logic-wrap' },
           e('div', { className: 'qxsim-logic-title' },
-            e('div', null, e('h2', null, '服务端逻辑'), e('p', null, `属于存档“${snap.save?.name || '未命名存档'}” · 监听客户端信号后设置 Level / 玩家变量，或向指定玩家发送客户端脚本信号`)),
+            e('div', null, e('h2', null, '服务端逻辑'), e('p', null, `属于存档“${snap.save?.name || '未命名存档'}” · 实体创建时初始化变量，或监听客户端信号执行动作`)),
             e('button', { className: 'qxsim-action primary', disabled: !draft?.dirty, onClick: saveLogic }, '保存服务端逻辑')),
-          e('div', { className: 'qxsim-note' }, '这是模拟器存档格式，不是官方节点图。PlayerSelf 表示发信号的那位玩家；Player1–8 是固定座位；AllPlayers 向本局全部试玩玩家广播。'),
+          e('div', { className: 'qxsim-note' }, '这是模拟器存档格式，不是官方节点图。PlayerSelf 表示发信号或刚创建的玩家；Player1–8 是固定座位；AllPlayers 向本局全部试玩玩家广播。'),
+          e('div', { style: { display: 'flex', alignItems: 'center', gap: 16, margin: '12px 0' } },
+            e(LogicEnabledSwitch, { label: '使用服务端逻辑', checked: draft?.enabled !== false, onChange: enabled => setDraft({ ...draft, enabled, dirty: true }) }),
+            e('span', { className: 'qxsim-muted' }, '关闭后保留配置，但不执行初始化或信号规则。保存后下次试玩生效。')),
           error ? e('div', { className: 'qxsim-logic-error' }, error) : null,
           rules.length ? rules.map((rule, ruleIndex) => e('section', { key: rule.id || ruleIndex, className: 'qxsim-logic-rule' },
             e('div', { className: 'qxsim-logic-rule-head' },
               e('strong', null, `规则 ${ruleIndex + 1}`),
-              e('label', { className: 'qxsim-field' }, e('span', { className: 'qxsim-field-label' }, '监听信号名'), e('input', { type: 'text', value: rule.signalName, placeholder: 'EarnGold', 'aria-label': `规则 ${ruleIndex + 1} 监听信号名`, onChange: (event) => updateRule(ruleIndex, { signalName: event.target.value }) })),
+              e(LogicEnabledSwitch, { label: `启用规则 ${ruleIndex + 1}`, checked: rule.enabled !== false, onChange: enabled => updateRule(ruleIndex, { enabled }) }),
+              e('label', { className: 'qxsim-field' }, e('span', { className: 'qxsim-field-label' }, '触发事件'), e('select', { value: rule.event, 'aria-label': `规则 ${ruleIndex + 1} 触发事件`, onChange: (event) => setRuleEvent(ruleIndex, event.target.value) },
+                e('option', { value: 'signal' }, '监听客户端信号'), e('option', { value: 'entityCreated' }, '实体创建时'))),
+              rule.event === 'entityCreated'
+                ? e('label', { className: 'qxsim-field' }, e('span', { className: 'qxsim-field-label' }, '创建实体'), e('select', { value: rule.entityType, 'aria-label': `规则 ${ruleIndex + 1} 创建实体`, onChange: (event) => setCreatedEntity(ruleIndex, event.target.value) }, PLAYER_LOGIC_ENTITIES.map(entity => e('option', { key: entity, value: entity }, PLAYER_LOGIC_LABELS[entity]))))
+                : e('label', { className: 'qxsim-field' }, e('span', { className: 'qxsim-field-label' }, '监听信号名'), e('input', { type: 'text', value: rule.signalName, placeholder: 'EarnGold', 'aria-label': `规则 ${ruleIndex + 1} 监听信号名`, onChange: (event) => updateRule(ruleIndex, { signalName: event.target.value }) })),
               e('button', { className: 'qxsim-iconbtn', title: '删除规则', onClick: () => commit(rules.filter((_, index) => index !== ruleIndex)) }, '✕')),
             e('div', { className: 'qxsim-logic-actions' },
+              rule.event === 'entityCreated' ? e('div', { className: 'qxsim-note', style: { marginBottom: 10 } }, '试玩开始、客户端脚本启动前触发一次。PlayerSelf 对每位参与玩家分别触发；Level 触发一次。仅支持用字面量设置自定义变量。') : null,
               (rule.actions || []).map((action, actionIndex) => e('div', { key: actionIndex, className: 'qxsim-logic-action' },
                 e('div', { className: 'qxsim-logic-action-head' },
                   e('strong', null, `动作 ${actionIndex + 1}`),
-                  e('select', { value: action.kind, 'aria-label': `规则 ${ruleIndex + 1} 动作 ${actionIndex + 1} 类型`, onChange: (event) => replaceAction(ruleIndex, actionIndex, event.target.value) },
+                  e('select', { value: action.kind, disabled: rule.event === 'entityCreated', 'aria-label': `规则 ${ruleIndex + 1} 动作 ${actionIndex + 1} 类型`, onChange: (event) => replaceAction(ruleIndex, actionIndex, event.target.value) },
                     e('option', { value: 'setCustomVariable' }, '设置自定义变量'),
                     e('option', { value: 'sendClientScriptSignal' }, '发送客户端脚本信号')),
                   e('span', null, action.kind === 'sendClientScriptSignal' ? '发给当前玩家、指定玩家或全部玩家' : '写入 Level / 当前玩家 / 玩家1-8'),
@@ -603,13 +637,15 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false, upd
                     e('label', { className: 'qxsim-field' }, e('span', { className: 'qxsim-field-label' }, '客户端信号名'), e('input', { type: 'text', value: action.signalName, placeholder: 'GoldChanged', onChange: (event) => updateAction(ruleIndex, actionIndex, { signalName: event.target.value }) })),
                     e(LogicParamsField, { params: action.params, onChange: (params) => updateAction(ruleIndex, actionIndex, { params }) }))
                   : e('div', { className: 'qxsim-logic-fields' },
-                    e('label', { className: 'qxsim-field' }, e('span', { className: 'qxsim-field-label' }, '实体'), e('select', { value: normalizeLogicEntity(action.entityType), onChange: (event) => updateAction(ruleIndex, actionIndex, { entityType: event.target.value }) }, PLAYER_LOGIC_ENTITIES.map((entity) => e('option', { key: entity, value: entity }, PLAYER_LOGIC_LABELS[entity])))),
+                    e('label', { className: 'qxsim-field' }, e('span', { className: 'qxsim-field-label' }, '实体'), e('select', { value: normalizeLogicEntity(action.entityType), onChange: (event) => updateAction(ruleIndex, actionIndex, { entityType: event.target.value }) }, PLAYER_LOGIC_ENTITIES.filter(entity => !(rule.event === 'entityCreated' && rule.entityType === 'Level' && entity === 'PlayerSelf')).map((entity) => e('option', { key: entity, value: entity }, PLAYER_LOGIC_LABELS[entity])))),
                     e('label', { className: 'qxsim-field' }, e('span', { className: 'qxsim-field-label' }, '变量名'), e('input', { type: 'text', value: action.name, placeholder: 'Gold', onChange: (event) => updateAction(ruleIndex, actionIndex, { name: event.target.value }) })),
-                    e('div', { className: 'wide' }, e(LogicValueField, { label: '变量值', value: action.value, onChange: (value) => updateAction(ruleIndex, actionIndex, { value }) }))))),
+                    e('div', { className: 'wide' }, e(LogicValueField, { label: '变量值', value: action.value, allowSignalParams: rule.event !== 'entityCreated', onChange: (value) => updateAction(ruleIndex, actionIndex, { value }) }))))),
               e('div', { className: 'qxsim-logic-actions-foot' },
-                e('button', { className: 'qxsim-action', onClick: () => updateRule(ruleIndex, { actions: (rule.actions || []).concat([defaultLogicAction('setCustomVariable')]) }) }, '＋ 设置自定义变量'),
-                e('button', { className: 'qxsim-action', onClick: () => updateRule(ruleIndex, { actions: (rule.actions || []).concat([defaultLogicAction('sendClientScriptSignal')]) }) }, '＋ 发送客户端脚本信号'))))) : e('div', { className: 'qxsim-logic-empty' }, '还没有监听规则。试玩时客户端 SendSignal 不会自动改变量或回传信号。'),
-          e('div', { className: 'qxsim-logic-actions-foot' }, e('button', { className: 'qxsim-action', onClick: addRule }, '＋ 添加监听规则')),
+                e('button', { className: 'qxsim-action', onClick: () => updateRule(ruleIndex, { actions: (rule.actions || []).concat([{ ...defaultLogicAction('setCustomVariable'), entityType: rule.event === 'entityCreated' && rule.entityType === 'Level' ? 'Level' : 'PlayerSelf' }]) }) }, '＋ 设置自定义变量'),
+                rule.event !== 'entityCreated' ? e('button', { className: 'qxsim-action', onClick: () => updateRule(ruleIndex, { actions: (rule.actions || []).concat([defaultLogicAction('sendClientScriptSignal')]) }) }, '＋ 发送客户端脚本信号') : null)))) : e('div', { className: 'qxsim-logic-empty' }, '还没有服务端规则。可添加实体创建时规则初始化变量，或添加客户端信号监听规则。'),
+          e('div', { className: 'qxsim-logic-actions-foot' },
+            e('button', { className: 'qxsim-action', onClick: () => addRule('entityCreated') }, '＋ 实体创建时'),
+            e('button', { className: 'qxsim-action', onClick: () => addRule() }, '＋ 添加监听规则')),
           e('div', { className: 'qxsim-script-footer', style: { marginTop: 16 } }, e('span', null, draft?.dirty ? '有未保存的修改' : (notice || '保存后会写入当前存档，下次试玩生效')), e('span', { className: 'spacer' }))))
     }
     function ControlScriptTab({ snap, addScriptMounted, mountScriptTo, unmountScript, openScript }) {
@@ -656,7 +692,7 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false, upd
       const bottom = (item.renderBottom ?? item.bottom) + (offset?.dy || 0)
       const width = item.renderWidth ?? item.width; const height = item.renderHeight ?? item.height
       const rotationZ = item.renderRotationZ ?? item.rotationZ ?? 0
-      const style = { left: `${left / canvasWidth * 100}%`, bottom: `${bottom / canvasHeight * 100}%`, width: `${width / canvasWidth * 100}%`, height: `${height / canvasHeight * 100}%`, '--rotation': `${-Number(rotationZ)}deg`, fontSize: `${Math.max(1, Number(item.fontSize || 12) * zoom)}px`, color: textKind ? argb(item.fontColor, 0xffffffff) : '#fff' }
+      const style = { left: `${left / canvasWidth * 100}%`, bottom: `${bottom / canvasHeight * 100}%`, width: `${width / canvasWidth * 100}%`, height: `${height / canvasHeight * 100}%`, '--rotation': `${Number(rotationZ)}deg`, fontSize: `${Math.max(1, Number(item.fontSize || 12) * zoom)}px`, color: textKind ? argb(item.fontColor, 0xffffffff) : '#fff' }
       Object.assign(style, controlTransformStyle(item, canvasWidth, canvasHeight, offset))
       if (selectionOnly) return e('div', {
         className: 'qxsim-box selected qxsim-selection', 'data-selection-id': item.id,

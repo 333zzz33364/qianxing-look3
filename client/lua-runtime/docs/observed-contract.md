@@ -22,5 +22,6 @@
 17. math 沙箱：按正式服探针保留 modf、ult；额外提供 isnan、isinf。文档异常行提到的 `math.isnaf` 语义无处记载——按反编造政策不提供（读为 nil）。
 18. Runtime capability fidelity: load/loadfile/dofile/package/coroutine/collectgarbage、string.dump/pack/unpack 按客户端裁剪；字符串方法语法保留，但全局 getmetatable 对字符串隐藏。普通 Lua 表的 typeof 返回 table，挂载脚本的 script.path 暴露短名。Fengari 的整数仍是 32 位，这是已知的底层限制，不能作为客户端整数结论。
 19. `game` 全局函数按当前 API 用点号调用。2026-09-25 日记脚本真机回传 `game:GetClientUIRoots()` 的 `bad argument count ... (0 expected, got 1)`；模拟器现核对固定参数个数。该脚本的 `game:GetUICanvasSize()` 也应改为点号。旧 Probe5 的 `game.GetClientUIRoots()` 返回空表，故日记脚本从已挂载的 `script.object` 查找 `STAGE`；修正包只有模拟器验证，真机待验。
+20. TweenSequence 排程（TWPAR，2026-11-06，来源为真机对照视频与 20 例 JSON 存档）：追加游标只由 `Append`、`AppendInterval` 和首个有效 `Join` 推进，`AppendCallback` 位于该游标；`Insert`/`InsertCallback` 用绝对时间且不移动游标。序列结束取追加末尾与全部插入项末尾的最大值，`SetOnComplete` 由该点触发。同一追加组只排入第一个 `Join`，后续连续 `Join` 不启动、不写值、不触发回调、不延长组时长（T03–T06）。「新的 Append/Interval 打开新的 Join 名额」「回调和 Insert 不重开」「纯 Insert 后追加沿同一游标」属模拟器策略，真机边界仍为 pending。回归见 `test/tween-sequence.test.mjs`。
 
 后续版本的同级控件按键派发顺序另见[架构中的模拟器策略](architecture.md#模拟器策略非官方证明)。创作者预告上层控件优先接收；这不是上述真机探针已观察到的顺序结论。

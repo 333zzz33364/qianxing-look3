@@ -106,7 +106,7 @@ test('blocked play popup falls back to an owned iframe with saved drafts, keyboa
   let popup
   for (let i = 0; i < 100 && !popup; i++) {
     const { targetInfos } = await browser.send('Target.getTargets')
-    popup = targetInfos.find(target => target.url.includes(`/editor/play#${sessionId}`))
+    popup = targetInfos.find(target => target.url.includes(`/editor/play`) && target.url.includes(`#${sessionId}`))
     if (!popup) await new Promise(resolve => setTimeout(resolve, 50))
   }
   assert.ok(popup, 'Normal play must still open its own tab')

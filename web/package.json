@@ -1,6 +1,6 @@
 {
   "name": "look3-web",
-  "version": "3.1.1",
+  "version": "3.2.0",
   "description": "Self-hosted editor, preview and play surface for Qianxing simulator saves",
   "type": "module",
   "main": "dist/server.js",

@@ -22,6 +22,10 @@ import { textLayout } from '../studio/play/text-layout.js'
 import { paintRichTextCanvas } from '../studio/play/rich-text-paint.js'
 import { DEFAULT_FONT } from '../studio/fonts.js'
 import { createFontSettings } from './font-settings.js'
+import { createPartialExportDialog, PARTIAL_EXPORT_CSS } from './partial-export.js'
+import { BrowserUIVfxPlayer } from '../studio/play/ui-vfx-player.js'
+import { centerMaskMatrix } from '../studio/play/image-mask.js'
+import { createKeyHintPreview } from './key-hint-preview.js'
 import { imageAssetKey, imageAssetUrl, imageSourceName, isRemoteImage } from '../studio/assets/catalog.js'
 import { loadBrowserImageAsset, loadBrowserImageMetadata, refreshBrowserImage, subscribeImageRefresh } from '../studio/assets/browser.js'
 
@@ -125,6 +129,8 @@ export function createAnimationView(React, { api, playUrl, InlinePlay, usePlayLa
   const h = React.createElement
   const icon = (name, size) => editorIcon(h, name, size)
   const FontSettings = createFontSettings(React)
+  const PartialExportDialog = createPartialExportDialog(React)
+  const KeyHintPreview = createKeyHintPreview(React)
   function DraftInput({ value, type = 'text', rows, min, max, step, disabled, ariaLabel, title, onCommit, onDiscardError, readCommitted, inputStyle, wrapperStyle }) {
     const initial = value == null ? '' : String(value)
     const [draft, setDraft] = React.useState(initial)
@@ -325,7 +331,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
   }
   function ensureStyle() {
     if (document.getElementById(STYLE_ID)) return
-    const style = document.createElement('style'); style.id = STYLE_ID; style.textContent = `${CSS}\n${FONT_SETTINGS_CSS}`; document.head.append(style)
+    const style = document.createElement('style'); style.id = STYLE_ID; style.textContent = `${CSS}\n${FONT_SETTINGS_CSS}\n${PARTIAL_EXPORT_CSS}`; document.head.append(style)
   }
   const primitivePreviewSource = createPrimitivePreviewSource()
   function StageImage({ src, tint, imageType = 'Basic', borderUrl = '', sharedImage = null, fitContain = false, maskBox = {}, contentOpacity = 1, label = '', children }) {
@@ -489,6 +495,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
     const [showWorkspace, setShowWorkspace] = React.useState(false)
     const [showResources, setShowResources] = React.useState(false)
     const [showTemplates, setShowTemplates] = React.useState(false)
+    const [partialExportOpen, setPartialExportOpen] = React.useState(false)
     const [showPlayHelp, setShowPlayHelp] = React.useState(false)
     const [showFontSettings, setShowFontSettings] = React.useState(false)
     const [selectedArchive, setSelectedArchive] = React.useState('')
@@ -1048,7 +1055,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
       nextState.siteNodes[selected] = original
       return transact('绑定图库图片', { ops: [{ op: 'set', id: selected, key: 'imageId', value: Number(imageId) }, { op: 'set', id: selected, key: 'imageSource', value: 'StaticReference' }], state: nextState })
     }
-    async function exportFile(format, arg = '') {
+    async function exportFile(format, arg = '', options = {}) {
       try {
         if (stopIfLocked()) return
         if (snapRef.current?.asset?.type !== 'client-control-template' && ['primitive-data', 'primitive-lib', 'primitive-svg', 'primitive-css'].includes(format)) {
@@ -1061,7 +1068,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
           : ['json', 'gia'].includes(format) ? arg || current.asset?.type || ''
           : ['animation-lua', 'timeline-data', 'timeline-lib', 'primitive-data'].includes(format) ? rootId
           : ['primitive-svg', 'primitive-css'].includes(format) ? current.selectedId : ''
-        const result = await api(sessionId, 'export', { format, assetType })
+        const result = await api(sessionId, 'export', { format, assetType, ...options })
         const warnings = [...new Set([...(result.warnings || []), ...(result.files || []).flatMap(file => file.warnings || [])])]
         if (Array.isArray(result.files) && result.files.length) {
           for (const file of result.files) download(file)
@@ -1070,7 +1077,14 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
           download(result); setMessage(`已导出 ${result.filename}${warnings.length ? `；${warnings.join('；')}` : ''}`)
         }
       }
-      catch (reason) { setError(String(reason.message || reason)) }
+      catch (reason) { setError(String(reason.message || reason)); if (format === 'gia-partial') throw reason }
+    }
+    async function openPartialExport() {
+      try {
+        if (stopIfLocked()) return
+        await beforeAction()
+        setError(''); setPartialExportOpen(true)
+      } catch (reason) { setError(String(reason.message || reason)) }
     }
     async function save() {
       try { if (stopIfLocked()) return; await beforeAction(); const result = await api(sessionId, 'save', { path: filePath, expectedRevision: snapRef.current.version }); await draftCacheRef.current?.clear().catch(() => {}); setMessage(`已保存 ${result.path}`); setDraft(null); localStorage.removeItem(`look2-draft:${sessionId}`); refreshArchives() }
@@ -1116,6 +1130,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
           animationAsset: current.asset?.type,
           expectedRevision: current.version,
           playerCount: Math.max(1, Math.min(8, Number(playerCount) || 1)),
+          keyHintDevice: current.keyHintDevice || 'auto',
         }
         setError('')
         setRuntimeInspection(null)
@@ -2213,6 +2228,54 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
       const alpha = Math.max(0, Math.min(1, Number(color.a ?? 1)))
       return `rgba(${Math.round(color.r)},${Math.round(color.g)},${Math.round(color.b)},${alpha})`
     }
+    function UIVfxEffects({ boxes, canvasWidth, canvasHeight }) {
+      const ref = React.useRef(null)
+      const latest = React.useRef(null)
+      latest.current = { boxes, canvasWidth, canvasHeight }
+      React.useEffect(() => {
+        const host = ref.current
+        const player = new BrowserUIVfxPlayer(host)
+        host.parentElement.style.isolation = 'isolate'
+        const started = performance.now(), states = new Map()
+        const tick = () => {
+          const { boxes, canvasWidth, canvasHeight } = latest.current
+          const time = (performance.now() - started) / 1000, effects = [], keep = new Set()
+          for (const box of boxes || []) {
+            if (!['animation', 'fullscreen'].includes(box.kind) || box.animationId == null || String(box.animationId).trim() === '' || Number(box.animationId) === 0) continue
+            if (box.visible === false || box.visibleInHierarchy === false) continue
+            keep.add(box.id)
+            let state = states.get(box.id)
+            if (!state || state.animationId !== box.animationId) {
+              state = { animationId: box.animationId, startedAt: time, generation: (state?.generation || 0) + 1, stopped: false }
+              states.set(box.id, state)
+            }
+            effects.push({ ...state, id: box.id, kind: box.kind, layer: box.layer,
+              matrix: centerMaskMatrix(box.matrix, (box.width || 0) / 2, (box.height || 0) / 2), masks: box.masks || [] })
+          }
+          for (const id of states.keys()) if (!keep.has(id)) states.delete(id)
+          player.sync({ effects, time, canvasWidth, canvasHeight, running: true })
+        }
+        const timer = setInterval(tick, 50)
+        tick()
+        return () => { clearInterval(timer); player.destroy() }
+      }, [])
+      return h('div', { ref, style: { display: 'contents' } })
+    }
+    function ExportPreview({ snapshot }) {
+      const canvas = snapshot.canvas
+      const boxes = (snapshot.boxes || []).filter(box => box.kind !== 'server-container' && box.visible && box.visibleInHierarchy !== false)
+      const textKind = kind => kind === 'textbox' || kind === 'textwindow'
+      return h('div', { className: 'qxsim-export-canvas' },
+        h('div', { className: 'qxsim-stage', 'data-export-preview-id': snapshot.selectedId,
+          style: { position: 'relative', width: '100%', maxWidth: `${canvas.width}px`, aspectRatio: `${canvas.width} / ${canvas.height}`, background: '#1b2631', overflow: 'hidden' } },
+        boxes.map(box => h('div', { key: box.id, 'data-control-id': box.id, title: `${box.name} · ${box.kind}`,
+          style: { position: 'absolute', left: `${100 * box.left / canvas.width}%`, bottom: `${100 * box.bottom / canvas.height}%`, width: `${100 * box.width / canvas.width}%`, height: `${100 * box.height / canvas.height}%`,
+            transform: `rotate(${-Number(box.rotationZ || 0)}deg)`, transformOrigin: 'bottom left', overflow: 'hidden',
+            background: box.kind === 'image' ? rgbaCss(box.imageColor ?? 0xffffffff) : textKind(box.kind) ? rgbaCss(box.bgColor ?? 0) : 'transparent',
+            border: box.kind === 'image' || textKind(box.kind) ? 'none' : '1px solid #ffffff44',
+            color: rgbaCss(box.fontColor ?? 0xffffffff), fontSize: '10px', lineHeight: 1.2 } },
+        textKind(box.kind) ? String(box.text || '') : null))))
+    }
     function StageRichText({ box, layout, scale, fontFamily }) {
       const ref = React.useRef(null)
       const resolution = Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1) * Math.max(0.1, scale || 1)
@@ -2223,6 +2286,10 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
         style: { position: 'absolute', inset: 0, width: '100%', height: '100%' } })
     }
     function stageBoxContent(box, children = []) {
+      if (box.kind === 'keyhint') {
+        const source = snap.boxes?.find(item => item.id === box.id)
+        return h(KeyHintPreview, { item: { ...box, keyHint: source?.keyHint }, zoom: stageScale })
+      }
       if (box.kind === 'textbox' || box.kind === 'textwindow') {
         const layout = textLayout(box, box.width, box.height)
         if (layout.richLines) {
@@ -2333,7 +2400,10 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
         clientTemplates ? h('button', { className: boneCreateMode ? 'active' : '', 'aria-pressed': boneCreateMode, disabled: interactionLocked, onClick: toggleBoneCreateMode,
           title: '拖拽创建子骨骼；点击方向箭头选择父级；Ctrl+点击控件附着' }, boneCreateMode ? '退出骨骼编辑' : '创建/附着骨骼') : null,
         h('span', { className: 'look2-stage-hint' }, boneCreateMode ? `父级：${treeRowById.get(boneParentId)?.name || '未选择'} · 拖拽创建，Ctrl+点击附着` : '拖动控件 · 滚轮缩放 · 中键平移'),
-        h('span', { className: 'look2-canvas-ratio' }, `${snap.canvas.width / snap.canvas.height === 16 / 9 ? '16:9' : `${snap.canvas.width}:${snap.canvas.height}`}`)),
+        h('span', { className: 'look2-canvas-ratio' }, `${snap.canvas.width / snap.canvas.height === 16 / 9 ? '16:9' : `${snap.canvas.width}:${snap.canvas.height}`}`),
+        h('select', { className: 'look2-keyhint-device', title: '按键图标预览', 'aria-label': '按键图标预览', value: snap.keyHintDevice || 'auto', disabled: interactionLocked,
+          onChange: event => void patch({ op: 'setKeyHintDevice', device: event.target.value }).catch(() => {}) },
+        [['auto', '按键：跟随画布'], ['keyboard', '按键：键鼠'], ['controller', '按键：手柄']].map(([value, label]) => h('option', { key: value, value }, label)))),
       h('div', { className: 'look2-stage-wrap', ref: stageWrapRef,
         inert: playStarting,
         ...(!interactionLocked ? { onWheel: onStageWheel, onPointerDown: startPan, onPointerMove: movePointer, onPointerLeave: () => setStagePointer(null), onPointerUp: event => { if (panRef.current) endPointer(); else finishStageGesture(event) }, onPointerCancel: cancelPointer } : {}),
@@ -2345,6 +2415,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
           onReady: controller => { playControllerRef.current = controller; setPlayReady(true) },
           onStopped: finishInlinePlay,
         }) : h('div', { className: 'look2-stage', style: { width: `${stageCssWidth}px`, height: `${stageCssHeight}px`, '--pan-x': `${pan.x}px`, '--pan-y': `${pan.y}px`, backgroundColor: '#1b2631', backgroundImage: stageBackground, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }, 'aria-label': '场景画布' },
+          h(UIVfxEffects, { key: `${sessionId}:${snap.asset?.type}`, boxes: previewBoxes, canvasWidth: snap.canvas.width, canvasHeight: snap.canvas.height }),
           stageRoots.map(box => renderStageNode(box)),
           boneView ? h('svg', { className: 'look2-stage-bones', viewBox: `0 0 ${snap.canvas.width} ${snap.canvas.height}`, preserveAspectRatio: 'none' }, bones, boneGuides, boneDraftGuide) : null,
           gizmo),
@@ -2622,7 +2693,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
     const legacyInspector = WorkspaceInspector ? h(WorkspaceInspector, {
       mode: inspectorTab === 'script' ? 'script' : 'base', snap, patch, applyFieldGroup, transformPlatform: inspectorPlatform,
       transformHeader: platformPicker,
-      extraTransformFields: controllerPlatform ? null : platformTransformEditor,
+      extraTransformFields: controllerPlatform ? null : platformTransformEditor, exportFile,
       onError: reason => setError(String(reason?.message || reason)), onDiscardInputError: discardInputError, setDockTab,
     }) : null
     const inspectorContent = inspectorTab === 'runtime' ? h(React.Fragment, null,
@@ -2869,7 +2940,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
         h('button', { title: '重做', 'aria-label': '重做', onClick: redoAction, disabled: !snap.history?.canRedo }, icon('redo')),
         h('button', { title: '历史记录', 'aria-label': '历史记录', onClick: () => setShowHistory(true) }, icon('history'))),
       h('div', { className: 'tool-group', inert: interactionLocked }, h('select', { className: 'tool-select', title: '导入文件', defaultValue: '', onChange: event => { const action = event.target.value; event.target.value = ''; if (action === 'spine') folderRef.current?.click(); else fileRef.current?.click() } }, h('option', { value: '', disabled: true }, '导入'), h('option', { value: 'file' }, 'JSON / GIA / PSD / Lua'), h('option', { value: 'spine', disabled: !clientTemplates }, 'Spine 3.8 文件夹')),
-        h('select', { className: 'tool-select', title: '导出文件', defaultValue: '', onChange: event => { const [format, arg = ''] = event.target.value.split('|'); event.target.value = ''; if (format) void exportFile(format, arg) } }, h('option', { value: '', disabled: true }, '导出'), h('option', { value: 'site-json' }, '站点 JSON'), h('option', { value: 'json' }, '当前界面 Authoring JSON'), h('option', { value: 'gia' }, 'GIA'), h('option', { value: 'gia-combined' }, 'GIA 整合包（控件+脚本）'), h('option', { value: 'save-gia' }, '资产包 GIA（已改动项）'), h('option', { value: 'save' }, '完整存档'), h('option', { value: 'timeline-data' }, 'Timeline Data'), h('option', { value: 'timeline-lib' }, 'TweenTimelineLib 8.3'), h('option', { value: 'animation-lua' }, '播放脚本 Lua'), h('option', { value: 'primitive-data', disabled: !clientTemplates }, 'PrimitiveData'), h('option', { value: 'primitive-lib', disabled: !clientTemplates }, 'PrimitiveImageLib'), h('option', { value: 'primitive-svg', disabled: !clientTemplates }, '图元 SVG'), h('option', { value: 'primitive-css', disabled: !clientTemplates }, '图元 CSS'))),
+        h('select', { className: 'tool-select', title: '导出文件', 'aria-label': '导出格式', defaultValue: '', onChange: event => { const [format, arg = ''] = event.target.value.split('|'); event.target.value = ''; if (format === 'gia-partial') void openPartialExport(); else if (format) void exportFile(format, arg) } }, h('option', { value: '', disabled: true }, '导出'), h('option', { value: 'gia-partial' }, '部分组合导出'), h('option', { value: 'site-json' }, '站点 JSON'), h('option', { value: 'json' }, '当前界面 Authoring JSON'), h('option', { value: 'gia' }, 'GIA'), h('option', { value: 'gia-combined' }, 'GIA 整合包（控件+脚本）'), h('option', { value: 'save-gia' }, '资产包 GIA（已改动项）'), h('option', { value: 'save' }, '完整存档'), h('option', { value: 'timeline-data' }, 'Timeline Data'), h('option', { value: 'timeline-lib' }, 'TweenTimelineLib 8.3'), h('option', { value: 'animation-lua' }, '播放脚本 Lua'), h('option', { value: 'primitive-data', disabled: !clientTemplates }, 'PrimitiveData'), h('option', { value: 'primitive-lib', disabled: !clientTemplates }, 'PrimitiveImageLib'), h('option', { value: 'primitive-svg', disabled: !clientTemplates }, '图元 SVG'), h('option', { value: 'primitive-css', disabled: !clientTemplates }, '图元 CSS'))),
       h('div', { className: 'tool-group', inert: interactionLocked },
         h('button', { title: '控件模板', disabled: !clientTemplates, onClick: () => setShowTemplates(true) }, '控件模板'),
         h('button', { title: '图片资源', disabled: !clientTemplates, onClick: () => setShowResources(true) }, '图片资源')),
@@ -2913,6 +2984,13 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
           onCommit: order => updateTemplate(template.id, { index: order }),
           readCommitted: next => next.look2.controlTemplates.find(item => item.id === template.id)?.index }),
         h('button', { title: '实例化到所选容器', onClick: () => void instantiateTemplate(template) }, '实例化'), h('button', { title: '删除模板', onClick: () => void removeTemplate(template.id) }, '×')))))) : null
+    const partialExportDialog = partialExportOpen ? h(PartialExportDialog, {
+      sessionId, api,
+      initialId: clientTemplates ? snap.selectedId : '',
+      onClose: () => setPartialExportOpen(false),
+      onExport: options => exportFile('gia-partial', 'client-control-template', options),
+      renderPreview: snapshot => h(ExportPreview, { snapshot }),
+    }) : null
     const contextData = contextMenu?.data
     function setContextEase(ease) {
       const target = contextMenu?.data
@@ -3013,7 +3091,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
       style: { '--tree-width': `${hiddenPanels.tree ? 28 : panelWidths.tree}px`, '--anim-width': `${hiddenPanels.animator ? 28 : panelWidths.animator}px`, '--inspector-width': `${hiddenPanels.inspector ? 28 : panelWidths.inspector}px` } },
       masthead, topBar, workspaceRow, draftRow,
       h('div', { className: paneClasses }, treePane, stage, animatorPane, inspectorPane), dock,
-       resourcePanel, historyModal, templateModal, timelineImportModal, archiveDeleteModal, archiveManageModal, contextMenuView, errorHistoryDialog, fontSettingsModal,
+       resourcePanel, historyModal, templateModal, timelineImportModal, archiveDeleteModal, archiveManageModal, contextMenuView, errorHistoryDialog, fontSettingsModal, partialExportDialog,
        playLauncher?.overlay)
   }
   return { AnimationView, ensureStyle }

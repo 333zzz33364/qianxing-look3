@@ -37,6 +37,7 @@ import { normalizeScriptSync } from './script-sync-config.js'
 import { collectClientNodes } from './gia/client-order.js'
 import { projectForSiteTemplate } from './look2/site-templates.js'
 import { scriptGuidSignature } from './control-guid-lua.js'
+import { clientExportChoices, prepareClientExport } from './gia/partial-export.js'
 
 // 脚本与测试从 qxqy-studio 包入口直接消费这些 GIA 工具导出。
 export { exportGia, exportCombinedGia, importGia, inspectGia, validateGiaCompatibility, validateServerGiaCompatibility, exportScriptGia, importScriptGia, isScriptGia }
@@ -1132,8 +1133,31 @@ export function createStudio(seed, options = {}) {
     return { client, server, scripts: [...client.scripts, ...server.scripts], warnings: [...client.warnings, ...server.warnings] }
   }
 
-  function exportData(format = 'json', requestedAssetType = '') {
-    const result = exportDataRaw(format, requestedAssetType)
+  function exportChoices() {
+    return toJson({ assetType: CLIENT_ASSET, revision: projects.client.version,
+      rows: clientExportChoices(projects.client, scriptsInProject(CLIENT_ASSET)) })
+  }
+
+  function partialExport(options = {}) {
+    if (options.expectedRevision !== undefined && options.expectedRevision !== projects.client.version) {
+      throw new Error('revision conflict: reload export choices')
+    }
+    const eligible = scripts.filter(script => !script.controlId || resolveScriptTarget(script)?.key === 'client')
+    const result = prepareClientExport(projects.client, eligible, options)
+    if (options.canvasId) {
+      if (!CANVAS_PRESETS[options.canvasId]) throw new Error(`unknown canvas preset: ${options.canvasId}`)
+      result.project.canvasId = options.canvasId
+    }
+    return result
+  }
+
+  function exportPreview(options = {}) {
+    const result = partialExport(options)
+    return toJson({ snapshot: snapshotProject(result.project), selection: result.selection, warnings: result.warnings })
+  }
+
+  function exportData(format = 'json', requestedAssetType = '', options = {}) {
+    const result = exportDataRaw(format, requestedAssetType, options)
     if (controlGuidChanges.length && !['save', 'archive'].includes(String(format).toLowerCase())) {
       const warnings = controlGuidChanges.map((change) => `控件索引待核对 Lua 引用：${ASSET_LABELS[change.controlAsset]} / ${change.controlName} (${change.controlId})：${change.oldGuid} → ${change.newGuid}。请按语义更新脚本中的控件索引引用，核对后确认变更记录 ${change.id}；不要全局替换同值数字。`)
       result.warnings = [...new Set([...(result.warnings || []), ...warnings])]
@@ -1141,8 +1165,19 @@ export function createStudio(seed, options = {}) {
     return result
   }
 
-  function exportDataRaw(format = 'json', requestedAssetType = '') {
+  function exportDataRaw(format = 'json', requestedAssetType = '', options = {}) {
     const normalized = String(format).toLowerCase()
+    if (normalized === 'gia-partial') {
+      const partial = partialExport(options)
+      const result = exportGia(partial.project, { scripts: partial.scripts })
+      const label = partial.selection.templateCount === 1 ? partial.project.root.children[0].name : '部分组合'
+      return toJson({
+        filename: `${safeFilePart(currentSaveName(), DEFAULT_SAVE_NAME)} · ${safeFilePart(label, '部分组合')}.gia`,
+        mimeType: 'application/octet-stream', encoding: 'base64',
+        data: result.buffer.toString('base64'), selection: partial.selection,
+        warnings: [...new Set([...partial.warnings, ...result.warnings])],
+      })
+    }
     if (['timeline-lib', 'primitive-lib', 'primitive-data', 'primitive-svg', 'primitive-css'].includes(normalized)) {
       let source, filename, mimeType = 'text/x-lua'
       if (normalized === 'timeline-lib') { source = exportTimelineLibrary(); filename = 'TweenTimelineLib.lua' }
@@ -1614,6 +1649,7 @@ export function createStudio(seed, options = {}) {
       playerCount: nextPlayerCount,
       viewPlayerIndex: nextViewPlayerIndex,
       templateRootId: sceneAsset === 'client' ? templateRootId : '',
+      keyHintDevice: options.keyHintDevice ?? (sceneAsset === 'client' ? projects.client.keyHintDevice : projects.server.keyHintDevice) ?? 'auto',
     })
     if (play) stopPlay(play)
     play = nextPlay
@@ -1810,6 +1846,8 @@ export function createStudio(seed, options = {}) {
     patch,
     setWorkspace,
     exportData,
+    exportChoices,
+    exportPreview,
     importData,
     setLook2,
     pick,

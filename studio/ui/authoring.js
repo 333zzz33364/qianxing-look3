@@ -11,8 +11,8 @@ import { createRectTransform, emptyPlatformMap } from './layout.js'
 import { assertPlatformNode, assertPlatformTransforms, getPlatformTransform } from './transforms.js'
 import { createGiaRaw } from '../gia/raw-fields.js'
 import { stampMissingGuids } from '../gia/guid.js'
-import { normalizeKeyCode } from './keyhint.js'
 import { ensureClientAssetIndices, isValidAssetIndex } from '../gia/asset-indices.js'
+import { normalizeKeyHintCode } from '../key-hints.js'
 
 let _seq = 1
 export function nextId(prefix = 'n') {
@@ -83,7 +83,9 @@ export function createNode(kind, extras = {}) {
     node.isolateNavigation = extras.isolateNavigation === true
     node.disableKeyEventPassthrough = extras.disableKeyEventPassthrough === true
     node.disableCursorEventPassthrough = extras.disableCursorEventPassthrough === true
-    node.showCursor = extras.showCursor === true
+    // 官方字段表默认关。模拟器新建容器默认打开，否则 CursorEvent 点不到。
+    // 导入和 sanitize 会显式传入原值，缺省才用这个创建默认。
+    node.showCursor = Object.hasOwn(extras, 'showCursor') ? extras.showCursor === true : true
   }
   if (kind === 'textbox' || kind === 'textwindow') {
     node.fontSize = extras.fontSize ?? 20
@@ -139,10 +141,10 @@ export function createNode(kind, extras = {}) {
     node.raycastTarget = extras.raycastTarget !== false
     node.interactable = extras.interactable !== false
     node.clickAudioId = extras.clickAudioId ?? DEFAULT_CLICK_AUDIO_ID
-    node.unavailableChildId = extras.unavailableChildId ?? null
+    node.defaultChildId = extras.defaultChildId ?? null
     node.hoverChildId = extras.hoverChildId ?? null
     node.pressedChildId = extras.pressedChildId ?? null
-    node.selectedChildId = extras.selectedChildId ?? null
+    node.unavailableChildId = extras.unavailableChildId ?? null
   }
   if (kind === 'cursor') node.raycastTarget = extras.raycastTarget ?? (extras.giaRaw?.cursorField501 !== 0)
   if (kind === 'reference') {
@@ -172,13 +174,10 @@ export function createNode(kind, extras = {}) {
     if (!Object.hasOwn(extras.giaRaw || {}, 'gridField511')) node.giaRaw.gridField511 = Math.trunc(node.previewCount)
   }
   if (kind === 'keyhint') {
-    node.keyboardKeyCode = normalizeKeyCode(extras.keyboardKeyCode ?? extras.giaRaw?.keyHintField502 ?? null, 'KeyboardKeyCode')
-    node.controllerKeyCode = normalizeKeyCode(extras.controllerKeyCode ?? extras.giaRaw?.keyHintField501 ?? null, 'ControllerKeyCode')
-    if (!Object.hasOwn(extras.giaRaw || {}, 'keyHintField502') && typeof node.keyboardKeyCode !== 'string') {
-      node.giaRaw.keyHintField502 = Math.trunc(node.keyboardKeyCode ?? 1)
-    }
-    if (!Object.hasOwn(extras.giaRaw || {}, 'keyHintField501')) {
-      node.giaRaw.keyHintField501 = Math.trunc(node.controllerKeyCode ?? 1)
+    for (const [device, rawKey] of [['keyboard', 'keyHintField502'], ['controller', 'keyHintField501']]) {
+      const value = normalizeKeyHintCode(extras[`${device}KeyCode`] ?? extras.giaRaw?.[rawKey] ?? 1, device)
+      node[`${device}KeyCode`] = value
+      if (typeof value === 'number') node.giaRaw[rawKey] = value
     }
   }
   if (kind === 'animation' || kind === 'fullscreen') {
@@ -432,10 +431,10 @@ export function sanitizeNode(node) {
     extras.raycastTarget = node.raycastTarget
     extras.interactable = node.interactable
     extras.clickAudioId = node.clickAudioId
-    extras.unavailableChildId = node.unavailableChildId ?? null
+    extras.defaultChildId = node.defaultChildId ?? null
     extras.hoverChildId = node.hoverChildId ?? null
     extras.pressedChildId = node.pressedChildId ?? null
-    extras.selectedChildId = node.selectedChildId ?? null
+    extras.unavailableChildId = node.unavailableChildId ?? null
   }
   if (node.kind === 'cursor') extras.raycastTarget = node.raycastTarget
   if (node.kind === 'reference') extras.referencedPrefabId = node.referencedPrefabId ?? null

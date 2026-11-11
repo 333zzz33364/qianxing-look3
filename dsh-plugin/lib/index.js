@@ -2,11 +2,13 @@ import { existsSync, readFileSync, realpathSync } from 'node:fs'
 import { basename, join, relative } from 'node:path'
 import { homedir } from 'node:os'
 import { SimulatorController as SharedSimulatorController } from 'qxqy-studio/host/controller'
+import { agentPlayArgs } from 'qxqy-studio/play/audio-policy'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import { listWorkspaceArchives, resolveWorkspaceArchive } from './workspace-archives.js'
 import { createImageSource } from '../../studio/host/image-source.js'
 import { serveImageAsset } from 'qxqy-studio/host/image-assets'
 import { serveAudioAsset } from 'qxqy-studio/host/audio-assets'
+import { serveUIVfxAsset } from 'qxqy-studio/host/ui-vfx-assets'
 import { localFont, serveLocalFont } from 'qxqy-studio/host/local-font'
 import { createUpdateChecker } from '../../studio/host/updates.js'
 import { localLanguageRequest, systemLanguage } from '../../studio/host/system-language.js'
@@ -23,7 +25,7 @@ const MAX_BODY_BYTES = 64 * 1024 * 1024
 const MAX_SESSIONS = 32
 const SCREENSHOT_TIMEOUT_MS = 60_000
 // Keep the bundled plugin self-contained; bump with the root package version.
-const PRODUCT_VERSION = '3.1.1'
+const PRODUCT_VERSION = '3.2.0'
 const imageSource = createImageSource(process.env.LOOK3_ASSET_CACHE || process.env.LOOK2_ASSET_CACHE || join(process.env.DSH_HOME || join(homedir(), '.dsh'), 'look3-image-cache'))
 
 // DSH only adapts session-specific concerns (touch bookkeeping, JSON-string
@@ -50,9 +52,9 @@ export class SimulatorController extends SharedSimulatorController {
     return super.patch(jsonParam(op))
   }
 
-  exportData(format, assetType) {
+  exportData(format, assetType, options = {}) {
     this.touch()
-    return this.studio.exportData(format, assetType)
+    return this.studio.exportData(format, assetType, options)
   }
 
   importData(format, data, filename, options = {}) {
@@ -141,10 +143,15 @@ export async function lookupSessionWorkspace(sessionId, services = {}) {
   const live = services.sessions?.get?.(sessionId)
   const liveCwd = headerWorkspace(live?.header)
   if (liveCwd) return liveCwd
-  const inspect = services.sessionPersistence?.inspect
-  if (typeof inspect !== 'function') return ''
+  const persistence = services.sessionPersistence
   try {
-    const inspection = await inspect.call(services.sessionPersistence, sessionId)
+    // Current Harness exposes header-only stat; inspect belonged to older
+    // hosts. Cold history views need the cwd before an Agent is activated.
+    if (typeof persistence?.stat === 'function') {
+      return headerWorkspace((await persistence.stat(sessionId))?.header)
+    }
+    if (typeof persistence?.inspect !== 'function') return ''
+    const inspection = await persistence.inspect(sessionId)
     return headerWorkspace(inspection?.meta)
   } catch {
     return ''
@@ -360,6 +367,22 @@ function registerTools(ctx, registry) {
   }))
 
   ctx.tools.register(defineTool({
+    name: 'look3_studio_export',
+    description: '导出 GIA/JSON/Lua。list 列出客户端控件与 revision；preview 传 controlIds 预览子树；export 默认 gia-partial（部分组合）。父子同时选自动去重，子控件只在副本中提升为模板。includeScripts 默认 true（挂载脚本和未挂载模块）。支持原有 format/assetType；path 可选，写入工作区新文件，不覆盖；省略返回 base64。',
+    parameters: {
+      action: { type: 'string', enum: ['list', 'preview', 'export'], required: true },
+      args: { type: 'json', description: 'controlIds（客户端控件 id 数组）、includeScripts、expectedRevision（list 返回的客户端 revision）、canvasId、format、assetType、path。' },
+    },
+    output: { schema: { type: 'json' }, render: (_args, value) => [{ type: 'text', text: JSON.stringify(value, null, 2) }] },
+    timeoutMs: 10_000,
+    isConcurrencySafe: () => false,
+    async execute(args, exec) {
+      const controller = registry.get(toolSessionId(exec), sessionWorkspace(exec))
+      return controller.exclusive(() => controller.exportAction(args.action, jsonParam(args.args) || {}))
+    },
+  }))
+
+  ctx.tools.register(defineTool({
     name: 'look3_script_sync',
     description: '实机 Lua 目录复制同步：discover/status/configure/preview。configure 的 args 包含 config(version:1, workspaceDir, clientImportRoot, clientSubdir) 和 expectedRevision；配置随完整存档保存。preview 只检查差异，复制必须由用户在 Lua 脚本页面检查并确认。',
     parameters: { action: { type: 'string', enum: ['discover', 'status', 'configure', 'preview'], required: true }, args: { type: 'json' } },
@@ -487,17 +510,17 @@ function registerTools(ctx, registry) {
 
   ctx.tools.register(defineTool({
     name: 'look3_studio_play',
-    description: '控制当前会话的千星 UI 试玩 Worker：启动、步进、输入、暂停、停止、多设备画布切换、多人视角、服务端变量/信号，以及录制回放用例。start 可用 args.asset 选择 server 完整界面或 client 模板；templateRootId 仅用于 client，animationId 可指定客户端模板实例的启动动画；expectedRevision 可选且传入时须与当前工程 revision 一致。',
+    description: '控制当前会话的千星 UI 试玩 Worker：启动、步进、输入、暂停、停止、多设备画布切换、多人视角、服务端变量/信号，以及录制回放用例。start 可用 args.asset 选择 server 完整界面或 client 模板；templateRootId 仅用于 client，animationId 可指定客户端模板实例的启动动画；expectedRevision 可选且传入时须与当前工程 revision 一致。工具启动默认关闭浏览器音效；用户可在试玩页打开，或 start/device 传 muteAudio:false。',
     parameters: {
       action: {
         type: 'string',
         enum: [
-          'start', 'device', 'view', 'get', 'step', 'pointer', 'key', 'click', 'pause', 'resume', 'stop',
+          'start', 'device', 'fps', 'view', 'get', 'step', 'pointer', 'key', 'click', 'pause', 'resume', 'stop',
           'serverGet', 'serverSet', 'serverSend', 'history', 'saveCase', 'runCase',
         ],
         required: true,
       },
-      args: { type: 'json', description: '动作参数；start 可选 asset(server|client)、templateRootId、animationId、expectedRevision、canvasId、playerCount(1-8)、viewPlayerIndex；省略 asset 时沿用原自动分流。device 使用 canvasId；pointer 使用 type/x/y，step 使用 dt；get/start 可用 inspect:true 拉运行树；view 用 playerIndex 切换当前玩家视角；runCase 可带 canvasId/playerCount；serverSet 使用 entityType/name/value；runCase 使用 case。' },
+      args: { type: 'json', description: '动作参数；start 可选 asset(server|client)、templateRootId、animationId、expectedRevision、canvasId、playerCount(1-8)、viewPlayerIndex；省略 asset 时沿用原自动分流。start/device 可传 fps:30|60（start 默认 30，device 省略则保留），fps 动作用 fps:30|60 原地切换；device 使用 canvasId；pointer 使用 type/x/y，step 使用 dt（省略则推进当前帧率的一帧）；get/start 可用 inspect:true 拉运行树；view 用 playerIndex 切换当前玩家视角；runCase 可带 canvasId/playerCount；serverSet 使用 entityType/name/value；runCase 使用 case。' },
     },
     output: {
       schema: { type: 'json' },
@@ -506,7 +529,7 @@ function registerTools(ctx, registry) {
     timeoutMs: 10_000,
     isConcurrencySafe: () => false,
     async execute(args, exec) {
-      const playArgs = jsonParam(args.args) || {}
+      const playArgs = agentPlayArgs(args.action, jsonParam(args.args) || {})
       return registry.get(toolSessionId(exec), sessionWorkspace(exec)).play(args.action, playArgs, exec.signal)
     },
   }))
@@ -582,7 +605,9 @@ function registerApi(ctx, registry) {
         else if (action === 'history') value = controller.studio.history(body)
         else if (action === 'template') value = controller.studio.template(body)
         else if (action === 'image-url') value = await imageSource.importUrl(body.url)
-        else if (action === 'export') value = controller.exportData(body.format, body.assetType)
+        else if (action === 'export') value = controller.exportData(body.format, body.assetType, body)
+        else if (action === 'export-list') value = controller.exportAction('list')
+        else if (action === 'export-preview') value = controller.exportAction('preview', body)
         else if (action === 'import') value = controller.importData(body.format, body.data, body.filename, { mode: body.mode })
         else if (action === 'archives') value = controller.listArchives()
         else if (action === 'archive-manage') { value = controller.manageArchive(body); registry.remapArchives(controller, value) }
@@ -646,5 +671,6 @@ export function apply(ctx) {
   })
   registerRoute(ctx, { kind: 'prefix', path: '/qxqy-assets', handler: (request, response) => serveImageAsset(request, response) })
   registerRoute(ctx, { kind: 'prefix', path: '/qxqy-audio', handler: (request, response) => serveAudioAsset(request, response) })
+  registerRoute(ctx, { kind: 'prefix', path: '/qxqy-vfx', handler: (request, response) => serveUIVfxAsset(request, response) })
   registerRoute(ctx, { kind: 'prefix', path: '/qxqy-font', handler: serveLocalFont })
 }

@@ -13,9 +13,9 @@ import {
 } from './layout.js'
 import { readCurrentTransform } from './sync.js'
 import { getPlatformTransform } from './transforms.js'
-import { keyCodeOptions } from './keyhint.js'
 import { textLayout } from '../play/text-layout.js'
 import { centerMaskMatrix, imageMaskSpec } from '../play/image-mask.js'
+import { keyHintOptions, resolveKeyHint } from '../key-hints.js'
 
 export function painterBoxes(root, boxes) {
   const out = []
@@ -28,7 +28,7 @@ export function painterBoxes(root, boxes) {
   return out
 }
 
-export function layoutTree(root, canvasId, platform = typeof canvasId === 'object' ? canvasId.platform : platformOfPreset(canvasId)) {
+export function layoutTree(root, canvasId, platform = typeof canvasId === 'object' ? canvasId.platform : platformOfPreset(canvasId), keyHintDevice = 'auto') {
   const canvas = canvasBox(canvasId)
   const boxes = {}
   function rec(node, parentBox, parentMatrix, parentVisible = true, masks = []) {
@@ -65,6 +65,9 @@ export function layoutTree(root, canvasId, platform = typeof canvasId === 'objec
       renderMatrix: matrix,
       ...(nextMasks.length ? { masks: nextMasks } : {}),
       primitive: node.kind === 'image' ? imagePrimitive(node.imageId, node.imageSource) : null,
+      ...(node.kind === 'keyhint' ? { keyHint: resolveKeyHint(node, platform, keyHintDevice) } : {}),
+      ...(['animation', 'fullscreen'].includes(node.kind) ? { animationId: node.animationId ?? null,
+        playSoundEffect: node.playSoundEffect !== false, layer: node.layer || 'AboveAllControls' } : {}),
       ...((node.kind === 'textbox' || node.kind === 'textwindow') ? {
         text: node.text ?? '',
         fontSize: node.fontSize,
@@ -104,10 +107,10 @@ export function layoutTree(root, canvasId, platform = typeof canvasId === 'objec
         raycastTarget: node.raycastTarget !== false,
         interactable: node.interactable !== false,
         clickAudioId: node.clickAudioId,
-        unavailableChildId: node.unavailableChildId ?? null,
+        defaultChildId: node.defaultChildId ?? null,
         hoverChildId: node.hoverChildId ?? null,
         pressedChildId: node.pressedChildId ?? null,
-        selectedChildId: node.selectedChildId ?? null,
+        unavailableChildId: node.unavailableChildId ?? null,
       } : {}),
     }
     const childParent = node.kind === 'server-container' ? parentBox : box
@@ -297,10 +300,10 @@ export function inspectorDto(node, canvasId, box, guidById) {
     fields.push(
       field('raycastTarget', '可被光标射线检测', 'bool', node.raycastTarget !== false),
       field('interactable', '按钮是否可用', 'bool', node.interactable !== false),
-      field('unavailableChildId', '不可用状态节点', 'node', node.unavailableChildId, { options: childOptions, gia: 'W' }),
+      field('defaultChildId', '默认状态节点', 'node', node.defaultChildId, { options: childOptions, gia: 'W' }),
       field('hoverChildId', '悬停状态节点', 'node', node.hoverChildId, { options: childOptions, gia: 'W' }),
       field('pressedChildId', '按下状态节点', 'node', node.pressedChildId, { options: childOptions, gia: 'W' }),
-      field('selectedChildId', '选中状态节点', 'node', node.selectedChildId, { options: childOptions, gia: 'W' }),
+      field('unavailableChildId', '不可用状态节点', 'node', node.unavailableChildId, { options: childOptions, gia: 'W' }),
       field('clickAudioId', '点击音效', 'number', node.clickAudioId),
     )
   }
@@ -329,18 +332,23 @@ export function inspectorDto(node, canvasId, box, guidById) {
     )
   }
   if (node.kind === 'keyhint') {
-    fields.push(
-      field('keyboardKeyCode', '键鼠按键', 'enum', node.keyboardKeyCode ?? node.giaRaw?.keyHintField502 ?? 1, { options: keyCodeOptions('KeyboardKeyCode', node.keyboardKeyCode), gia: 'W' }),
-      field('controllerKeyCode', '手柄按键', 'enum', node.controllerKeyCode ?? node.giaRaw?.keyHintField501 ?? 1, { options: keyCodeOptions('ControllerKeyCode', node.controllerKeyCode) }),
-    )
+    for (const [device, label] of [['keyboard', '键鼠按键'], ['controller', '手柄按键']]) {
+      const value = node[`${device}KeyCode`] ?? 1
+      fields.push(field(`${device}KeyCode`, label, 'enum', value, { options: keyHintOptions(device, value) }))
+    }
   }
   if (node.kind === 'animation' || node.kind === 'fullscreen') {
     fields.push(field('animationId', node.kind === 'animation' ? '动效索引' : '全屏动效索引', 'string', node.animationId ?? ''))
+    fields.push(field('playSoundEffect', '播放动效音效', 'bool', node.playSoundEffect !== false))
+    if (node.kind === 'animation') fields.push(field('layer', '动效层级', 'enum', node.layer || 'AboveAllControls', {
+      options: [{ value: 'AboveAllControls', label: '所有控件之上' }, { value: 'BelowAllControls', label: '所有控件之下' }],
+    }))
   }
   if (!CORE_KINDS.includes(node.kind) || node.kind === 'textwindow' || node.kind === 'grid') {
     fields.push(field('incomplete', '完整度', 'note', node.kind === 'textwindow' || node.kind === 'grid'
-      ? '基础滚动、滚动条及列表配置支持 JSON/Lua；相关 GIA 开关映射尚未核实。'
-      : '本阶段仅公共变换，业务槽不完整'))
+      ? '试玩支持基础滚动；滚动交互、滚动条及列表配置以 JSON/Lua 为准，相关 GIA 开关映射尚未核实。'
+      : node.kind === 'keyhint' ? '支持键帽和手柄图标预览；尚无 GIA 数字映射的键位请在 Lua 中设置。'
+      : ['animation', 'fullscreen'].includes(node.kind) ? '支持浏览器动效播放；非空动效 GIA 配置尚未核实。' : '本阶段仅公共变换，业务槽不完整'))
   }
   return {
     id: node.id,

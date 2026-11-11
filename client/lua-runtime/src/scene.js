@@ -14,7 +14,7 @@ const TYPEOF = {
   reference: 'ClientUIReferenceControl',
 }
 
-const BASE_RO = ['alive', 'Id', 'prefabIndex', 'active', 'activeInHierarchy', 'visible']
+const BASE_RO = ['alive', 'id', 'Id', 'prefabIndex', 'active', 'activeInHierarchy', 'visible']
 
 /** Fields whose mutation invalidates the whole layout (anchors/pivot/size/activity). */
 export const DEEP_DIRTY_FIELDS = new Set([
@@ -134,10 +134,10 @@ const DEFAULTS = {
   textbox: { text: '', fontSize: 20, fontColor: 0xffffffff, bgColor: 0, enableOutline: false, outlineColor: 0, horizontalAlignment: null, verticalAlignment: null, adaptiveFontSize: false, minimumFontSize: 10 },
   textwindow: { interactable: true, showScrollBar: true, text: '', fontSize: 20, fontColor: 0xffffffff, bgColor: 0, enableOutline: false, outlineColor: 0, horizontalAlignment: null, verticalAlignment: null, adaptiveFontSize: false, minimumFontSize: 10 },
   image: { imageSource: null, imageId: 0, imageColor: 0xffffffff, imageType: null, enableMask: false, enableSoftEdge: false, softEdgeMode: 'Percentage', softEdgeWidthX: 8, softEdgeWidthY: 8, horizontalSoftRange: 85, verticalSoftRange: 85, enableFill: false, fillType: 'Unused', fillHorizontalType: 'Left', fillVerticalType: 'Bottom', fillRadial90Type: 'BottomLeft', fillRadialType: 'Bottom', fillClockwise: true, reverseMaskArea: false, fillAmount: 1 },
-  button: { interactable: true, clickAudioId: 0, raycastTarget: true, unavailableChildId: null, hoverChildId: null, pressedChildId: null, selectedChildId: null, pressed: false },
+  button: { interactable: true, clickAudioId: 0, raycastTarget: true, defaultChildId: null, hoverChildId: null, pressedChildId: null, unavailableChildId: null, pressed: false },
   cursor: { raycastTarget: true },
   grid: { itemCount: 0, itemPrefabIndex: null, raycastTarget: true, interactable: true, showScrollBar: true, scrollDirection: 'Vertical', layoutConstraint: 'AutoWrap', layoutConstraintFixedCount: null, scrollProgress: 0, cellSizeX: 50, cellSizeY: 50, spacingX: 8, spacingY: 8, padding1X: 20, padding1Y: 20, padding2X: 20, padding2Y: 20, previewCount: 5 },
-  keyhint: { keyboardKeyCode: null, controllerKeyCode: null },
+  keyhint: { keyboardKeyCode: 'None', controllerKeyCode: 'None' },
   animation: { animationId: null, playSoundEffect: null, layer: null, raycastTarget: false },
   fullscreen: { animationId: null, playSoundEffect: null, raycastTarget: false },
   reference: { referencedPrefabIndex: null },
@@ -186,9 +186,18 @@ export class Control {
       this.runtime.scrollControls ||= new Set()
       this.runtime.scrollControls.add(this)
     }
+    if (this.kind === 'button') {
+      this.runtime.buttonControls ||= new Set()
+      this.runtime.buttonControls.add(this)
+    }
     const extra = DEFAULTS[this.kind] || {}
     for (const [k, v] of Object.entries(extra)) {
       if (this[k] === undefined) this[k] = spec[k] !== undefined ? spec[k] : v
+    }
+    if (this.kind === 'animation' || this.kind === 'fullscreen') {
+      this.runtime.uiAnimations ||= new Set()
+      this.runtime.uiAnimations.add(this)
+      this.PlayAnimation()
     }
     if (this.kind === 'grid') this.scrollProgress = spec.scrollProgress ?? 0
     if (spec.children) {
@@ -398,6 +407,7 @@ export class Control {
 
   // The value a Lua read returns; rotation reads are normalised (see readbackEuler).
   luaFieldValue(key) {
+    if (key === 'id') return this.Id
     if (key === 'imageType') return this.imageType ?? 'Stretch'
     const index = ROTATION_FIELDS.indexOf(key)
     if (index < 0) return this[key]
@@ -593,12 +603,25 @@ export class Control {
     this.markPlayDirty()
   }
 
+  get animationId() { return this._animationId }
+  set animationId(value) {
+    if (this._animationId === value) return
+    this._animationId = value
+    if (this._uiAnimation) this.PlayAnimation()
+  }
+
   PlayAnimation() {
-    // 界面动效尚未实现：方法保留为 Lua API 占位，保证脚本可调用而不抛错。
+    if (!this.alive) return
+    // Preview policy: configured effects auto-start; explicit Play restarts.
+    // Pure logical state, with no media/network dependency inside the VM.
+    this._uiAnimation = { generation: (this._uiAnimation?.generation || 0) + 1,
+      startedAt: this.runtime.clock.time, playing: true }
+    this.markPlayDirty()
   }
 
   StopAnimation() {
-    // 界面动效尚未实现：方法保留为 Lua API 占位，保证脚本可调用而不抛错。
+    if (this._uiAnimation) this._uiAnimation.playing = false
+    this.markPlayDirty()
   }
 
   RefreshItems(count, callback) {

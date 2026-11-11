@@ -80,7 +80,7 @@ test('MCP handshake exposes simulator tools and supports an edit/save round trip
       'look3_script_sync',
       'look3_project_open', 'look3_project_save', 'look3_studio_get', 'look3_studio_patch',
       'look3_studio_transaction', 'look3_studio_history', 'look3_studio_template',
-      'look3_animation_set', 'look3_animation_export',
+      'look3_animation_set', 'look3_animation_export', 'look3_studio_export',
       'look3_studio_play', 'look3_studio_ui_screenshot', 'look3_studio_play_screenshot', 'look3_studio_load',
       'look3_preview_status', 'look3_preview_open',
     ])
@@ -202,8 +202,10 @@ end`,
 test('MCP manual clock advances only on step, including across screenshots and pause/resume (#5)', { timeout: 15000 }, async t => {
   const { call, handle, play } = await clockFixture(t)
   const start = await play('start')
+  assert.equal(start.audioMuted, true, 'tool-started play mutes browser audio unless muteAudio is false')
   await delay(250)
   const idle = await play('get')
+  assert.equal(idle.audioMuted, true)
   assert.equal(idle.time, start.time, 'waiting between MCP calls must not advance Lua')
   assert.equal(idle.frame, start.frame)
   assert.equal(idle.clockMode, 'manual')
@@ -258,6 +260,7 @@ test('MCP realtime is opt-in, pauses correctly and preserves mode on device chan
   await waitForFrames(play, device)
   const restarted = await play('start')
   assert.equal(restarted.clockMode, 'manual', 'a fresh MCP start returns to its default')
+  assert.equal(restarted.audioMuted, true)
   for (const action of ['start', 'device']) {
     const result = await raw('look3_studio_play', { handle, action, args: { canvasId: 'pc-16-9', clockMode: 'invalid' } })
     assert.equal(result.isError, true)
@@ -266,6 +269,7 @@ test('MCP realtime is opt-in, pauses correctly and preserves mode on device chan
   const unchanged = await play('get')
   assert.equal(unchanged.clockMode, 'manual')
   assert.equal(unchanged.time, restarted.time, 'invalid options must not replace the running worker')
+  assert.equal((await play('start', { muteAudio: false })).audioMuted, false)
 })
 
 test('MCP stop/load/start uses updated inline and file-backed scripts (#5.3)', { timeout: 15000 }, async t => {

@@ -9,6 +9,7 @@ import { CANVAS_PRESETS } from '../constants.js'
 import { projectCanvas } from '../ui/canvas.js'
 import { findNode, findParent, selectedTemplateRoot } from '../ui/authoring.js'
 import { readCurrentTransform } from '../ui/sync.js'
+import { keyHintCode } from '../key-hints.js'
 
 const KIND_TO_RUNTIME = {
   container: 'container',
@@ -112,10 +113,10 @@ export function compileControl(node, canvasId, scriptsByNode = null) {
     spec.raycastTarget = node.raycastTarget !== false
     spec.interactable = node.interactable !== false
     spec.clickAudioId = node.clickAudioId
-    spec.unavailableChildId = node.unavailableChildId ?? null
+    spec.defaultChildId = node.defaultChildId ?? null
     spec.hoverChildId = node.hoverChildId ?? null
     spec.pressedChildId = node.pressedChildId ?? null
-    spec.selectedChildId = node.selectedChildId ?? null
+    spec.unavailableChildId = node.unavailableChildId ?? null
   }
   if (node.kind === 'cursor') spec.raycastTarget = node.raycastTarget !== false
   if (node.kind === 'reference') spec.referencedPrefabIndex = node.referencedPrefabId
@@ -139,12 +140,13 @@ export function compileControl(node, canvasId, scriptsByNode = null) {
     spec.scrollProgress = node.scrollProgress ?? 0
   }
   if (node.kind === 'keyhint') {
-    spec.keyboardKeyCode = node.keyboardKeyCode
-    spec.controllerKeyCode = node.controllerKeyCode
+    spec.keyboardKeyCode = keyHintCode(node.keyboardKeyCode, 'keyboard')
+    spec.controllerKeyCode = keyHintCode(node.controllerKeyCode, 'controller')
   }
   if (node.kind === 'animation' || node.kind === 'fullscreen') {
     spec.raycastTarget = false
-    spec.animationId = node.animationId
+    const id = Number(node.animationId)
+    spec.animationId = node.animationId != null && String(node.animationId).trim() !== '' && Number.isSafeInteger(id) ? id : node.animationId
     spec.playSoundEffect = node.playSoundEffect
     if (node.kind === 'animation') spec.layer = node.layer
   }
