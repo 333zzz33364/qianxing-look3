@@ -48,7 +48,7 @@ export async function smokeDshTools(workspace) {
     return result
   }
   try {
-    assert.equal(tools.schemas().filter(tool => tool.name.startsWith('look3_')).length, 13)
+    assert.equal(tools.schemas().filter(tool => tool.name.startsWith('look3_')).length, 14)
     const before = (await call('look3_studio_get')).value
     assert.equal(before.workspace.path, workspace)
     await call('look3_studio_patch', { op: { op: 'renameSave', name: 'Tool pipeline', expectedRevision: before.version } })
@@ -70,7 +70,7 @@ export async function smokeDshTools(workspace) {
     for (let cycle = 0; cycle < 2; cycle++) {
       await owner.restart()
       assert.equal(routes.size, registeredRouteCount)
-      assert.equal(tools.schemas().filter(tool => tool.name.startsWith('look3_')).length, 13)
+      assert.equal(tools.schemas().filter(tool => tool.name.startsWith('look3_')).length, 14)
       assert.equal((await call('look3_studio_get')).value.save.name, '未命名存档')
     }
   } finally {

@@ -11,6 +11,8 @@ import { serveAudioAsset } from 'qxqy-studio/host/audio-assets'
 import { serveUIVfxAsset } from 'qxqy-studio/host/ui-vfx-assets'
 import { localFont, serveLocalFont } from 'qxqy-studio/host/local-font'
 import { readRenderSettings, writeRenderSettings } from 'qxqy-studio/host/render-settings'
+import { inspectGia } from 'qxqy-studio/gia/inspect'
+import { resolveWorkspaceFile } from 'qxqy-studio/host/workspace'
 import { createUpdateChecker } from '../../studio/host/updates.js'
 import { localLanguageRequest, systemLanguage } from '../../studio/host/system-language.js'
 
@@ -26,7 +28,7 @@ const MAX_BODY_BYTES = 64 * 1024 * 1024
 const MAX_SESSIONS = 32
 const SCREENSHOT_TIMEOUT_MS = 60_000
 // Keep the bundled plugin self-contained; bump with the root package version.
-const PRODUCT_VERSION = '3.2.0'
+const PRODUCT_VERSION = '3.3.0'
 const imageSource = createImageSource(process.env.LOOK3_ASSET_CACHE || process.env.LOOK2_ASSET_CACHE || join(process.env.DSH_HOME || join(homedir(), '.dsh'), 'look3-image-cache'))
 
 // DSH only adapts session-specific concerns (touch bookkeeping, JSON-string
@@ -81,8 +83,8 @@ export class SimulatorController extends SharedSimulatorController {
     return super.play(action, jsonParam(rawArgs) || {}, signal)
   }
 
-  async requestScreenshot(signal) {
-    const image = await super.playScreenshot(signal)
+  async requestScreenshot(signal, options) {
+    const image = await super.playScreenshot(signal, options)
     return {
       ...image,
       capturedAt: new Date().toISOString(),
@@ -407,7 +409,9 @@ function registerTools(ctx, registry) {
   ctx.tools.register(defineTool({
     name: 'look3_studio_play_screenshot',
     description: '获取当前试玩 Runtime 画面的 PNG。Host 与独立试玩页共用 Runtime scene 树（同级先出现的子节点在上）再画成 PNG，不需要打开试玩页或切换标签。仅在需要观察运行时画面、动画或交互结果时调用；若要看编辑器舞台，请改用 look3_studio_ui_screenshot。不会步进时间，也不替代 get {inspect:true} 的结构化断言。',
-    parameters: {},
+    parameters: {
+      maskContour: { type: 'boolean', description: '可选：本次截图临时覆盖「遮罩覆盖规则」（true=透明轮廓，false=几何矩形）；省略时使用本机设置。用来对比同一画面的两种规则。' },
+    },
     output: {
       schema: { type: 'json' },
       render: (_args, value) => {
@@ -420,9 +424,9 @@ function registerTools(ctx, registry) {
     },
     timeoutMs: SCREENSHOT_TIMEOUT_MS + 1_000,
     isConcurrencySafe: () => false,
-    async execute(_args, exec) {
+    async execute(args, exec) {
       const controller = registry.get(toolSessionId(exec), sessionWorkspace(exec))
-      const captured = await controller.requestScreenshot(exec.signal)
+      const captured = await controller.requestScreenshot(exec.signal, { maskContour: args.maskContour })
       const attachments = ctx.get?.('attachments')
       if (!attachments?.saveImage) throw new Error('Harness attachment service is unavailable; cannot return screenshot to AI')
       const ref = await attachments.saveImage({
@@ -442,6 +446,32 @@ function registerTools(ctx, registry) {
           ...(ref.name === undefined ? {} : { name: ref.name }),
         },
       }
+    },
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'look3_gia_inspect',
+    description: '只读检查工作区内的 GIA 资产，不导入也不改存档：信封与 Root 元数据、每个 GraphUnit 的 which/类型/GUID/脚本信息、未知单元、GUID 号段与 filePath 校验结果。用于判断节点图导出器等其他工具的产物结构，以及导入是否会丢弃未知单元。',
+    parameters: {
+      path: { type: 'string', required: true, description: '工作区内相对路径的 .gia 文件。' },
+    },
+    output: {
+      schema: { type: 'json' },
+      render: (_args, value) => {
+        const lines = [
+          `${value.assetType}：主图 ${value.counts.graph} / 附件 ${value.counts.accessories} / 模板 ${value.counts.templates} / 脚本 ${value.counts.scripts} / 未知 ${value.counts.unknown}`,
+          `gameVersion ${value.root.gameVersion || '<空>'} · filePath ${value.root.filePath || '<缺失>'}`,
+          value.ok ? 'PASS' : `FAIL：${value.errors.join('；')}`,
+          ...value.warnings.map(warning => `WARN：${warning}`),
+        ]
+        return [{ type: 'text', text: lines.join('\n') }]
+      },
+    },
+    timeoutMs: 10_000,
+    isConcurrencySafe: () => true,
+    async execute(args, exec) {
+      const file = resolveWorkspaceFile(sessionWorkspace(exec), args.path)
+      return inspectGia(readFileSync(file))
     },
   }))
 

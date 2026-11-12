@@ -28,6 +28,7 @@ const toolNames = [
   'look3_script_sync',
   'look3_studio_get',
   'look3_studio_play_screenshot',
+  'look3_gia_inspect',
   'look3_studio_ui_screenshot',
   'look3_studio_patch',
   'look3_studio_play',

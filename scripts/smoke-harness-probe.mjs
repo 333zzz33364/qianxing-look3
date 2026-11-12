@@ -64,7 +64,7 @@ export function apply(ctx, config) {
       } finally { await lease[Symbol.asyncDispose]() }
       assert.ok(await ctx.skills.get('look3-simulator'))
       checks.push('compatibility-preset-skill')
-      assert.equal(ctx.tools.schemas().filter(tool => tool.name.startsWith('look3_')).length, 13)
+      assert.equal(ctx.tools.schemas().filter(tool => tool.name.startsWith('look3_')).length, 14)
       const before = (await call('look3_studio_get')).value
       assert.equal(before.workspace.path, config.workspace)
       await call('look3_studio_patch', { op: { op: 'set', id: 'n2', key: 'text', value: 'Harness 0.2', expectedRevision: before.version } })
@@ -128,7 +128,7 @@ export function apply(ctx, config) {
         // is replaced. Previously the very first restart hit duplicate prefix.
         await call('look3_studio_play', { action: 'start' })
         await owners[0].restart()
-        assert.equal(ctx.tools.schemas().filter(tool => tool.name.startsWith('look3_')).length, 13)
+        assert.equal(ctx.tools.schemas().filter(tool => tool.name.startsWith('look3_')).length, 14)
         const beforeRestartEdit = (await call('look3_studio_get')).value
         await call('look3_studio_patch', { op: { op: 'renameSave', name: `restart-${cycle}`, expectedRevision: beforeRestartEdit.version } })
         const reloaded = await (await fetch(`${url}/look3-simulator/api/get`, {

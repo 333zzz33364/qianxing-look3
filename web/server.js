@@ -18,7 +18,7 @@ import { readRenderSettings, writeRenderSettings } from 'qxqy-studio/host/render
 
 const moduleDir = fileURLToPath(new URL('.', import.meta.url))
 // Keep the bundled/temporary server entry self-contained; bump with the root package version.
-const PRODUCT_VERSION = '3.2.0'
+const PRODUCT_VERSION = '3.3.0'
 let updateChecker = null
 async function readSystemLanguage(request) {
   const { localLanguageRequest, systemLanguage } = await import('../studio/host/system-language.js')

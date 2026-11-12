@@ -54,6 +54,14 @@
       const stage = $('stage')
       const cv = $('cv')
       const renderer = new PixiPlayRenderer(cv, { fontReady: loadBrowserFont() })
+      // 本机「遮罩覆盖规则」与编辑器、PNG 截图共用一份设置；读取失败保持默认几何矩形。
+      fetch('/look3-simulator/api/render-settings', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ sessionId }),
+      }).then(response => response.json())
+        .then(body => { if (body?.ok && body.value?.maskContour === 'contour') renderer.contourMask = true })
+        .catch(() => {})
       const shell = $('shell')
       const workspace = $('workspace')
       const logView = $('logView')

@@ -38,7 +38,6 @@ function safeRenderSettings() {
 export class SimulatorController {
   constructor(workspacePath = '', { imageAssets = sharedImageAssets(), clockMode = 'realtime' } = {}) {
     localFont()
-    this.renderSettings = safeRenderSettings()
     // The DSH adapter can begin before its host exposes a workspace.  Keep the
     // controller usable in that state instead of silently binding it to the
     // process cwd; Web and MCP always pass an explicit workspace.
@@ -402,15 +401,17 @@ export class SimulatorController {
     return this.request(action, args, signal)
   }
 
-  async playScreenshot(signal) {
+  async playScreenshot(signal, { maskContour } = {}) {
     const snapshot = await this.exclusivePlay(async () => {
       if (!this.worker) throw new Error('play session has not started')
       return this.request('get', { view: true }, signal, SCREENSHOT_TIMEOUT_MS)
     })
     const assets = await this.imageAssets.prepare(snapshot.scene?.nodes, signal)
+    // Re-read on every capture so a host-side setting change applies at once.
+    const contour = maskContour === undefined ? maskContourEnabled(safeRenderSettings()) : maskContour === true
     const image = renderScenePng(snapshot.scene, snapshot.canvasWidth, snapshot.canvasHeight, {
       ...assets,
-      contour: maskContourEnabled(this.renderSettings),
+      contour,
     })
     return {
       data: image.data,

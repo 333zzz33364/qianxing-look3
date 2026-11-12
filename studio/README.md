@@ -91,3 +91,12 @@ Studio 全套96/96、Web全套2/2通过；原页面刷新接入后仍保留两�
 ## 2026-09-25 GIA 输入开关
 
 官方 7.1.0 的 9 个对照模板确认容器常驻光标、隔离导航、按键/点击穿透屏蔽、初始激活、手柄聚焦及光标射线检测开关。模拟器按字段读写，保留 footer/cursor 的未知原始非布尔值。回归覆盖官方样本往返、合成字节与 Web API 的整合包导出→导入→Lua 点击；实机点击仍待验证。
+
+## GIA 中非 UI 单元的保留
+
+同一份 GIA 的 Root 可以同时携带 UI 控件单元（which 15/21/69/70）与其他工具的资产，例如节点图、图元素材组（which=61）和未识别的 which。导入时只有 UI 单元进入 Authoring JSON；其余单元的原始 wire 字节与未知根字段由 `gia/opaque.js` 记入 `meta.giaOpaque`，导出时按原序追加回原 bag，因此「导入 → 另存」不再丢节点图。
+
+- 保留单元不参与编辑、预览和 UI 校验。它们的 GUID 会预先占用，新控件不会复用同一编号。
+- `validateGiaCompatibility` / `validateServerGiaCompatibility` 只校验本次生成的 UI 单元；保留单元在校验通过后追加，不会被「无法识别的非控件单元」拒绝。
+- 只读结构报告用 `gia/inspect.js`（CLI `scripts/inspect-gia.mjs`，DSH/MCP 工具 `look3_gia_inspect`）。它直接解析 wire 格式，不依赖 Authoring schema。
+- 边界：保留不等于支持。保留的节点图在编辑器内不可见、不可编辑，只保证字节一致；look3 仍不能读写整份关卡存档 `.gil`，也不能把节点图当可编辑图渲染。

@@ -6,6 +6,7 @@ import { createNode, walk } from '../ui/authoring.js'
 import { keyHintWireCode } from '../key-hints.js'
 import { GUID_BASE, assertExportGuid, collectUsedGuids, isStoredGuid, isValidGuid, nextFreeGuid } from './guid.js'
 import { extractSupportedUiGia } from './mixed-ui.js'
+import { appendOpaqueUnits, opaqueSummary, opaqueUsedGuids, readOpaqueUnits } from './opaque.js'
 import { ensureClientAssetIndices, isValidAssetIndex } from './asset-indices.js'
 import { collectClientNodes } from './client-order.js'
 
@@ -625,21 +626,25 @@ function buildServerGroupRootObject(project, guidById, extra, warnings, filePath
     }))
 }
 
-function encodeAndValidate(rootObject, validate) {
-  const out = encodeGiaEnvelope(rootObject)
-  const compatibility = validate(out)
+function encodeAndValidate(rootObject, validate, opaque = null) {
+  const payload = encodeRootPayload(rootObject)
+  const compatibility = validate(wrapPayload(payload))
   if (!compatibility.valid) {
     throw new Error(`GIA compatibility validation failed:\n${compatibility.errors.join('\n')}`)
   }
-  return out
+  // Preserved foreign units are appended after validation: the authoring
+  // validators only understand UI units and would reject them as unknown.
+  return wrapPayload(appendOpaqueUnits(payload, opaque))
 }
 
 export function exportGia(project, options = {}) {
   walk(project.root, assertPlatformNode)
   const warnings = []
+  const opaque = project.meta?.giaOpaque || null
   const isClientTemplates = project.meta?.assetType === 'client-control-template'
   if (isClientTemplates) ensureClientAssetIndices(project, { warnings })
-  const guidById = assignGuids(toJson(project))
+  const used = opaqueUsedGuids(opaque)
+  const guidById = assignGuids(toJson(project), used)
   let rootObject
   if (isClientTemplates) {
     const extra = scriptGraphUnits(options.scripts || [], new Set(guidById.values()))
@@ -651,7 +656,7 @@ export function exportGia(project, options = {}) {
     warnings.push(...extra.warnings)
     rootObject = buildServerGroupRootObject(project, guidById, extra, warnings)
   }
-  const out = encodeAndValidate(rootObject, isClientTemplates ? validateGiaCompatibility : validateServerGiaCompatibility)
+  const out = encodeAndValidate(rootObject, isClientTemplates ? validateGiaCompatibility : validateServerGiaCompatibility, opaque)
   return { buffer: out, warnings: [...new Set(warnings)] }
 }
 
@@ -664,7 +669,8 @@ export function exportCombinedGia(serverProject, clientProject, options = {}) {
   if (clientProject) ensureClientAssetIndices(clientProject, { warnings })
   const templates = clientProject?.root?.children || []
   if (!templates.length) warnings.push('客户端控件模板为空，整合包只包含服务端控件与脚本。')
-  const used = new Set()
+  const opaque = serverProject.meta?.giaOpaque || clientProject?.meta?.giaOpaque || null
+  const used = opaqueUsedGuids(opaque)
   const serverCopy = toJson(serverProject)
   const clientCopy = clientProject ? toJson(clientProject) : null
   const serverGuids = assignGuids(serverCopy, used)
@@ -693,7 +699,7 @@ export function exportCombinedGia(serverProject, clientProject, options = {}) {
     gameVersion: exportGameVersion({ meta: { gameVersion: serverProject.meta?.gameVersion || clientProject?.meta?.gameVersion } }),
     ...rootModeFields(serverProject),
   }
-  const out = encodeAndValidate(rootObject, validateServerGiaCompatibility)
+  const out = encodeAndValidate(rootObject, validateServerGiaCompatibility, opaque)
   return { buffer: out, warnings: [...new Set(warnings)] }
 }
 
@@ -708,10 +714,13 @@ function scriptDisplayName(script) {
   return base.replace(/\.lua$/iu, '') || `脚本${script.id || ''}`
 }
 
-function encodeGiaEnvelope(rootObject) {
+function encodeRootPayload(rootObject) {
   const error = RootType.verify(rootObject)
   if (error) throw new Error(`GIA encode validation failed: ${error}`)
-  const payload = RootType.encode(RootType.create(rootObject)).finish()
+  return Buffer.from(RootType.encode(RootType.create(rootObject)).finish())
+}
+
+function wrapPayload(payload) {
   const out = Buffer.alloc(HEADER_BYTES + payload.length + TAIL_BYTES)
   out.writeUInt32BE(out.length - 4, 0)
   out.writeUInt32BE(1, 4)
@@ -721,6 +730,10 @@ function encodeGiaEnvelope(rootObject) {
   Buffer.from(payload).copy(out, HEADER_BYTES)
   out.writeUInt32BE(TAIL_TAG, HEADER_BYTES + payload.length)
   return out
+}
+
+function encodeGiaEnvelope(rootObject) {
+  return wrapPayload(encodeRootPayload(rootObject))
 }
 
 function scriptGraphUnits(scripts, used = new Set()) {
@@ -1152,13 +1165,6 @@ export function importGia(input) {
     : (graphGroup ? [] : [...graphs, ...accessories])
   if (!serverUnits.length && !clientUnits.length) throw new Error('GIA 不含客户端控件')
   const warnings = ['GIA 导入为已验证 UI 字段的语义导入；未知 protobuf 字段不会进入 Authoring JSON。']
-  const skippedNonUiCount = extracted.mixed
-    ? (extracted.skippedNonUiCount || 0)
-    : allUnits.filter(unit => !uiUnit(unit) && Number(unit.which) !== SCRIPT_MAPPING_WHICH && Number(unit.which) !== 61).length
-  const skippedUnsupportedUiCount = extracted.skippedUnsupportedUiCount
-    ?? allUnits.filter(unit => Number(unit.which) === 61).length
-  if (skippedNonUiCount) warnings.push(`跳过 ${skippedNonUiCount} 个非 UI / 非脚本依赖单元；这些资源不会进入存档或重新导出。`)
-  if (skippedUnsupportedUiCount) warnings.push(`跳过 ${skippedUnsupportedUiCount} 个尚未支持的图元素材组（which=61）；这类 UI 资源不会进入存档或重新导出。`)
   if (extracted.mixed) {
     warnings.push(`已从混合 GIA 提取${extracted.selectedGroup || '客户端模板'}和 ${extracted.templateCount} 个客户端模板；${extracted.skippedGroupCount} 个其他服务端界面控件组未导入。`)
   }
@@ -1230,6 +1236,23 @@ export function importGia(input) {
     for (const root of forest.rootCandidates) walk(root, node => node.children.reverse())
     if (!project) project = clientProject
   }
+  // Everything the authoring model did not materialize keeps its wire bytes so
+  // a save cannot silently drop node graphs or other tools' assets.
+  const consumedGuids = new Set()
+  if (Number.isSafeInteger(graphGroup?.id?.id)) consumedGuids.add(graphGroup.id.id)
+  for (const unit of [...serverUnits, ...clientUnits]) {
+    if (Number.isSafeInteger(unit.id?.id)) consumedGuids.add(unit.id.id)
+  }
+  for (const script of extractedScripts.scripts) {
+    if (Number.isSafeInteger(script.guid)) consumedGuids.add(script.guid)
+  }
+  const opaque = readOpaqueUnits(input, { consumedGuids })
+  const summary = opaqueSummary(opaque)
+  if (summary.units || summary.rootFields) {
+    warnings.push(`已按原始字节保留 ${summary.units} 个非 UI 单元（which=${summary.which.join(',') || '无'}）与 ${summary.rootFields} 个未知根字段；导出时写回，编辑器内不可见。`)
+    if (project) project.meta.giaOpaque = opaque
+    if (clientProject) clientProject.meta.giaOpaque = opaque
+  }
   return {
     project,
     clientProject: clientProject && project !== clientProject ? clientProject : undefined,
@@ -1240,6 +1263,7 @@ export function importGia(input) {
       filePath: decoded.filePath || '',
       ...(Number.isSafeInteger(Number(decoded.modeFlag)) ? { modeFlag: Number(decoded.modeFlag) } : {}),
       combined: Boolean(graphGroup && templateGraphs.length),
+      ...(summary.units ? { opaqueUnits: summary.units, opaqueWhich: summary.which } : {}),
       ...(extracted.mixed ? { sourceUiGroups: extracted.groupNames, skippedUiGroups: extracted.skippedGroupCount } : {}),
     },
   }

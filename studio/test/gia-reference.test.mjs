@@ -222,14 +222,15 @@ test('template-index changes do not rewrite a legacy mixed opaque reference afte
   assertReferenceWire(saved.assets.server, inner, outer)
 })
 
-test('non-UI resources are skipped and accessory script mappings keep client mounts', () => {
+test('non-UI resources are preserved byte-for-byte and accessory script mappings keep client mounts', () => {
   const dependency = cat(msg(1, num(4, 1500000001)), str(3, 'unsupported resource'), num(5, 123))
   for (const scriptLocation of [1, 2]) {
     const input = envelope(cat(msg(1, reference({ mount: true })), msg(scriptLocation, scriptUnit()), msg(2, dependency)))
     const imported = importGia(input)
     assert.equal(imported.project.root.children.length, 1)
     assert.equal(imported.scripts.length, 1)
-    assert.ok(imported.warnings.some(line => line.includes('跳过 1 个非 UI')))
+    assert.ok(imported.warnings.some(line => line.includes('已按原始字节保留 1 个非 UI 单元')))
+    assert.ok(exportGia(imported.project).buffer.includes(dependency), '非 UI 资源应在导出时写回')
 
     const target = createStudio()
     const result = target.importData('gia', input.toString('base64'), 'reference.gia')
@@ -240,13 +241,16 @@ test('non-UI resources are skipped and accessory script mappings keep client mou
   }
 })
 
-test('mixed GIA reports unsupported primitive groups separately from non-UI dependencies', () => {
+test('mixed GIA preserves unsupported primitive groups and non-UI dependencies verbatim', () => {
   const dependency = cat(msg(1, num(4, 1500000001)), str(3, 'unsupported resource'), num(5, 123))
   const input = envelope(cat(msg(1, clientControlGroup()), msg(1, reference()), msg(1, primitiveGroup()), msg(2, dependency)))
   const imported = importGia(input)
   assert.equal(imported.project.meta.assetType, 'client-control-template')
-  assert.ok(imported.warnings.some(line => line.includes('跳过 1 个尚未支持的图元素材组（which=61）')))
-  assert.ok(imported.warnings.some(line => line.includes('跳过 1 个非 UI / 非脚本依赖单元')))
+  assert.ok(imported.warnings.some(line => line.includes('已按原始字节保留 2 个非 UI 单元')))
+  assert.deepEqual(imported.metadata.opaqueWhich, [61, 123])
+  const output = exportGia(imported.project).buffer
+  assert.ok(output.includes(primitiveGroup()), 'which=61 图元素材组应原样写回')
+  assert.ok(output.includes(dependency), '非 UI 依赖应原样写回')
 
   assert.throws(() => importGia(envelope(msg(1, primitiveGroup()))), /尚未支持导入图元素材组（which=61）.*仅支持客户端 UI 控件容器（which=21）和客户端模板（which=70）/)
 })

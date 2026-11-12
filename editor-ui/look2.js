@@ -26,6 +26,9 @@ import { createPartialExportDialog, PARTIAL_EXPORT_CSS } from './partial-export.
 import { BrowserUIVfxPlayer } from '../studio/play/ui-vfx-player.js'
 import { centerMaskMatrix } from '../studio/play/image-mask.js'
 import { createKeyHintPreview } from './key-hint-preview.js'
+import { SIGNAL_PARAM_TYPES, createSignalParam, serializeSignalParams, signalParamHint } from './signal-params.js'
+import { easeTypeLabel } from './ease-labels.js'
+import { entityLabel, signalParamTypeLabel } from './enum-labels.js'
 import { imageAssetKey, imageAssetUrl, imageSourceName, isRemoteImage } from '../studio/assets/catalog.js'
 import { loadBrowserImageAsset, loadBrowserImageMetadata, refreshBrowserImage, subscribeImageRefresh } from '../studio/assets/browser.js'
 
@@ -579,6 +582,22 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
         if (owner.fullscreenElement === panel) void owner.exitFullscreen().catch(() => {})
       }
     }, [Boolean(snap)])
+    // 动画页签的标签条绝对定位在时间轴头部右上。把实测宽度写入 CSS 变量，
+    // 头部按实际宽度让位，标签变长或窗口缩放时不会压住提示文字。
+    React.useEffect(() => {
+      const panel = dockRef.current
+      if (!panel) return undefined
+      const tabs = panel.querySelector(':scope > .look2-dock-tabs')
+      if (!tabs || typeof ResizeObserver !== 'function') return undefined
+      const update = () => panel.style.setProperty('--dock-tabs-space', `${Math.ceil(tabs.getBoundingClientRect().width) + 10}px`)
+      update()
+      const observer = new ResizeObserver(update)
+      observer.observe(tabs)
+      return () => {
+        observer.disconnect()
+        panel.style.removeProperty('--dock-tabs-space')
+      }
+    }, [dockTab, Boolean(snap)])
     async function toggleDockFullscreen() {
       const panel = dockRef.current
       if (!panel) return
@@ -595,7 +614,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
     const [serverVariable, setServerVariable] = React.useState('')
     const [serverValue, setServerValue] = React.useState('0')
     const [signalName, setSignalName] = React.useState('')
-    const [signalParams, setSignalParams] = React.useState('[]')
+    const [signalArgs, setSignalArgs] = React.useState([])
     const [signalTarget, setSignalTarget] = React.useState('PlayerSelf')
     const errorRef = React.useRef('')
     errorRef.current = error
@@ -2785,7 +2804,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
       key.leftValue !== undefined ? h('div', { className: 'look2-field' }, h('label', null, '入侧值'), valueEditor(key.leftValue, selectedTrack.fieldKey, '入侧属性值', 'leftValue')) : null,
       key.leftValue === undefined ? h('button', { onClick: () => updateKeyValues(target => ({ leftValue: clone(target.value), leftRelative: false })) }, '添加入侧跳变值') : h('button', { onClick: () => updateKey('leftValue', undefined) }, '移除入侧值'),
       selectedTrack.fieldKey !== 'visible' ? h(React.Fragment, null,
-        h('div', { className: 'look2-field' }, h('label', null, '缓动'), h('select', { value: key.easeType || 'Linear', onChange: event => updateKey('easeType', event.target.value) }, EASE_TYPES.map(value => h('option', { key: value, value }, value)))),
+        h('div', { className: 'look2-field' }, h('label', null, '缓动'), h('select', { value: key.easeType || 'Linear', onChange: event => updateKey('easeType', event.target.value) }, EASE_TYPES.map(value => h('option', { key: value, value, title: value }, easeTypeLabel(value))))),
         h('div', { className: 'look2-field' }, h('label', null, '插值'), h('select', { value: key.interpolation || 'tween', onChange: event => updateKey('interpolation', event.target.value) }, h('option', { value: 'tween' }, '补间'), h('option', { value: 'step' }, '阶跃'))),
         TWEENABLE_FIELDS.find(field => field.fieldKey === selectedTrack.fieldKey)?.relative ? h('div', { className: 'look2-field' }, h('label', null, '相对前帧'), h('input', { type: 'checkbox', checked: key.relative === true, onChange: event => updateKey('relative', event.target.checked) })) : null,
         key.leftValue !== undefined ? h('div', { className: 'look2-field' }, h('label', null, '入侧相对前帧'), h('input', { type: 'checkbox', checked: key.leftRelative === true, onChange: event => updateKey('leftRelative', event.target.checked) })) : null
@@ -2865,6 +2884,15 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
         setMessage(`已导出试玩日志（运行日志 ${runtimeLogs.length} 条）`)
       } catch (reason) { setError(String(reason?.message || reason)) }
     }
+    const addSignalParam = () => setSignalArgs(rows => [...rows, createSignalParam()])
+    const updateSignalArg = (index, patch) => setSignalArgs(rows => rows.map((row, i) => (i === index ? { ...row, ...patch } : row)))
+    const removeSignalParam = index => setSignalArgs(rows => rows.filter((_, i) => i !== index))
+    const signalParamRows = signalArgs.map((row, index) => h('div', { className: 'look2-debug-row', key: `signal-arg-${index}` },
+      h('select', { value: row.type, 'aria-label': `参数 ${index + 1} 类型`, onChange: event => setSignalArgs(rows => rows.map((item, i) => (i === index ? createSignalParam(event.target.value) : item))) }, SIGNAL_PARAM_TYPES.map(value => h('option', { key: value, value, title: value }, signalParamTypeLabel(value)))),
+      row.type === 'Bool'
+        ? h('input', { type: 'checkbox', checked: row.value === true, 'aria-label': `参数 ${index + 1} 值`, onChange: event => updateSignalArg(index, { value: event.target.checked }) })
+        : h('input', { value: row.value, placeholder: signalParamHint(row.type), 'aria-label': `参数 ${index + 1} 值`, onChange: event => updateSignalArg(index, { value: event.target.value }) }),
+      h('button', { 'aria-label': `移除参数 ${index + 1}`, onClick: () => removeSignalParam(index) }, '移除')))
     const debugPanel = h('div', { className: 'look2-runtime-debug' },
       h('section', { className: 'look2-debug-card' },
         h('h3', null, '运行状态与控件树'),
@@ -2878,7 +2906,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
         h('pre', { role: 'log' }, debugJson(runtimeLogs)),
         h('h3', null, '设置运行变量'),
         h('div', { className: 'look2-debug-row' },
-          h('select', { value: serverEntity, onChange: event => setServerEntity(event.target.value), 'aria-label': '变量实体' }, ['PlayerSelf', 'Level', ...Array.from({ length: 8 }, (_, index) => `Player${index + 1}`)].map(value => h('option', { key: value, value }, value))),
+          h('select', { value: serverEntity, onChange: event => setServerEntity(event.target.value), 'aria-label': '变量实体' }, ['PlayerSelf', 'Level', ...Array.from({ length: 8 }, (_, index) => `Player${index + 1}`)].map(value => h('option', { key: value, value, title: value }, entityLabel(value)))),
           h('input', { value: serverVariable, placeholder: '变量名', 'aria-label': '变量名', onChange: event => setServerVariable(event.target.value) }),
           h('input', { value: serverValue, placeholder: 'JSON 值', 'aria-label': '变量值', onChange: event => setServerValue(event.target.value) }),
           h('button', { disabled: !playReady || !serverVariable.trim(), onClick: () => {
@@ -2889,15 +2917,17 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
         h('h3', null, '发送服务端信号'),
         h('div', { className: 'look2-debug-row' },
           h('input', { value: signalName, placeholder: '信号名', 'aria-label': '信号名', onChange: event => setSignalName(event.target.value) }),
-          h('input', { value: signalParams, placeholder: '参数 JSON 数组', 'aria-label': '信号参数', onChange: event => setSignalParams(event.target.value) }),
-          h('select', { value: signalTarget, onChange: event => setSignalTarget(event.target.value), 'aria-label': '信号目标' }, ['PlayerSelf', 'AllPlayers', ...Array.from({ length: 8 }, (_, index) => `Player${index + 1}`)].map(value => h('option', { key: value, value }, value))),
+          h('select', { value: signalTarget, onChange: event => setSignalTarget(event.target.value), 'aria-label': '信号目标' }, ['PlayerSelf', 'AllPlayers', ...Array.from({ length: 8 }, (_, index) => `Player${index + 1}`)].map(value => h('option', { key: value, value, title: value }, entityLabel(value)))),
           h('button', { disabled: !playReady || !signalName.trim(), onClick: () => {
             try {
-              const params = JSON.parse(signalParams || '[]')
-              if (!Array.isArray(params)) throw new Error('信号参数必须是 JSON 数组')
+              const params = serializeSignalParams(signalArgs)
               void sendPlayAction('serverSend', { name: signalName.trim(), params, target: signalTarget })
             } catch (reason) { setError(String(reason.message || reason)) }
-          } }, '发送'))))
+          } }, '发送')),
+        h('div', { className: 'look2-debug-row' },
+          h('button', { 'aria-label': '添加信号参数', onClick: addSignalParam }, '添加参数'),
+          h('span', null, signalArgs.length ? `${signalArgs.length} 个参数` : '无参数；类型只影响服务端日志与录像，客户端收到值本身')),
+        ...signalParamRows))
     const dockContent = dockTab === 'animation' ? timeline : dockTab === 'debug' ? debugPanel
       : WorkspaceDock ? h(WorkspaceDock, {
         activeTab: dockTab, sessionId, snap, patch, api, exportFile,
@@ -3035,7 +3065,7 @@ nav[aria-label="look2.0 工作区"]{position:relative!important;flex:0 0 54px!im
       ...(row && row.id !== contextData ? [[`移入“${row.name}”`, () => reparentNode(contextData, row.id)]] : []),
     ] : contextMenu?.type === 'key' ? [
       ['复制选中关键帧', copySelectedKeys], ['粘贴到播放头', pasteKeys], ['删除选中关键帧', removeSelectedKeys],
-      ...(contextTrack?.fieldKey === 'visible' ? [] : EASE_TYPES.map(ease => [`缓动 · ${ease}`, () => setContextEase(ease)])),
+      ...(contextTrack?.fieldKey === 'visible' ? [] : EASE_TYPES.map(ease => [`缓动 · ${easeTypeLabel(ease)}`, () => setContextEase(ease)])),
     ] : contextMenu?.type === 'timeline-lane' ? [['在此处添加关键帧', () => addKeyframeAt(contextData.trackId, contextData.time)]]
       : contextMenu?.type === 'animation' ? [['复制动画', () => duplicateAnimation(contextData)], ['删除动画', () => removeAnimation(contextData)]]
       : contextMenu?.type === 'track' ? [['添加当前关键帧', () => { const track = allTracks.find(item => item.id === contextData); if (track) addKeyframe(track) }], ['删除轨道', () => removeTrack(contextData)]]

@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 
+import { readFileSync } from 'node:fs'
 import { SimulatorController } from './lib/controller.js'
 import { agentPlayArgs } from 'qxqy-studio/play/audio-policy'
-import { listWorkspaceArchives, resolveWorkspaceRoot } from './lib/workspace.js'
+import { inspectGia } from 'qxqy-studio/gia/inspect'
+import { listWorkspaceArchives, resolveWorkspaceFile, resolveWorkspaceRoot } from './lib/workspace.js'
 import { createPreviewClient } from './lib/preview.js'
 import manifest from './package.json' with { type: 'json' }
 import { listArchiveWorkspaces } from '../studio/host/archive-management.js'
@@ -167,8 +169,11 @@ const tools = [
   },
   {
     name: 'look3_studio_play_screenshot',
-    description: '获取当前试玩 Runtime 画面的 PNG；必须先 start，截图不调用 step。默认 manual 模式保持当前帧；显式 realtime 模式在调用之间仍自动运行。回执含 frame/time/clockMode。',
-    inputSchema: objectSchema(handleProperty, ['handle']),
+    description: '获取当前试玩 Runtime 画面的 PNG；必须先 start，截图不调用 step。默认 manual 模式保持当前帧；显式 realtime 模式在调用之间仍自动运行。回执含 frame/time/clockMode。可选 maskContour 临时覆盖本机「遮罩覆盖规则」以对比同一画面的两种规则。',
+    inputSchema: objectSchema({
+      ...handleProperty,
+      maskContour: { type: 'boolean', description: 'true=透明轮廓，false=几何矩形；省略时使用本机设置。' },
+    }, ['handle']),
   },
   {
     name: 'look3_studio_load',
@@ -180,6 +185,11 @@ const tools = [
       name: { type: 'string', description: '新工作区名或存档文件名。' },
       expectedRevision: { type: 'integer' },
     }),
+  },
+  {
+    name: 'look3_gia_inspect',
+    description: '只读检查工作区内的 GIA 资产，不导入也不改存档：信封与 Root 元数据、每个 GraphUnit 的 which/类型/GUID/脚本信息、未知单元、GUID 号段与 filePath 校验结果。用于判断节点图导出器等其他工具的产物结构，以及导入是否会丢弃未知单元。不需要工程句柄。',
+    inputSchema: objectSchema({ path: { type: 'string', description: '工作区内相对路径的 .gia 文件。' } }, ['path']),
   },
   {
     name: 'look3_preview_status',
@@ -241,6 +251,9 @@ async function callTool(name, args = {}, signal) {
     }
   }
 
+  if (name === 'look3_gia_inspect') {
+    return inspectGia(readFileSync(resolveWorkspaceFile(workspaceRoot, args.path)))
+  }
   if (name === 'look3_studio_load' && !args.handle && !args.path && !args.operation) {
     return { ...listWorkspaceArchives(workspaceRoot), workspaces: listArchiveWorkspaces(workspaceRoot) }
   }
@@ -262,7 +275,7 @@ async function callTool(name, args = {}, signal) {
     if (name === 'look3_studio_export') return controller.exportAction(args.action, args.args || {})
     if (name === 'look3_studio_play') return controller.play(args.action, agentPlayArgs(args.action, args.args || {}), signal)
     if (name === 'look3_studio_ui_screenshot') return controller.uiScreenshot(signal)
-    if (name === 'look3_studio_play_screenshot') return controller.playScreenshot(signal)
+    if (name === 'look3_studio_play_screenshot') return controller.playScreenshot(signal, { maskContour: args.maskContour })
     if (name === 'look3_studio_load') {
       if (args.operation) {
         const result = controller.manageArchive(args)

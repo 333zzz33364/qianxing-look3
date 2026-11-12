@@ -18,6 +18,7 @@ import { isRemoteImage, imageAssetKey } from '../studio/assets/catalog.js'
 import { refreshBrowserImage } from '../studio/assets/browser.js'
 import { loadBrowserFont } from '../studio/play/browser-font.js'
 import { createEditorFooter } from './footer.js'
+import { entityLabel } from './enum-labels.js'
 
 export function createEditor(React, { api, playUrl, saveToWorkspace = false, updatePath = '', languagePath = '' }) {
     const e = React.createElement
@@ -466,13 +467,7 @@ export function createEditor(React, { api, playUrl, saveToWorkspace = false, upd
     }
     const PLAYER_LOGIC_TARGETS = ['PlayerSelf', 'AllPlayers', 'Player1', 'Player2', 'Player3', 'Player4', 'Player5', 'Player6', 'Player7', 'Player8']
     const PLAYER_LOGIC_ENTITIES = ['PlayerSelf', 'Level', 'Player1', 'Player2', 'Player3', 'Player4', 'Player5', 'Player6', 'Player7', 'Player8']
-    const PLAYER_LOGIC_LABELS = {
-      PlayerSelf: 'PlayerSelf 当前玩家',
-      AllPlayers: 'AllPlayers 全部玩家',
-      Level: 'Level 关卡',
-      Player1: 'Player1 玩家1', Player2: 'Player2 玩家2', Player3: 'Player3 玩家3', Player4: 'Player4 玩家4',
-      Player5: 'Player5 玩家5', Player6: 'Player6 玩家6', Player7: 'Player7 玩家7', Player8: 'Player8 玩家8',
-    }
+    const PLAYER_LOGIC_LABELS = Object.fromEntries([...PLAYER_LOGIC_ENTITIES, 'AllPlayers'].map(value => [value, entityLabel(value)]))
     function normalizeLogicEntity(value) {
       return PLAYER_LOGIC_ENTITIES.includes(value) && value !== 'AllPlayers' ? value : (value === 'Level' ? 'Level' : 'PlayerSelf')
     }

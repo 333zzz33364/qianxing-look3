@@ -113,9 +113,10 @@ export const REFERENCE_THEME = `
 .look2 .qxsim-field-label{color:#a7bfe6}
 .look2 .qxsim-section-actions button{font-size:9px;padding:1px 3px}
 .look2-dock{position:relative;min-height:150px;max-height:55%;background:#232b36;border-color:#596170}
-.look2-dock:has(.look2-timeline)>.look2-dock-tabs{position:absolute;right:0;top:4px;width:205px;height:33px;z-index:6;border-bottom:0;background:#1d242e}
+.look2-dock:has(.look2-timeline)>.look2-dock-tabs{position:absolute;right:0;top:4px;width:auto;max-width:calc(100% - 12px);height:33px;z-index:6;border-bottom:0;background:#1d242e;overflow-x:auto;scrollbar-width:none}
 .look2-dock:has(.look2-timeline)>.look2-dock-tabs>span:first-child{display:none}
-.look2-dock:has(.look2-timeline) .look2-timeline-top{margin-right:205px}
+.look2-dock:has(.look2-timeline) .look2-timeline-top{margin-right:var(--dock-tabs-space,205px)}
+.look2-dock-content>.look2-timeline{flex:1 1 auto;min-width:0}
 .look2-timeline-resize{position:relative;height:3px;flex-basis:3px;background:#596170}
 .look2-timeline-resize:after{content:'';position:absolute;left:48%;top:-2px;width:54px;height:4px;border:1px solid #8c99ad;background:#454c59;border-radius:4px}
 .look2-dock-tabs{justify-content:flex-end;height:28px;min-height:28px;background:#1d242e;padding:2px 8px}
@@ -131,7 +132,8 @@ export const REFERENCE_THEME = `
 .look2-time-readout{width:85px;font-size:10px}
 .look2-timeline-top select{max-width:150px}
 .look2-timeline-top .look2-sequence-name{color:#d7e4fc;font-size:10px;max-width:130px;overflow:hidden;text-overflow:ellipsis}
-.look2-timeline-top .look2-timeline-hint{margin-left:auto;color:#8eacda;font-size:10px;white-space:nowrap}
+.look2-timeline-top .look2-timeline-hint{margin-left:auto;color:#8eacda;font-size:10px;white-space:nowrap;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:1100px){.look2-timeline-top .look2-timeline-hint{display:none}}
 .look2-ruler-row{height:32px;min-height:32px}
 .look2-ruler-row .look2-ruler-lane{height:32px}
 .look2-ruler-mark{font-size:10px;padding:8px 4px;color:#adc7ee}
